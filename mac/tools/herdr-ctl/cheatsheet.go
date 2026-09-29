@@ -48,7 +48,7 @@ var cheatsheetSections = []Section{
 		Color: cMauve,
 		Items: []Item{
 			{"ctrl+b → h", "Este cheatsheet interactivo"},
-			{"ctrl+b → f", "Toggle sidebar (explorador de proyectos)"},
+			{"ctrl+b → f", "Toggle sidebar (explorador)"},
 			{"ctrl+b → m", "Auto-ajustar sidebar según pantalla"},
 			{"ctrl+b → Shift+F", "Sidebar quick-open (Ctrl+P)"},
 			{"ctrl+b → Shift+Q", "Settings de cuota (agent-usage)"},
@@ -61,7 +61,7 @@ var cheatsheetSections = []Section{
 			{"ctrl+b → c", "Nuevo tab"},
 			{"ctrl+b → n / p", "Tab siguiente / anterior"},
 			{"ctrl+b → [", "Modo scroll (q para salir)"},
-			{"ctrl+b → d", "Detach sesión (herdr queda en segundo plano)"},
+			{"ctrl+b → d", "Detach sesión (herdr queda en background)"},
 			{"ctrl+b → z", "Zoom / restaurar pane actual"},
 			{"ctrl+b → \"", "Split horizontal"},
 			{"ctrl+b → %", "Split vertical"},
@@ -91,7 +91,7 @@ var cheatsheetSections = []Section{
 		Items: []Item{
 			{"z <carpeta>", "Saltar a directorio frecuente (zoxide)"},
 			{"Ctrl+R", "Historial interactivo sincronizado"},
-			{"Tab", "Menú fzf interactivo con autocompletado"},
+			{"Tab", "Menú fzf interactivo con previews"},
 			{"rg <texto>", "Buscar texto ultra rápido (ripgrep)"},
 			{"fd <nombre>", "Buscar archivos ultra rápido"},
 			{"bat <archivo>", "Cat con sintaxis y números de línea"},
@@ -182,28 +182,39 @@ func runCheatsheet() {
 
 	draw := func() {
 		termW, _, err := term.GetSize(int(os.Stdout.Fd()))
-		if err != nil || termW < 40 {
+		if err != nil || termW < 60 {
 			termW = 80
 		}
+		boxW := termW - 2
+		if boxW > 78 {
+			boxW = 78
+		}
+		if boxW < 60 {
+			boxW = 60
+		}
 
-		// Limpiar pantalla y posicionar cursor arriba a la izquierda
+		// Limpiar pantalla y cursor a inicio
 		fmt.Print("\033[?25l\033[2J\033[H")
 
-		// Barra de búsqueda si está activa o con filtro
-		if filter != "" || searchMode {
-			searchBar := fmt.Sprintf(" %s/%s %s%s%s", cBlue, cReset, cYellow, filter, cReset)
-			if searchMode {
-				searchBar += fmt.Sprintf("%s▌%s", cYellow, cReset)
-			}
-			fmt.Printf("%s\r\n\r\n", searchBar)
+		// Header en tarjeta
+		fmt.Printf(" %s%s┌%s┐%s\r\n", cBold, cMauve, strings.Repeat("─", boxW-2), cReset)
+		title := "  󰌌  herdr cheatsheet"
+		if filter != "" {
+			title += fmt.Sprintf("  / %s%s%s", cYellow, filter, cMauve)
 		}
+		if searchMode {
+			title += fmt.Sprintf("%s▌%s", cYellow, cMauve)
+		}
+		innerHeaderWidth := boxW - 4
+		fmt.Printf(" %s%s│%s %s %s%s│%s\r\n", cBold, cMauve, cReset, padRight(title, innerHeaderWidth-1), cBold, cMauve, cReset)
+		fmt.Printf(" %s%s└%s┘%s\r\n\r\n", cBold, cMauve, strings.Repeat("─", boxW-2), cReset)
 
 		// Filtrar y renderizar paneles
 		var renderedPanels []string
 		ft := strings.ToLower(filter)
 
-		keyCols := 22
-		descCols := termW - keyCols - 5
+		keyCols := 20
+		descCols := boxW - keyCols - 7
 		if descCols < 20 {
 			descCols = 20
 		}
@@ -220,25 +231,29 @@ func runCheatsheet() {
 				continue
 			}
 
-			// Divisor de sección elegante sin cajas dobles
+			// Borde superior de tarjeta: ╭─ Title ──...──╮
 			titleStr := fmt.Sprintf(" %s ", sec.Title)
 			titleLen := runeWidth(titleStr)
-			dashCount := termW - 3 - titleLen
+			dashCount := boxW - 2 - 1 - titleLen
 			if dashCount < 2 {
 				dashCount = 2
 			}
-			panel := fmt.Sprintf("%s%s──%s%s%s%s\r\n", cBold, sec.Color, titleStr, cSurface, strings.Repeat("─", dashCount), cReset)
+			panel := fmt.Sprintf(" %s%s╭─%s%s%s%s╮%s\r\n", cBold, sec.Color, titleStr, cSurface, strings.Repeat("─", dashCount), sec.Color+cBold, cReset)
 
-			// Items con padding exacto
+			// Items dentro de la tarjeta con bordes alineados
 			for _, item := range matchingItems {
 				k := padRight(truncateRunes(item.Key, keyCols), keyCols)
 				d := padRight(truncateRunes(item.Desc, descCols), descCols)
-				panel += fmt.Sprintf("  %s%s%s %s%s%s\r\n",
+				panel += fmt.Sprintf(" %s│  %s%s%s %s%s%s  %s│%s\r\n",
+					cSurface,
 					sec.Color+cBold, k, cReset,
 					cText, d, cReset,
+					cSurface, cReset,
 				)
 			}
-			panel += "\r\n"
+
+			// Borde inferior de tarjeta: ╰────────╯
+			panel += fmt.Sprintf(" %s╰%s╯%s\r\n", cSurface, strings.Repeat("─", boxW-2), cReset)
 			renderedPanels = append(renderedPanels, panel)
 		}
 
@@ -256,8 +271,8 @@ func runCheatsheet() {
 			}
 		}
 
-		// Footer limpio al final
-		fmt.Printf(" %s%s↑↓ j/k%s %snavegar%s   %s%s/%s %sbuscar%s   %s%sq Esc%s %ssalir%s\r\n",
+		// Footer
+		fmt.Printf("\r\n  %s%s↑↓ j/k%s %snavegar%s   %s%s/%s %sbuscar%s   %s%sq Esc%s %ssalir%s\r\n",
 			cBold, cMauve, cReset, cSubtext, cReset,
 			cBold, cBlue, cReset, cSubtext, cReset,
 			cBold, cRed, cReset, cSubtext, cReset,
