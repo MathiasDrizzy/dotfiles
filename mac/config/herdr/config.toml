@@ -7,7 +7,7 @@ name = "catppuccin"
 agent_panel_sort = "spaces" # herdr-agent-usage
 
 [ui.sound]
-enabled = false
+enabled = true
 
 [ui.toast]
 delivery = "terminal"
@@ -82,13 +82,14 @@ description = "cheatsheet (atajos y comandos)"
 width = 82
 height = 26
 
-# shiki: notas + tareas + imagenes (TUI tipo yazi) en pane temporal a pantalla completa
-# Usa el lanzador del build parcheado (ver 3.5.9), NO /opt/homebrew/bin/shiki
+# notes-manager: gestor interactivo de notas en markdown (fzf + glow + micro)
 [[keys.command]]
 key = "prefix+o"
-type = "pane"
-command = "/Users/drizzy/.local/bin/shiki-herdr"
-description = "shiki (notas y tareas)"
+type = "popup"
+command = "/Users/drizzy/.local/bin/notes-manager"
+description = "notas (fzf + glow + micro)"
+width = "85%"
+height = "85%"
 
 [[keys.command]]
 key = "prefix+shift+r"

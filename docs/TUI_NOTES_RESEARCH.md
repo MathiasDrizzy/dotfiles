@@ -44,3 +44,16 @@
   - Lado derecho: vista previa formateada en Catppuccin con `glow`.
   - Al pulsar Enter: abre la nota en `micro` para editar.
   - Al guardar: commitea y sincroniza automáticamente.
+
+---
+
+## 4. Decisión Final e Implementación (2026-09-29)
+
+* **Elección:** **Opción B (`mac/scripts/notes-manager.sh`)**
+* **Atajo herdr:** `prefix + o` (`type = "popup"`, dimensiones `85% x 85%`)
+* **Ubicación de notas:** `$HOME/Documents/notes`
+* **Justificación técnica:**
+  1. **Cero dependencias pesadas:** Evita la instalación de `nb` que arrastra dependencias de gran tamaño (`pandoc`, `tig`, `w3m`, `nmap`). Las herramientas `fzf`, `glow` y `micro` ya forman parte del núcleo de los dotfiles.
+  2. **Inmunidad a problemas OSC/ANSI:** No realiza sondeos de color de terminal a bajo nivel, eliminando al 100% el bug de renombrado involuntario que provocaba `shiki`.
+  3. **Ergonomía superior en herdr:** Se ejecuta en una ventana emergente (`popup`) flotante y centrada sin alterar ni desplazar los paneles de trabajo del usuario.
+* **Estado:** ✅ Desplegado, probado con el harness y activo en `herdr/config.toml`.

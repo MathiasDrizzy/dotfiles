@@ -114,17 +114,56 @@ def test_shell_scripts():
     scripts = [
         ("mac/install.sh", "bash"),
         ("mac/zshenv", "zsh"),
-        ("mac/zshrc", "zsh")
+        ("mac/zshrc", "zsh"),
+        ("mac/scripts/notes-manager.sh", "bash"),
+        ("mac/scripts/check-links.sh", "bash"),
+        ("mac/scripts/herdr-reload.sh", "bash")
     ]
     for rel_path, shell_bin in scripts:
         full_path = os.path.join(REPO_ROOT, rel_path)
         if not os.path.exists(full_path):
+            log_fail(f"{rel_path} no encontrado")
             continue
         res = subprocess.run([shell_bin, "-n", full_path], capture_output=True, text=True)
         if res.returncode == 0:
             log_pass(f"{rel_path} ({shell_bin} -n pasó sin errores)")
         else:
             log_fail(f"{rel_path} error de sintaxis en shell", res.stderr)
+
+def test_install_script_dry_run():
+    print("\n🚀 Ejecutando Prueba de Humo de install.sh (--dry-run)...")
+    install_script = os.path.join(REPO_ROOT, "mac/install.sh")
+    if not os.path.exists(install_script):
+        log_fail("mac/install.sh no encontrado")
+        return
+
+    res = subprocess.run(["bash", install_script, "--dry-run"], cwd=REPO_ROOT, capture_output=True, text=True)
+    if res.returncode == 0 and "Prueba de humo de install.sh superada al 100%" in res.stdout:
+        log_pass("mac/install.sh --dry-run (Simulación limpia de extremo a extremo)")
+    else:
+        log_fail("mac/install.sh --dry-run falló", res.stderr or res.stdout)
+
+def test_portability():
+    print("\n🌐 Validando Portabilidad ($HOME vs rutas absolutas quemadas en scripts)...")
+    shell_files = [
+        "mac/install.sh",
+        "mac/zshenv",
+        "mac/zshrc",
+        "mac/scripts/notes-manager.sh",
+        "mac/scripts/check-links.sh",
+        "mac/scripts/herdr-reload.sh"
+    ]
+    for rel_path in shell_files:
+        full_path = os.path.join(REPO_ROOT, rel_path)
+        if not os.path.exists(full_path):
+            continue
+        with open(full_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        # Verificar que no contenga rutas de usuario quemadas en duro
+        if "/Users/drizzy" in content:
+            log_fail(f"{rel_path} contiene ruta quemada '/Users/drizzy' en lugar de $HOME")
+        else:
+            log_pass(f"{rel_path} (100% portable con $HOME)")
 
 def test_go_tools():
     print("\n🐹 Validando Compilación de Herramientas Go (herdr-ctl)...")
@@ -163,7 +202,9 @@ def main():
     test_herdr_keybindings()
     test_json_files()
     test_shell_scripts()
+    test_portability()
     test_go_tools()
+    test_install_script_dry_run()
 
     print("\n" + "=" * 65)
     print(f"RESUMEN: {passed_checks} Pruebas Exitosas | {failed_checks} Fallos")

@@ -24,6 +24,28 @@
 * **Causa Raíz:** herdr no soportaba porcentaje dinámico por monitor en la versión instalada.
 * **Solución Implementada:** Creación de `herdr-ctl adapt` en Go que ajusta las columnas de forma inteligente según la resolución detectada.
 
+### Incidente 04: Fragilidad de binarios parcheados (Retiro definitivo de `shiki`)
+* **Síntoma:** `shiki` requería un binario parcheado a mano (`shiki-patched`), hacks de entorno (`SHIKI_NO_TERM_QUERY=1`) y se rompía con cualquier `brew upgrade`, arriesgando bucles de escape ANSI en paneles de herdr.
+* **Causa Raíz:** Dependencia de un software de terceros con sondeos de terminal que no respetaba el entorno multiplexado.
+* **Solución Implementada:** Sustitución completa de `shiki` por `notes-manager` (`mac/scripts/notes-manager.sh`), un gestor TUI nativo que combina `fzf` (interactivo Catppuccin Mocha), `glow` (previsualización Markdown en vivo) y `micro` (edición directa) en un popup herdr (`prefix + o`). Cero secuencias OSC, cero binarios parcheados y almacenamiento 100% plano en `~/Documents/notes`.
+* **Lección Permanente:** Privilegiar herramientas desacopladas en Markdown plano y componibles con el stack estándar (`fzf`, `micro`, `glow`) antes que binarios monolíticos opacos.
+
+### Incidente 05: Drift de configuraciones locales editadas fuera de Git
+* **Síntoma:** Modificaciones hechas en `~/.config/...` se perdían o no se reflejaban en el repositorio git, o generaban discrepancias silenciosas (ej: variables de audio o colores).
+* **Causa Raíz:** Falta de auditoría bidireccional entre `~/.config/...` y `~/dotfiles/mac/config/...`.
+* **Solución Implementada:** Creación de `mac/scripts/check-links.sh` que audita automáticamente cada archivo, detecta drifts con `diff -u` y permite sincronizar con `--fix` mediante enlaces simbólicos y backups automáticos `.bak`.
+* **Lección Permanente:** Todos los dotfiles deben estar enlazados simbólicamente o auditados por el harness antes de cada commit.
+
+### Incidente 06: Fricción en recarga de configuraciones de herdr
+* **Síntoma:** Tras editar `config.toml`, era necesario reiniciar Ghostty o matar el servidor herdr interrumpiendo procesos en ejecución.
+* **Causa Raíz:** Desconocimiento del socket Unix de herdr (`~/.config/herdr/herdr.sock`) y del comando `herdr server reload-config`.
+* **Solución Implementada:** Implementación de `mac/scripts/herdr-reload.sh`, hook git `post-commit` y comando nativo `herdr-ctl reload` en Go, permitiendo recarga en caliente instantánea sin interrumpir agentes ni pestañas.
+
+### Incidente 07: Ausencia de pruebas de humo para `install.sh`
+* **Síntoma:** El instalador podía romperse por rutas faltantes o sintaxis en shell sin que el harness lo advirtiera.
+* **Causa Raíz:** `install.sh` carecía de un modo seguro no destructivo (`--dry-run`) para ser ejecutado en CI/harness.
+* **Solución Implementada:** Añadido soporte de `--dry-run` a `mac/install.sh` y prueba de humo `test_install_script_dry_run()` en `harness/validate_configs.py`.
+
 ---
 
 ## 2. Protocolo de Extensión de Regresión

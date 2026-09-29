@@ -361,6 +361,17 @@ func movePaneTab(mode string) error {
 	return nil
 }
 
+func reloadConfig() error {
+	cmd := exec.Command("/opt/homebrew/bin/herdr", "server", "reload-config")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error al recargar herdr config: %s (%w)", string(out), err)
+	}
+	fmt.Printf("✓ %s", string(out))
+	notify("herdr-ctl", "✓ Configuración recargada en caliente")
+	return nil
+}
+
 func main() {
 	cmd := "adapt"
 	if len(os.Args) > 1 {
@@ -386,6 +397,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	case "reload":
+		if err := reloadConfig(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	case "status":
 		resp, err := callRPC("pane.list", map[string]interface{}{})
 		if err != nil {
@@ -396,6 +412,6 @@ func main() {
 	case "cheatsheet", "help-tui":
 		runCheatsheet()
 	default:
-		fmt.Printf("Uso: herdr-ctl [adapt|swap|move-tab|cheatsheet|status]\n")
+		fmt.Printf("Uso: herdr-ctl [adapt|swap|move-tab|reload|cheatsheet|status]\n")
 	}
 }

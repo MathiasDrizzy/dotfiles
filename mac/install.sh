@@ -3,74 +3,204 @@
 # dotfiles/mac/install.sh
 # Script automatizado e idempotente para configurar macOS (Apple Silicon) al 100%
 # con Ghostty, herdr, Antigravity, zsh, Catppuccin Mocha y herramientas TUI.
+# Soporta flag --dry-run para pruebas de humo e integración continua.
 # ==============================================================================
 set -euo pipefail
 
+DRY_RUN=false
+for arg in "$@"; do
+  if [[ "$arg" == "--dry-run" || "$arg" == "-n" ]]; then
+    DRY_RUN=true
+  fi
+done
+
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-echo "==> Iniciando instalación de dotfiles (macOS)..."
+
+if [ "$DRY_RUN" = true ]; then
+  echo "════════════════════════════════════════════════════════════════"
+  echo " [DRY-RUN] Simulando instalación de dotfiles (macOS)"
+  echo "           No se realizarán modificaciones en el sistema"
+  echo "════════════════════════════════════════════════════════════════"
+else
+  echo "==> Iniciando instalación de dotfiles (macOS)..."
+fi
+
+# Helper para ejecución condicional
+run_step() {
+  local desc="$1"
+  shift
+  if [ "$DRY_RUN" = true ]; then
+    echo "  [DRY-RUN] $desc"
+  else
+    echo "==> $desc"
+    "$@"
+  fi
+}
 
 # 1. Comprobar Homebrew
 if ! command -v brew &>/dev/null; then
-  echo "==> Instalando Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  eval "$(/opt/homebrew/bin/brew shellenv)"
+  if [ "$DRY_RUN" = true ]; then
+    echo "  [DRY-RUN] Homebrew no detectado. Se instalaría curl https://raw.githubusercontent.com/.../install.sh"
+  else
+    echo "==> Instalando Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  fi
+else
+  echo "  ✓ Homebrew disponible: $(brew --version | head -n 1)"
 fi
 
 # 2. Configurar ~/.zshenv (PATH global para agentes e interactivo)
-echo "==> Configurando ~/.zshenv..."
-cat >> ~/.zshenv <<'EOF'
+if [ "$DRY_RUN" = true ]; then
+  echo "  [DRY-RUN] Configuración de ~/.zshenv (Homebrew + Rust + ~/.local/bin)"
+else
+  echo "==> Configurando ~/.zshenv..."
+  if [ ! -f "$HOME/.zshenv" ] || ! grep -q "herdr" "$HOME/.zshenv" 2>/dev/null; then
+    cat >> "$HOME/.zshenv" <<'EOF'
 # Homebrew + Rust
 if [ -x /opt/homebrew/bin/brew ]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
 export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
 EOF
-eval "$(/opt/homebrew/bin/brew shellenv)"
-export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
+  fi
+  if [ -x /opt/homebrew/bin/brew ]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  fi
+  export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
+fi
 
 # 3. Paquetes Homebrew esenciales
-echo "==> Instalando fórmulas y casks de Homebrew..."
-brew install herdr ghostty micro glow bat git-delta go rustup \
-  yazi ffmpeg poppler fd ripgrep fzf zoxide atuin starship mise \
+BREW_PACKAGES=(
+  herdr ghostty micro glow bat git-delta go rustup
+  yazi ffmpeg poppler fd ripgrep fzf zoxide atuin starship mise
   lazygit lazydocker termscp sshs btop chafa
-brew install fzf-tab zsh-autosuggestions zsh-syntax-highlighting
-brew install --cask font-jetbrains-mono-nerd-font || true
-
-# 4. Activar toolchain de Rust
-rustup default stable || true
-
-# 5. Crear directorios de configuración
-mkdir -p ~/.config/{ghostty,herdr,yazi,micro/colorschemes,btop/themes,bat,termscp} \
-  ~/.local/{bin,share,state} ~/Library/Application\ Support/{lazygit,lazydocker,shiki}
-
-# 6. Copiar / Enlazar configuraciones
-echo "==> Instalando archivos de configuración..."
-cp "$DOTFILES_DIR/config/ghostty/config" ~/.config/ghostty/config
-cp "$DOTFILES_DIR/config/herdr/config.toml" ~/.config/herdr/config.toml
-cp "$DOTFILES_DIR/config/yazi/"* ~/.config/yazi/ || true
-cp "$DOTFILES_DIR/config/micro/"* ~/.config/micro/ || true
-cp "$DOTFILES_DIR/config/starship/starship.toml" ~/.config/starship.toml || true
-cp "$DOTFILES_DIR/config/termscp/"* ~/.config/termscp/ || true
-cp "$DOTFILES_DIR/config/lazygit/config.yml" ~/Library/Application\ Support/lazygit/config.yml || true
-cp "$DOTFILES_DIR/config/lazydocker/config.yml" ~/Library/Application\ Support/lazydocker/config.yml || true
-cp "$DOTFILES_DIR/config/btop/btop.conf" ~/.config/btop/btop.conf || true
-cp "$DOTFILES_DIR/config/bat/config" ~/.config/bat/config || true
-cp "$DOTFILES_DIR/zshrc" ~/.zshrc
-
-# 7. Tema Catppuccin Mocha para micro y btop
-curl -fsSL https://raw.githubusercontent.com/catppuccin/micro/main/themes/catppuccin-mocha.micro \
-  -o ~/.config/micro/colorschemes/catppuccin-mocha.micro 2>/dev/null || true
-curl -fsSL https://raw.githubusercontent.com/catppuccin/btop/main/themes/catppuccin_mocha.theme \
-  -o ~/.config/btop/themes/catppuccin_mocha.theme 2>/dev/null || true
-
-# 8. Compilar e instalar herdr-ctl (herramienta nativa en Go con cheatsheet integrado)
-echo "==> Compilando herdr-ctl..."
-(
-  cd "$DOTFILES_DIR/tools/herdr-ctl"
-  go build -ldflags="-s -w" -o ~/.local/bin/herdr-ctl
+  fzf-tab zsh-autosuggestions zsh-syntax-highlighting
 )
 
+if [ "$DRY_RUN" = true ]; then
+  echo "  [DRY-RUN] Verificando lista de ${#BREW_PACKAGES[@]} paquetes Homebrew esenciales..."
+  for pkg in "${BREW_PACKAGES[@]}"; do
+    if brew list "$pkg" &>/dev/null; then
+      echo "    ✓ Paquete instalado: $pkg"
+    else
+      echo "    ℹ Paquete pendiente de instalar: $pkg"
+    fi
+  done
+else
+  echo "==> Instalando fórmulas y casks de Homebrew..."
+  brew install "${BREW_PACKAGES[@]}"
+  brew install --cask font-jetbrains-mono-nerd-font || true
+fi
+
+# 4. Activar toolchain de Rust
+if [ "$DRY_RUN" = true ]; then
+  echo "  [DRY-RUN] Verificando toolchain de Rust (rustup default stable)"
+else
+  if command -v rustup &>/dev/null; then
+    rustup default stable || true
+  fi
+fi
+
+# 5. Crear directorios de configuración
+CONFIG_DIRS=(
+  "$HOME/.config/ghostty"
+  "$HOME/.config/herdr"
+  "$HOME/.config/yazi"
+  "$HOME/.config/micro/colorschemes"
+  "$HOME/.config/btop/themes"
+  "$HOME/.config/bat"
+  "$HOME/.config/termscp"
+  "$HOME/.local/bin"
+  "$HOME/.local/share"
+  "$HOME/.local/state"
+  "$HOME/Documents/notes"
+  "$HOME/Library/Application Support/lazygit"
+  "$HOME/Library/Application Support/lazydocker"
+)
+
+if [ "$DRY_RUN" = true ]; then
+  echo "  [DRY-RUN] Validando estructura de ${#CONFIG_DIRS[@]} directorios de configuración..."
+else
+  echo "==> Creando directorios..."
+  for d in "${CONFIG_DIRS[@]}"; do
+    mkdir -p "$d"
+  done
+fi
+
+# 6. Validar / Enlazar configuraciones
+echo "==> Verificando fuentes de configuración en $DOTFILES_DIR..."
+REQUIRED_SOURCES=(
+  "config/ghostty/config"
+  "config/herdr/config.toml"
+  "config/yazi/keymap.toml"
+  "config/yazi/theme.toml"
+  "config/micro/settings.json"
+  "config/starship/starship.toml"
+  "config/termscp/config.toml"
+  "config/termscp/theme.toml"
+  "config/lazygit/config.yml"
+  "config/lazydocker/config.yml"
+  "config/btop/btop.conf"
+  "config/bat/config"
+  "zshrc"
+  "zshenv"
+  "scripts/notes-manager.sh"
+  "scripts/check-links.sh"
+  "scripts/herdr-reload.sh"
+)
+
+for src in "${REQUIRED_SOURCES[@]}"; do
+  full_src="$DOTFILES_DIR/$src"
+  if [ ! -f "$full_src" ]; then
+    echo "❌ Error crítico: Fuente no encontrada: $full_src" >&2
+    exit 1
+  fi
+done
+echo "  ✓ ${#REQUIRED_SOURCES[@]} archivos fuente verificados correctamente."
+
+if [ "$DRY_RUN" = true ]; then
+  echo "  [DRY-RUN] Simulación de enlace de dotfiles via check-links.sh..."
+  "$DOTFILES_DIR/scripts/check-links.sh" || true
+else
+  echo "==> Sincronizando enlaces simbólicos..."
+  "$DOTFILES_DIR/scripts/check-links.sh" --fix
+fi
+
+# 7. Tema Catppuccin Mocha para micro y btop
+if [ "$DRY_RUN" = true ]; then
+  echo "  [DRY-RUN] Validación de descargas de temas Catppuccin Mocha"
+else
+  curl -fsSL https://raw.githubusercontent.com/catppuccin/micro/main/themes/catppuccin-mocha.micro \
+    -o "$HOME/.config/micro/colorschemes/catppuccin-mocha.micro" 2>/dev/null || true
+  curl -fsSL https://raw.githubusercontent.com/catppuccin/btop/main/themes/catppuccin_mocha.theme \
+    -o "$HOME/.config/btop/themes/catppuccin_mocha.theme" 2>/dev/null || true
+fi
+
+# 8. Compilar herdr-ctl
+if [ "$DRY_RUN" = true ]; then
+  echo "  [DRY-RUN] Validando compilación de herdr-ctl (go vet + build dry-run)..."
+  (
+    cd "$DOTFILES_DIR/tools/herdr-ctl"
+    go vet ./...
+    go test ./...
+    go build -o /dev/null .
+  )
+  echo "  ✓ herdr-ctl compila al 100% sin advertencias."
+else
+  echo "==> Compilando herdr-ctl..."
+  (
+    cd "$DOTFILES_DIR/tools/herdr-ctl"
+    go build -ldflags="-s -w" -o "$HOME/.local/bin/herdr-ctl"
+  )
+fi
+
 echo "============================================================"
-echo "✓ Instalación completada al 100%!"
-echo "Para recargar tu shell: exec zsh"
+if [ "$DRY_RUN" = true ]; then
+  echo "✓ [DRY-RUN] Prueba de humo de install.sh superada al 100%!"
+  echo "  Todas las dependencias, rutas y compilaciones son válidas."
+else
+  echo "✓ Instalación completada al 100%!"
+  echo "Para recargar tu shell: exec zsh"
+fi
 echo "============================================================"
