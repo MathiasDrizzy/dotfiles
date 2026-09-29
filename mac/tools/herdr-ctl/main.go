@@ -146,16 +146,26 @@ func adaptSidebar(forceMode string) error {
 		return err
 	}
 
-	var sidebarPane *PaneInfo
 	var focusedPane *PaneInfo
+	for i := range paneList.Panes {
+		p := &paneList.Panes[i]
+		if p.Focused {
+			focusedPane = p
+			break
+		}
+	}
 
+	var sidebarPane *PaneInfo
 	for i := range paneList.Panes {
 		p := &paneList.Panes[i]
 		if p.Label == "Sidebar" {
-			sidebarPane = p
-		}
-		if p.Focused {
-			focusedPane = p
+			if focusedPane != nil && p.TabID == focusedPane.TabID {
+				sidebarPane = p
+				break
+			}
+			if sidebarPane == nil {
+				sidebarPane = p
+			}
 		}
 	}
 
@@ -269,7 +279,9 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("herdr server conectado. Paneles:\n%s\n", string(resp.Result))
+	case "cheatsheet", "help-tui":
+		runCheatsheet()
 	default:
-		fmt.Printf("Uso: herdr-ctl [adapt|status] [auto|laptop|external]\n")
+		fmt.Printf("Uso: herdr-ctl [adapt|cheatsheet|status] [auto|laptop|external]\n")
 	}
 }

@@ -1,0 +1,15 @@
+# Compiled binaries & builds
+mac/bin/
+*.exe
+*.o
+*.a
+*.so
+*.dylib
+
+# macOS files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Local scratch & logs
+*.log

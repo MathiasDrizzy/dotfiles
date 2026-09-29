@@ -59,7 +59,7 @@ description = "sidebar adapt"
 [[keys.command]]
 key = "prefix+h"
 type = "popup"
-command = "/Users/drizzy/.local/bin/herdr-cheatsheet"
+command = "/Users/drizzy/.local/bin/herdr-ctl cheatsheet"
 description = "cheatsheet (atajos y comandos)"
 width = "55%"
 height = "70%"

@@ -23,10 +23,8 @@ dotfiles/
     │   ├── lazydocker/         # TUI Docker
     │   ├── btop/               # Monitor del sistema
     │   └── bat/                # Pager con resaltado de sintaxis
-    ├── bin/
-    │   └── herdr-cheatsheet    # Cheatsheet interactivo popup (ctrl+b h)
     └── tools/
-        └── herdr-ctl/          # Herramienta nativa en Go para gestión de herdr
+        └── herdr-ctl/          # Herramienta nativa en Go (adaptador de sidebar + cheatsheet TUI)
 ```
 
 ---

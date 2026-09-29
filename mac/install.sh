@@ -63,18 +63,12 @@ curl -fsSL https://raw.githubusercontent.com/catppuccin/micro/main/themes/catppu
 curl -fsSL https://raw.githubusercontent.com/catppuccin/btop/main/themes/catppuccin_mocha.theme \
   -o ~/.config/btop/themes/catppuccin_mocha.theme 2>/dev/null || true
 
-# 8. Compilar e instalar herdr-ctl (herramienta nativa en Go)
+# 8. Compilar e instalar herdr-ctl (herramienta nativa en Go con cheatsheet integrado)
 echo "==> Compilando herdr-ctl..."
 (
   cd "$DOTFILES_DIR/tools/herdr-ctl"
   go build -ldflags="-s -w" -o ~/.local/bin/herdr-ctl
 )
-
-# 9. Copiar cheatsheet TUI
-if [ -f "$DOTFILES_DIR/bin/herdr-cheatsheet" ]; then
-  cp "$DOTFILES_DIR/bin/herdr-cheatsheet" ~/.local/bin/herdr-cheatsheet
-  chmod +x ~/.local/bin/herdr-cheatsheet
-fi
 
 echo "============================================================"
 echo "✓ Instalación completada al 100%!"
