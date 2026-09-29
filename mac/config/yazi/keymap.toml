@@ -24,7 +24,12 @@ desc = "Renombrar"
 [[mgr.prepend_keymap]]
 on = "n"
 run = "create"
-desc = "Crear (terminar en / para carpeta)"
+desc = "Crear archivo o carpeta (terminar en / para carpeta)"
+
+[[mgr.prepend_keymap]]
+on = "a"
+run = "create"
+desc = "Crear archivo o carpeta (terminar en / para carpeta)"
 
 [[mgr.prepend_keymap]]
 on = "o"

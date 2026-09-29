@@ -78,7 +78,9 @@ var cheatsheetSections = []Section{
 		Title: "󰞷  Herramientas TUI",
 		Color: cPeach,
 		Items: []Item{
-			{"yazi", "Gestor de archivos (Espacio: preview)"},
+			{"yazi", "Gestor archivos (Espacio: preview)"},
+			{"yazi: n o a", "Crear archivo (o carpeta con / al final)"},
+			{"yazi: r / Delete", "Renombrar / borrar archivo"},
 			{"lazygit", "Interfaz visual para Git"},
 			{"lazydocker", "Gestión de contenedores Docker"},
 			{"btop", "Monitor de recursos del sistema"},
