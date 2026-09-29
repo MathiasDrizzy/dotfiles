@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -131,6 +132,25 @@ func notify(title, message string) {
 	_, _ = callRPC("notification.show", params)
 }
 
+func parseSplitPath(splitID string) []bool {
+	if splitID == "split_0_root" || splitID == "root" {
+		return []bool{}
+	}
+	parts := strings.Split(splitID, "_")
+	if len(parts) < 3 {
+		return []bool{}
+	}
+	var path []bool
+	for _, ch := range parts[2] {
+		if ch == '0' {
+			path = append(path, false)
+		} else if ch == '1' {
+			path = append(path, true)
+		}
+	}
+	return path
+}
+
 func adaptSidebar(forceMode string) error {
 	const widthLaptop = 24
 	const widthExternal = 22
@@ -147,45 +167,13 @@ func adaptSidebar(forceMode string) error {
 		return err
 	}
 
-	var focusedPane *PaneInfo
-	for i := range paneList.Panes {
-		p := &paneList.Panes[i]
-		if p.Focused {
-			focusedPane = p
-			break
-		}
-	}
-
-	var sidebarPane *PaneInfo
-	for i := range paneList.Panes {
-		p := &paneList.Panes[i]
-		if p.Label == "Sidebar" {
-			if focusedPane != nil && p.TabID == focusedPane.TabID {
-				sidebarPane = p
-				break
-			}
-			if sidebarPane == nil {
-				sidebarPane = p
-			}
-		}
-	}
-
-	refPane := sidebarPane
-	if refPane == nil {
-		refPane = focusedPane
-	}
-	if refPane == nil && len(paneList.Panes) > 0 {
-		refPane = &paneList.Panes[0]
-	}
-
-	if refPane == nil {
+	if len(paneList.Panes) == 0 {
 		return fmt.Errorf("no se encontraron paneles activos")
 	}
 
-	// 2. Obtener dimensiones de la ventana
+	// 2. Obtener dimensiones de la ventana usando el primer panel
 	layoutResp, err := callRPC("pane.layout", map[string]interface{}{
-		"tab_id":  refPane.TabID,
-		"pane_id": refPane.PaneID,
+		"pane_id": paneList.Panes[0].PaneID,
 	})
 	if err != nil {
 		return err
@@ -222,36 +210,64 @@ func adaptSidebar(forceMode string) error {
 		}
 	}
 
-	// 4. Si hay sidebar en pantalla, ajustar en vivo el split_ratio
-	if sidebarPane != nil {
-		splitWidth := totalWidth
-		for _, sp := range layoutResult.Layout.Splits {
+	// 4. Buscar y ajustar TODOS los sidebars de todos los workspaces y pestañas
+	seenTabs := make(map[string]bool)
+	var sidebarPanes []*PaneInfo
+	for i := range paneList.Panes {
+		p := &paneList.Panes[i]
+		if p.Label == "Sidebar" && !seenTabs[p.TabID] {
+			seenTabs[p.TabID] = true
+			sidebarPanes = append(sidebarPanes, p)
+		}
+	}
+
+	adaptedCount := 0
+	for _, sb := range sidebarPanes {
+		lResp, err := callRPC("pane.layout", map[string]interface{}{
+			"pane_id": sb.PaneID,
+		})
+		if err != nil {
+			continue
+		}
+		var lRes PaneLayoutResult
+		if err := json.Unmarshal(lResp.Result, &lRes); err != nil {
+			continue
+		}
+
+		var innermostSplit *LayoutSplit
+		for i := range lRes.Layout.Splits {
+			sp := &lRes.Layout.Splits[i]
 			if sp.Rect.X == 0 && sp.Direction == "right" {
-				if sp.Rect.Width < splitWidth {
-					splitWidth = sp.Rect.Width
+				if innermostSplit == nil || sp.Rect.Width < innermostSplit.Rect.Width {
+					innermostSplit = sp
 				}
 			}
 		}
 
-		ratio := float64(targetCols) / float64(splitWidth)
-		if ratio < 0.08 {
-			ratio = 0.08
+		if innermostSplit == nil {
+			continue
+		}
+
+		splitPath := parseSplitPath(innermostSplit.ID)
+		ratio := float64(targetCols) / float64(innermostSplit.Rect.Width)
+		if ratio < 0.05 {
+			ratio = 0.05
 		}
 		if ratio > 0.40 {
 			ratio = 0.40
 		}
 
 		_, err = callRPC("layout.set_split_ratio", map[string]interface{}{
-			"tab_id": sidebarPane.TabID,
-			"path":   []bool{false},
+			"tab_id": sb.TabID,
+			"path":   splitPath,
 			"ratio":  ratio,
 		})
-		if err != nil {
-			return err
+		if err == nil {
+			adaptedCount++
 		}
 	}
 
-	msg := fmt.Sprintf("Sidebar ajustado a %d cols — %s", targetCols, modeDesc)
+	msg := fmt.Sprintf("Sidebar ajustado a %d cols (%d barras) — %s", targetCols, adaptedCount, modeDesc)
 	fmt.Println("✓ " + msg)
 	notify("herdr-ctl", msg)
 	return nil
