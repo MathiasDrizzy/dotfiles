@@ -206,7 +206,7 @@ func runCheatsheet() {
 			title += fmt.Sprintf("%s▌%s", cYellow, cMauve)
 		}
 		innerHeaderWidth := boxW - 4
-		fmt.Printf(" %s%s│%s %s %s%s│%s\r\n", cBold, cMauve, cReset, padRight(title, innerHeaderWidth-1), cBold, cMauve, cReset)
+		fmt.Printf(" %s%s│%s %s %s%s│%s\r\n", cBold, cMauve, cReset, padRight(title, innerHeaderWidth), cBold, cMauve, cReset)
 		fmt.Printf(" %s%s└%s┘%s\r\n\r\n", cBold, cMauve, strings.Repeat("─", boxW-2), cReset)
 
 		// Filtrar y renderizar paneles
