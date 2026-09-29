@@ -51,9 +51,9 @@ description = "sshs (ssh hosts)"
 # sidebar-adapt: ajusta el ancho del sidebar según pantalla conectada (auto/laptop/external)
 [[keys.command]]
 key = "prefix+m"
-type = "plugin_action"
-command = "herdr-sidebar.adapt-width"
-description = "sidebar adapt (auto detecta monitor y ajusta columnas)"
+type = "shell"
+command = "/Users/drizzy/.local/bin/herdr-ctl adapt"
+description = "sidebar adapt"
 
 # cheatsheet: atajos de herdr y herramientas del entorno (ctrl+b h)
 [[keys.command]]
