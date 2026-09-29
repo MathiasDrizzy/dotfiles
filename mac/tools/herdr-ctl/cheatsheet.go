@@ -7,6 +7,9 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
+
+	"golang.org/x/term"
 )
 
 // Catppuccin Mocha ANSI 24-bit TrueColor
@@ -58,94 +61,47 @@ var cheatsheetSections = []Section{
 			{"ctrl+b → n / p", "Tab siguiente / anterior"},
 			{"ctrl+b → [", "Modo scroll (q para salir)"},
 			{"ctrl+b → d", "Detach (herdr queda vivo)"},
+			{"ctrl+b → z", "Zoom pane actual"},
+			{"ctrl+b → \"", "Split horizontal"},
+			{"ctrl+b → %", "Split vertical"},
+			{"ctrl+b → x", "Cerrar pane actual"},
+			{"ctrl+b → ↑↓←→", "Moverse entre panes"},
+			{"ctrl+b → w", "Lista interactiva de workspaces"},
 		},
 	},
 	{
-		Title: "󰘁  Sidebar (herdr-sidebar)",
-		Color: cBlue,
-		Items: []Item{
-			{"1 / 2 / 3", "Explorer / Search / Git"},
-			{"Ctrl+P", "Buscar archivo"},
-			{"m", "Menú contextual"},
-			{"s", "Settings de la sidebar"},
-			{"sb-auto", "Auto-detectar monitor y adaptar ancho"},
-			{"sb-ext", "Ancho angosto (22 cols) para monitor externo"},
-			{"sb-lap", "Ancho normal (24 cols) para laptop"},
-			{".", "Mostrar/ocultar archivos ocultos"},
-			{"Enter", "Abrir / preview del archivo"},
-		},
-	},
-	{
-		Title: "󱞁  shiki  (notas y tareas)",
-		Color: cGreen,
-		Items: []Item{
-			{"ctrl+b → o", "Abrir shiki"},
-			{"↑↓ / ←→ / Enter", "Navegar cuadernos → notas → preview"},
-			{"a", "Nueva nota (o cuaderno)"},
-			{"i  /  Esc Esc", "Editar  /  guardar y salir"},
-			{"/ al inicio", "Menú de bloques (checklist, tabla…)"},
-			{"Ctrl+V (editor)", "Pegar captura como imagen"},
-			{"espacio → t", "Todas las tareas"},
-			{"espacio → g", "Buscar en todas las notas"},
-			{"t", "Nota diaria de hoy"},
-			{"H (preview)", "Historial git de la nota"},
-			{"?", "Todos los atajos de shiki"},
-		},
-	},
-	{
-		Title: "󰉋  yazi  (explorador de archivos)",
+		Title: "󰞷  Herramientas TUI",
 		Color: cPeach,
 		Items: []Item{
-			{"y", "Abrir yazi (alias, queda en la carpeta)"},
-			{"← / →", "Subir / entrar a la carpeta"},
-			{"Enter", "Entrar y cerrar yazi"},
-			{"o", "Abrir con $EDITOR"},
-			{"n", "Crear archivo (/ = carpeta)"},
-			{"r", "Renombrar"},
-			{"Del", "Mover a la papelera"},
-			{"q", "Salir"},
+			{"yazi", "Gestor de archivos (espacio para preview)"},
+			{"lazygit", "Interfaz visual de Git"},
+			{"lazydocker", "Gestión de contenedores Docker"},
+			{"btop", "Monitor de recursos del sistema"},
+			{"micro <archivo>", "Editor rápido en terminal"},
+			{"termscp", "Cliente SFTP / FTP / S3"},
+			{"sshs", "Selector visual de conexiones SSH"},
+			{"shiki", "Notas + tareas + imágenes en Markdown"},
+			{"glow <archivo>", "Renderizar Markdown en terminal"},
 		},
 	},
 	{
-		Title: "󰞷  Terminal  (zsh + herramientas)",
+		Title: "󰌌  Navegación en Terminal",
 		Color: cTeal,
 		Items: []Item{
-			{"Ctrl+R", "Historial (atuin)"},
-			{"Ctrl+T", "Buscar archivos (fzf)"},
-			{"Alt+C", "Cambiar a carpeta (fzf)"},
-			{"z <nombre>", "Ir a carpeta frecuente (zoxide)"},
-			{"lg", "lazygit"},
-			{"ld", "lazydocker"},
-			{"sb", "Abrir sidebar (alias)"},
-			{"brewup", "brew update+upgrade+cleanup+doctor"},
-			{"brewout", "Ver actualizaciones pendientes"},
-			{"Cmd+C", "Copiar selección (herdr/Ghostty)"},
-			{"Cmd+V", "Pegar"},
-			{"Cmd+Shift+,", "Recargar config de Ghostty"},
+			{"z <carpeta>", "Saltar a directorio frecuente (zoxide)"},
+			{"Ctrl+R", "Historial sincronizado (atuin / fzf)"},
+			{"Tab", "Menú fzf interactivo con previews"},
+			{"rg <texto>", "Buscar texto ultra rápido (ripgrep)"},
+			{"fd <nombre>", "Buscar archivos ultra rápido"},
+			{"bat <archivo>", "Cat con colores y números de línea"},
+			{"mise ls", "Ver versiones activas de lenguajes"},
 		},
 	},
 	{
-		Title: "󰒍  SSH / Raspberry Pi (pi-host)",
-		Color: cRed,
+		Title: "󰚩  Antigravity & AI",
+		Color: cGreen,
 		Items: []Item{
-			{"ctrl+b → s", "sshs → elegir pi-host"},
-			{"ssh pi-host", "Conectar directo (192.0.2.10)"},
-			{"http://192.0.2.10/panel", "DNS-blocker admin web"},
-			{"dnsblock status", "Estado del bloqueo DNS"},
-			{"dnsblock -g", "Actualizar gravity (listas)"},
-			{"dnsblock -c", "Chronometer (stats en terminal)"},
-			{"dnsblock restartdns", "Reiniciar DNS"},
-			{"sudo dnsblock set-password <pw>", "Cambiar contraseña web"},
-			{"df -h / && free -h", "Disco y RAM"},
-			{"vcgencmd measure_temp", "Temperatura CPU"},
-			{"sudo reboot", "Reiniciar la Pi"},
-		},
-	},
-	{
-		Title: "󰚩  Antigravity (agy) + agent-usage",
-		Color: cYellow,
-		Items: []Item{
-			{"agy", "Antigravity sin confirmaciones (alias)"},
+			{"agy", "Lanzar Antigravity CLI"},
 			{"claude", "Claude Code sin confirmaciones (alias)"},
 			{"ctrl+b → Shift+Q", "Settings de cuota"},
 			{"ctrl+b → Shift+R", "Refrescar cuotas"},
@@ -172,15 +128,25 @@ var cheatsheetSections = []Section{
 }
 
 func runCheatsheet() {
-	// Limpiar pantalla al salir
-	defer fmt.Print("\033[?25h\033[2J\033[H")
+	fd := int(os.Stdin.Fd())
+	oldState, err := term.MakeRaw(fd)
+	if err == nil {
+		defer term.Restore(fd, oldState)
+	}
 
-	// Capturar Ctrl+C
+	restore := func() {
+		fmt.Print("\033[?25h\033[2J\033[H")
+		if oldState != nil {
+			_ = term.Restore(fd, oldState)
+		}
+	}
+	defer restore()
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigChan
-		fmt.Print("\033[?25h\033[2J\033[H")
+		restore()
 		os.Exit(0)
 	}()
 
@@ -191,10 +157,11 @@ func runCheatsheet() {
 	reader := bufio.NewReader(os.Stdin)
 
 	draw := func() {
+		// Hide cursor, clear screen, cursor to home
 		fmt.Print("\033[?25l\033[2J\033[H")
 
 		// Header
-		fmt.Printf("%s%s┌──────────────────────────────────────────────────────────────┐%s\n", cBold, cMauve, cReset)
+		fmt.Printf("%s%s┌──────────────────────────────────────────────────────────────┐%s\r\n", cBold, cMauve, cReset)
 		title := "  󰌌  herdr cheatsheet"
 		if filter != "" {
 			title += fmt.Sprintf("  / %s%s%s", cYellow, filter, cMauve)
@@ -202,8 +169,8 @@ func runCheatsheet() {
 		if searchMode {
 			title += fmt.Sprintf("%s▌%s", cYellow, cMauve)
 		}
-		fmt.Printf("%s%s│%s %-58s %s%s│%s\n", cBold, cMauve, cReset, title, cBold, cMauve, cReset)
-		fmt.Printf("%s%s└──────────────────────────────────────────────────────────────┘%s\n\n", cBold, cMauve, cReset)
+		fmt.Printf("%s%s│%s %-58s %s%s│%s\r\n", cBold, cMauve, cReset, title, cBold, cMauve, cReset)
+		fmt.Printf("%s%s└──────────────────────────────────────────────────────────────┘%s\r\n\r\n", cBold, cMauve, cReset)
 
 		// Filtrar y renderizar paneles
 		var renderedPanels []string
@@ -221,16 +188,16 @@ func runCheatsheet() {
 				continue
 			}
 
-			panel := fmt.Sprintf("%s%s╭─ %s %s────────────────────────────────────────%s\n", cBold, sec.Color, sec.Title, cSurface, cReset)
+			panel := fmt.Sprintf("%s%s╭─ %s %s────────────────────────────────────────%s\r\n", cBold, sec.Color, sec.Title, cSurface, cReset)
 			for _, item := range matchingItems {
-				panel += fmt.Sprintf("%s│  %s%-22s%s %s%s%s\n", cSurface, sec.Color+cBold, item.Key, cReset, cText, item.Desc, cReset)
+				panel += fmt.Sprintf("%s│  %s%-22s%s %s%s%s\r\n", cSurface, sec.Color+cBold, item.Key, cReset, cText, item.Desc, cReset)
 			}
-			panel += fmt.Sprintf("%s╰──────────────────────────────────────────────────────────────╯%s\n", cSurface, cReset)
+			panel += fmt.Sprintf("%s╰──────────────────────────────────────────────────────────────╯%s\r\n", cSurface, cReset)
 			renderedPanels = append(renderedPanels, panel)
 		}
 
 		if len(renderedPanels) == 0 {
-			fmt.Printf("   %s%sSin resultados para '%s'%s\n\n", cBold, cRed, filter, cReset)
+			fmt.Printf("   %s%sSin resultados para '%s'%s\r\n\r\n", cBold, cRed, filter, cReset)
 		} else {
 			if scroll >= len(renderedPanels) {
 				scroll = len(renderedPanels) - 1
@@ -244,7 +211,7 @@ func runCheatsheet() {
 		}
 
 		// Footer
-		fmt.Printf("\n  %s%s↑↓ j/k%s %snavegar%s   %s%s/%s %sbuscar%s   %s%sq Esc%s %ssalir%s\n",
+		fmt.Printf("\r\n  %s%s↑↓ j/k%s %snavegar%s   %s%s/%s %sbuscar%s   %s%sq Esc%s %ssalir%s\r\n",
 			cBold, cMauve, cReset, cSubtext, cReset,
 			cBold, cBlue, cReset, cSubtext, cReset,
 			cBold, cRed, cReset, cSubtext, cReset,
@@ -259,8 +226,46 @@ func runCheatsheet() {
 			break
 		}
 
+		// Escape key or ANSI escape sequences
+		if b == 27 {
+			time.Sleep(15 * time.Millisecond)
+			if reader.Buffered() > 0 {
+				b2, err := reader.ReadByte()
+				if err == nil && b2 == '[' {
+					b3, err := reader.ReadByte()
+					if err == nil {
+						if b3 == 'A' { // Up arrow
+							if scroll > 0 {
+								scroll--
+								draw()
+							}
+							continue
+						} else if b3 == 'B' { // Down arrow
+							scroll++
+							draw()
+							continue
+						}
+					}
+				}
+			}
+
+			// Single ESC
+			if searchMode {
+				searchMode = false
+				scroll = 0
+				draw()
+				continue
+			} else {
+				return
+			}
+		}
+
+		if b == 3 { // Ctrl+C
+			return
+		}
+
 		if searchMode {
-			if b == 27 || b == '\n' || b == '\r' { // Esc o Enter
+			if b == '\r' || b == '\n' { // Enter
 				searchMode = false
 				scroll = 0
 				draw()
@@ -278,23 +283,25 @@ func runCheatsheet() {
 			continue
 		}
 
-		if b == '/' {
+		// Normal navigation mode
+		switch b {
+		case 'q', 'Q':
+			return
+		case '/':
 			searchMode = true
 			draw()
-		} else if b == 'q' || b == 'Q' || b == 27 { // Esc / q
-			break
-		} else if b == 'j' {
+		case 'j':
 			scroll++
 			draw()
-		} else if b == 'k' {
+		case 'k':
 			if scroll > 0 {
 				scroll--
 			}
 			draw()
-		} else if b == 'g' {
+		case 'g':
 			scroll = 0
 			draw()
-		} else if b == 'G' {
+		case 'G':
 			scroll = 100
 			draw()
 		}

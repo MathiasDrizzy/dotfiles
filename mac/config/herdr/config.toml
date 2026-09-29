@@ -61,8 +61,8 @@ key = "prefix+h"
 type = "popup"
 command = "/Users/drizzy/.local/bin/herdr-ctl cheatsheet"
 description = "cheatsheet (atajos y comandos)"
-width = "55%"
-height = "70%"
+width = 68
+height = 26
 
 # shiki: notas + tareas + imagenes (TUI tipo yazi) en pane temporal a pantalla completa
 # Usa el lanzador del build parcheado (ver 3.5.9), NO /opt/homebrew/bin/shiki
