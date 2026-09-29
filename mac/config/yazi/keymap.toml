@@ -35,3 +35,9 @@ desc = "Abrir archivo con el editor"
 on = "<Delete>"
 run = "remove"
 desc = "Mover a la papelera"
+
+# ── Esc / q = Salir ──────────────────────────────────────
+[[mgr.prepend_keymap]]
+on = "<Esc>"
+run = "quit"
+desc = "Cerrar yazi"
