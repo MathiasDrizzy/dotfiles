@@ -18,6 +18,13 @@ delivery = "terminal"
 row_gap = 0 # herdr-agent-usage
 rows = [[{ token = "$quota_group", bold = true, dim = false }], [{ token = "$quota_icon", fg = "#e9e9f0", bold = false, dim = false, rules = [{ contains = "⁠", fg = "#94e2d5" }, { contains = "⁡", fg = "#f9e2af" }, { contains = "⁢", fg = "#f38ba8" }] }, { token = "$quota_provider_model", fg = "#e9e9f0", bold = true, dim = false }], [{ token = "$quota_share_5h_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_share_5h_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_share_5h_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_share_5h_unknown", bold = false, dim = false }], [{ token = "$quota_share_week_inline_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_share_week_inline_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_share_week_inline_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_share_week_inline_unknown", bold = false, dim = false }, { token = "$quota_share_week_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_share_week_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_share_week_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_share_week_unknown", bold = false, dim = false }], [{ token = "$quota_share_month_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_share_month_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_share_month_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_share_month_unknown", bold = false, dim = false }], [{ token = "$quota_model", fg = "#e9e9f0", bold = false, dim = false }], [{ token = "$quota_topic", bold = false, dim = false }], [{ token = "$quota_error", fg = "#e4b957", bold = false, dim = false }], [{ token = "$quota_context_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_context_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_context_danger", fg = "#df919b", bold = false, dim = false }], [{ token = "$quota_5h_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_5h_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_5h_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_5h_unknown", bold = false, dim = false }], [{ token = "$quota_week_inline_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_week_inline_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_week_inline_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_week_inline_unknown", bold = false, dim = false }, { token = "$quota_week_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_week_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_week_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_week_unknown", bold = false, dim = false }], [{ token = "$quota_month_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_month_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_month_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_month_unknown", bold = false, dim = false }], [{ token = "$quota_nest_gap", bold = false, dim = false }]] # herdr-agent-usage-row
 
+# Atajos nativos de herdr (Rust)
+[keys]
+swap_pane_left = "prefix+shift+left"
+swap_pane_right = "prefix+shift+right"
+swap_pane_up = "prefix+shift+up"
+swap_pane_down = "prefix+shift+down"
+
 # herdr-sidebar: abrir / enfocar / cerrar la barra
 [[keys.command]]
 key = "prefix+f"
@@ -83,33 +90,6 @@ key = "prefix+shift+q"
 type = "plugin_action"
 command = "herdr-agent-usage.open-settings"
 description = "open agent quota settings"
-
-# ==============================================================================
-# Mover posición de cuadros (swap con flechas + Shift) — Non-Vim
-# ==============================================================================
-[[keys.command]]
-key = "prefix+shift+left"
-type = "shell"
-command = "/Users/drizzy/.local/bin/herdr-ctl swap left"
-description = "mover cuadro a la izquierda"
-
-[[keys.command]]
-key = "prefix+shift+right"
-type = "shell"
-command = "/Users/drizzy/.local/bin/herdr-ctl swap right"
-description = "mover cuadro a la derecha"
-
-[[keys.command]]
-key = "prefix+shift+up"
-type = "shell"
-command = "/Users/drizzy/.local/bin/herdr-ctl swap up"
-description = "mover cuadro arriba"
-
-[[keys.command]]
-key = "prefix+shift+down"
-type = "shell"
-command = "/Users/drizzy/.local/bin/herdr-ctl swap down"
-description = "mover cuadro abajo"
 
 # ==============================================================================
 # Mover cuadro a otra pestaña
