@@ -216,8 +216,9 @@ func adaptSidebar(forceMode string) error {
 		splitWidth := totalWidth
 		for _, sp := range layoutResult.Layout.Splits {
 			if sp.Rect.X == 0 && sp.Direction == "right" {
-				splitWidth = sp.Rect.Width
-				break
+				if sp.Rect.Width < splitWidth {
+					splitWidth = sp.Rect.Width
+				}
 			}
 		}
 
