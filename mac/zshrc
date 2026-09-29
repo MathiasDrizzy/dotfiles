@@ -46,9 +46,9 @@ function y() {
 alias lg='lazygit'
 alias ld='lazydocker'
 alias sb='herdr plugin action invoke open-sidebar >/dev/null'
-alias sb-ext='herdr-sidebar-adapt external'   # sidebar angosto para monitor externo
-alias sb-lap='herdr-sidebar-adapt laptop'      # sidebar normal para laptop
-alias sb-auto='herdr-sidebar-adapt auto'       # detecta automáticamente
+alias sb-ext='herdr-ctl adapt external'   # sidebar angosto (22 cols) para monitor externo
+alias sb-lap='herdr-ctl adapt laptop'      # sidebar normal (24 cols) para laptop
+alias sb-auto='herdr-ctl adapt'            # detecta monitor y ajusta automáticamente
 alias mirador='mirador'
 
 # Claude Code: bypass DISPONIBLE en el ciclo de Shift+Tab, apagado al inicio
