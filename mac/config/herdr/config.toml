@@ -83,3 +83,52 @@ key = "prefix+shift+q"
 type = "plugin_action"
 command = "herdr-agent-usage.open-settings"
 description = "open agent quota settings"
+
+# ==============================================================================
+# Mover posición de cuadros (swap con flechas + Shift) — Non-Vim
+# ==============================================================================
+[[keys.command]]
+key = "prefix+shift+left"
+type = "shell"
+command = "/Users/drizzy/.local/bin/herdr-ctl swap left"
+description = "mover cuadro a la izquierda"
+
+[[keys.command]]
+key = "prefix+shift+right"
+type = "shell"
+command = "/Users/drizzy/.local/bin/herdr-ctl swap right"
+description = "mover cuadro a la derecha"
+
+[[keys.command]]
+key = "prefix+shift+up"
+type = "shell"
+command = "/Users/drizzy/.local/bin/herdr-ctl swap up"
+description = "mover cuadro arriba"
+
+[[keys.command]]
+key = "prefix+shift+down"
+type = "shell"
+command = "/Users/drizzy/.local/bin/herdr-ctl swap down"
+description = "mover cuadro abajo"
+
+# ==============================================================================
+# Mover cuadro a otra pestaña
+# ==============================================================================
+[[keys.command]]
+key = "prefix+shift+c"
+type = "shell"
+command = "/Users/drizzy/.local/bin/herdr-ctl move-tab new"
+description = "mover cuadro a nueva pestaña"
+
+[[keys.command]]
+key = "prefix+>"
+type = "shell"
+command = "/Users/drizzy/.local/bin/herdr-ctl move-tab next"
+description = "mover cuadro a pestaña siguiente"
+
+[[keys.command]]
+key = "prefix+<"
+type = "shell"
+command = "/Users/drizzy/.local/bin/herdr-ctl move-tab prev"
+description = "mover cuadro a pestaña anterior"
+

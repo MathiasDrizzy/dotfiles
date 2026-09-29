@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 )
@@ -256,6 +257,117 @@ func adaptSidebar(forceMode string) error {
 	return nil
 }
 
+func swapCurrentPane(dir string) error {
+	resp, err := callRPC("pane.list", map[string]interface{}{})
+	if err != nil {
+		return err
+	}
+	var paneList PaneListResult
+	if err := json.Unmarshal(resp.Result, &paneList); err != nil {
+		return err
+	}
+
+	for _, p := range paneList.Panes {
+		if p.Focused && p.Label == "Sidebar" {
+			notify("herdr-ctl", "El sidebar no se puede intercambiar")
+			return nil
+		}
+	}
+
+	cmd := exec.Command("/opt/homebrew/bin/herdr", "pane", "swap", "--current", "--direction", dir)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("error al intercambiar cuadro (%s): %s", err, string(out))
+	}
+	return nil
+}
+
+func movePaneTab(mode string) error {
+	resp, err := callRPC("pane.list", map[string]interface{}{})
+	if err != nil {
+		return err
+	}
+	var paneList PaneListResult
+	if err := json.Unmarshal(resp.Result, &paneList); err != nil {
+		return err
+	}
+
+	var focusedPane *PaneInfo
+	for i := range paneList.Panes {
+		if paneList.Panes[i].Focused {
+			focusedPane = &paneList.Panes[i]
+			break
+		}
+	}
+
+	if focusedPane == nil {
+		return fmt.Errorf("no hay cuadro enfocado")
+	}
+
+	if focusedPane.Label == "Sidebar" {
+		notify("herdr-ctl", "El sidebar no se puede mover de pestaña")
+		return nil
+	}
+
+	if mode == "new" {
+		cmd := exec.Command("/opt/homebrew/bin/herdr", "pane", "move", "--new-tab", "--focus", focusedPane.PaneID)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("error al mover cuadro a nueva pestaña: %s (%w)", string(out), err)
+		}
+		notify("herdr-ctl", "✓ Cuadro movido a nueva pestaña")
+		return nil
+	}
+
+	respTab, err := callRPC("tab.list", map[string]interface{}{})
+	if err != nil {
+		return err
+	}
+	var tabList struct {
+		Tabs []struct {
+			TabID   string `json:"tab_id"`
+			Number  int    `json:"number"`
+			Focused bool   `json:"focused"`
+		} `json:"tabs"`
+	}
+	if err := json.Unmarshal(respTab.Result, &tabList); err != nil {
+		return err
+	}
+
+	if len(tabList.Tabs) <= 1 {
+		cmd := exec.Command("/opt/homebrew/bin/herdr", "pane", "move", "--new-tab", "--focus", focusedPane.PaneID)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("error al mover cuadro a nueva pestaña: %s (%w)", string(out), err)
+		}
+		notify("herdr-ctl", "✓ Cuadro movido a nueva pestaña")
+		return nil
+	}
+
+	currIdx := -1
+	for i, t := range tabList.Tabs {
+		if t.TabID == focusedPane.TabID {
+			currIdx = i
+			break
+		}
+	}
+
+	targetIdx := 0
+	if currIdx != -1 {
+		if mode == "next" {
+			targetIdx = (currIdx + 1) % len(tabList.Tabs)
+		} else { // "prev"
+			targetIdx = (currIdx - 1 + len(tabList.Tabs)) % len(tabList.Tabs)
+		}
+	}
+
+	targetTabID := tabList.Tabs[targetIdx].TabID
+	cmd := exec.Command("/opt/homebrew/bin/herdr", "pane", "move", "--tab", targetTabID, "--focus", focusedPane.PaneID)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("error al mover cuadro a pestaña: %s (%w)", string(out), err)
+	}
+
+	notify("herdr-ctl", fmt.Sprintf("✓ Cuadro movido a pestaña %d", tabList.Tabs[targetIdx].Number))
+	return nil
+}
+
 func main() {
 	cmd := "adapt"
 	if len(os.Args) > 1 {
@@ -272,6 +384,24 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	case "swap":
+		dir := "left"
+		if len(os.Args) > 2 {
+			dir = os.Args[2]
+		}
+		if err := swapCurrentPane(dir); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	case "move-tab":
+		target := "new"
+		if len(os.Args) > 2 {
+			target = os.Args[2]
+		}
+		if err := movePaneTab(target); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	case "status":
 		resp, err := callRPC("pane.list", map[string]interface{}{})
 		if err != nil {
@@ -282,6 +412,6 @@ func main() {
 	case "cheatsheet", "help-tui":
 		runCheatsheet()
 	default:
-		fmt.Printf("Uso: herdr-ctl [adapt|cheatsheet|status] [auto|laptop|external]\n")
+		fmt.Printf("Uso: herdr-ctl [adapt|swap|move-tab|cheatsheet|status]\n")
 	}
 }
