@@ -8,6 +8,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unicode/utf8"
 
 	"golang.org/x/term"
 )
@@ -46,34 +47,34 @@ var cheatsheetSections = []Section{
 		Title: "󰌌  herdr  (prefix = ctrl+b)",
 		Color: cMauve,
 		Items: []Item{
-			{"ctrl+b → h", "Este cheatsheet"},
+			{"ctrl+b → h", "Este cheatsheet interactivo"},
 			{"ctrl+b → f", "Toggle sidebar (explorador)"},
-			{"ctrl+b → m", "Sidebar auto-adapt (laptop ↔ monitor con herdr-ctl)"},
+			{"ctrl+b → m", "Auto-ajustar sidebar (laptop ↔ monitor)"},
 			{"ctrl+b → Shift+F", "Sidebar quick-open (Ctrl+P)"},
 			{"ctrl+b → Shift+Q", "Settings de cuota (agent-usage)"},
-			{"ctrl+b → Shift+R", "Refrescar cuotas"},
-			{"ctrl+b → t", "termscp — SFTP/FTP (popup 90%)"},
+			{"ctrl+b → Shift+R", "Refrescar cuotas de agentes"},
+			{"ctrl+b → t", "termscp — cliente SFTP / FTP"},
 			{"ctrl+b → s", "sshs — elegir servidor SSH"},
-			{"ctrl+b → o", "shiki — notas y tareas"},
-			{"ctrl+b → ?", "Todos los atajos de herdr"},
-			{"ctrl+b → q", "Salir de herdr (todo sigue vivo)"},
+			{"ctrl+b → o", "shiki — notas y tareas en Markdown"},
+			{"ctrl+b → ?", "Todos los atajos nativos de herdr"},
+			{"ctrl+b → q", "Salir de herdr (procesos siguen vivos)"},
 			{"ctrl+b → c", "Nuevo tab"},
 			{"ctrl+b → n / p", "Tab siguiente / anterior"},
 			{"ctrl+b → [", "Modo scroll (q para salir)"},
-			{"ctrl+b → d", "Detach (herdr queda vivo)"},
-			{"ctrl+b → z", "Zoom pane actual"},
+			{"ctrl+b → d", "Detach sesión (herdr queda en background)"},
+			{"ctrl+b → z", "Zoom / restaurar pane actual"},
 			{"ctrl+b → \"", "Split horizontal"},
 			{"ctrl+b → %", "Split vertical"},
 			{"ctrl+b → x", "Cerrar pane actual"},
-			{"ctrl+b → ↑↓←→", "Moverse entre panes"},
-			{"ctrl+b → w", "Lista interactiva de workspaces"},
+			{"ctrl+b → ↑↓←→", "Navegar entre panes"},
+			{"ctrl+b → w", "Selector interactivo de workspaces"},
 		},
 	},
 	{
 		Title: "󰞷  Herramientas TUI",
 		Color: cPeach,
 		Items: []Item{
-			{"yazi", "Gestor de archivos (espacio para preview)"},
+			{"yazi", "Gestor de archivos (Espacio: preview)"},
 			{"lazygit", "Interfaz visual de Git"},
 			{"lazydocker", "Gestión de contenedores Docker"},
 			{"btop", "Monitor de recursos del sistema"},
@@ -93,7 +94,7 @@ var cheatsheetSections = []Section{
 			{"Tab", "Menú fzf interactivo con previews"},
 			{"rg <texto>", "Buscar texto ultra rápido (ripgrep)"},
 			{"fd <nombre>", "Buscar archivos ultra rápido"},
-			{"bat <archivo>", "Cat con colores y números de línea"},
+			{"bat <archivo>", "Cat con sintaxis y números de línea"},
 			{"mise ls", "Ver versiones activas de lenguajes"},
 		},
 	},
@@ -121,10 +122,33 @@ var cheatsheetSections = []Section{
 			{"Cmd+Shift+D", "Split vertical"},
 			{"Cmd+W", "Cerrar tab/pane"},
 			{"Cmd+Q", "Cerrar Ghostty (herdr sigue vivo)"},
-			{"Cmd+Shift+,", "Recargar config"},
+			{"Cmd+Shift+,", "Recargar configuración"},
 			{"Option Izq + Q", "Escribir @ (teclado latinoamericano)"},
 		},
 	},
+}
+
+func runeWidth(s string) int {
+	return utf8.RuneCountInString(s)
+}
+
+func padRight(s string, targetCols int) string {
+	w := runeWidth(s)
+	if w >= targetCols {
+		return s
+	}
+	return s + strings.Repeat(" ", targetCols-w)
+}
+
+func truncateRunes(s string, maxCols int) string {
+	runes := []rune(s)
+	if len(runes) <= maxCols {
+		return s
+	}
+	if maxCols <= 1 {
+		return "…"
+	}
+	return string(runes[:maxCols-1]) + "…"
 }
 
 func runCheatsheet() {
@@ -157,11 +181,23 @@ func runCheatsheet() {
 	reader := bufio.NewReader(os.Stdin)
 
 	draw := func() {
+		termW, _, err := term.GetSize(int(os.Stdout.Fd()))
+		if err != nil || termW < 60 {
+			termW = 80
+		}
+		boxW := termW - 4
+		if boxW > 76 {
+			boxW = 76
+		}
+		if boxW < 60 {
+			boxW = 60
+		}
+
 		// Hide cursor, clear screen, cursor to home
 		fmt.Print("\033[?25l\033[2J\033[H")
 
 		// Header
-		fmt.Printf("%s%s┌──────────────────────────────────────────────────────────────┐%s\r\n", cBold, cMauve, cReset)
+		fmt.Printf("  %s%s┌%s┐%s\r\n", cBold, cMauve, strings.Repeat("─", boxW-2), cReset)
 		title := "  󰌌  herdr cheatsheet"
 		if filter != "" {
 			title += fmt.Sprintf("  / %s%s%s", cYellow, filter, cMauve)
@@ -169,12 +205,19 @@ func runCheatsheet() {
 		if searchMode {
 			title += fmt.Sprintf("%s▌%s", cYellow, cMauve)
 		}
-		fmt.Printf("%s%s│%s %-58s %s%s│%s\r\n", cBold, cMauve, cReset, title, cBold, cMauve, cReset)
-		fmt.Printf("%s%s└──────────────────────────────────────────────────────────────┘%s\r\n\r\n", cBold, cMauve, cReset)
+		innerHeaderWidth := boxW - 4
+		fmt.Printf("  %s%s│%s %s %s%s│%s\r\n", cBold, cMauve, cReset, padRight(title, innerHeaderWidth-1), cBold, cMauve, cReset)
+		fmt.Printf("  %s%s└%s┘%s\r\n\r\n", cBold, cMauve, strings.Repeat("─", boxW-2), cReset)
 
 		// Filtrar y renderizar paneles
 		var renderedPanels []string
 		ft := strings.ToLower(filter)
+
+		keyCols := 20
+		descCols := boxW - keyCols - 7
+		if descCols < 20 {
+			descCols = 20
+		}
 
 		for _, sec := range cheatsheetSections {
 			var matchingItems []Item
@@ -188,11 +231,29 @@ func runCheatsheet() {
 				continue
 			}
 
-			panel := fmt.Sprintf("%s%s╭─ %s %s────────────────────────────────────────%s\r\n", cBold, sec.Color, sec.Title, cSurface, cReset)
-			for _, item := range matchingItems {
-				panel += fmt.Sprintf("%s│  %s%-22s%s %s%s%s\r\n", cSurface, sec.Color+cBold, item.Key, cReset, cText, item.Desc, cReset)
+			// Panel top border: ╭─ Title ──...──╮
+			titleStr := fmt.Sprintf(" %s ", sec.Title)
+			titleLen := runeWidth(titleStr)
+			dashCount := boxW - 2 - 1 - titleLen
+			if dashCount < 2 {
+				dashCount = 2
 			}
-			panel += fmt.Sprintf("%s╰──────────────────────────────────────────────────────────────╯%s\r\n", cSurface, cReset)
+			panel := fmt.Sprintf("  %s%s╭─%s%s%s%s╮%s\r\n", cBold, sec.Color, titleStr, cSurface, strings.Repeat("─", dashCount), sec.Color+cBold, cReset)
+
+			// Panel items with pixel-perfect alignment
+			for _, item := range matchingItems {
+				k := padRight(truncateRunes(item.Key, keyCols), keyCols)
+				d := padRight(truncateRunes(item.Desc, descCols), descCols)
+				panel += fmt.Sprintf("  %s│  %s%s%s %s%s%s  %s│%s\r\n",
+					cSurface,
+					sec.Color+cBold, k, cReset,
+					cText, d, cReset,
+					cSurface, cReset,
+				)
+			}
+
+			// Panel bottom border: ╰────────╯
+			panel += fmt.Sprintf("  %s╰%s╯%s\r\n", cSurface, strings.Repeat("─", boxW-2), cReset)
 			renderedPanels = append(renderedPanels, panel)
 		}
 
