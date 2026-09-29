@@ -20,10 +20,21 @@ rows = [[{ token = "$quota_group", bold = true, dim = false }], [{ token = "$quo
 
 # Atajos nativos de herdr (Rust)
 [keys]
+# Navegación entre cuadros con flechas (Non-Vim, nativo Rust)
+focus_pane_left = "prefix+left"
+focus_pane_right = "prefix+right"
+focus_pane_up = "prefix+up"
+focus_pane_down = "prefix+down"
+
+# Intercambiar posición de cuadros con Shift + Flechas (Nativo Rust)
 swap_pane_left = "prefix+shift+left"
 swap_pane_right = "prefix+shift+right"
 swap_pane_up = "prefix+shift+up"
 swap_pane_down = "prefix+shift+down"
+
+# Reordenar pestañas (Nativo Rust)
+move_tab_previous = "prefix+<"
+move_tab_next = "prefix+>"
 
 # herdr-sidebar: abrir / enfocar / cerrar la barra
 [[keys.command]]
@@ -99,16 +110,4 @@ key = "prefix+shift+c"
 type = "shell"
 command = "/Users/drizzy/.local/bin/herdr-ctl move-tab new"
 description = "mover cuadro a nueva pestaña"
-
-[[keys.command]]
-key = "prefix+>"
-type = "shell"
-command = "/Users/drizzy/.local/bin/herdr-ctl move-tab next"
-description = "mover cuadro a pestaña siguiente"
-
-[[keys.command]]
-key = "prefix+<"
-type = "shell"
-command = "/Users/drizzy/.local/bin/herdr-ctl move-tab prev"
-description = "mover cuadro a pestaña anterior"
 
