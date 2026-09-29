@@ -48,20 +48,20 @@ var cheatsheetSections = []Section{
 		Color: cMauve,
 		Items: []Item{
 			{"ctrl+b → h", "Este cheatsheet interactivo"},
-			{"ctrl+b → f", "Toggle sidebar (explorador)"},
-			{"ctrl+b → m", "Auto-ajustar sidebar (laptop ↔ monitor)"},
+			{"ctrl+b → f", "Toggle sidebar (explorador de proyectos)"},
+			{"ctrl+b → m", "Auto-ajustar sidebar según pantalla"},
 			{"ctrl+b → Shift+F", "Sidebar quick-open (Ctrl+P)"},
 			{"ctrl+b → Shift+Q", "Settings de cuota (agent-usage)"},
 			{"ctrl+b → Shift+R", "Refrescar cuotas de agentes"},
-			{"ctrl+b → t", "termscp — cliente SFTP / FTP"},
-			{"ctrl+b → s", "sshs — elegir servidor SSH"},
+			{"ctrl+b → t", "termscp — explorador SFTP / FTP"},
+			{"ctrl+b → s", "sshs — selector de conexiones SSH"},
 			{"ctrl+b → o", "shiki — notas y tareas en Markdown"},
 			{"ctrl+b → ?", "Todos los atajos nativos de herdr"},
 			{"ctrl+b → q", "Salir de herdr (procesos siguen vivos)"},
 			{"ctrl+b → c", "Nuevo tab"},
 			{"ctrl+b → n / p", "Tab siguiente / anterior"},
 			{"ctrl+b → [", "Modo scroll (q para salir)"},
-			{"ctrl+b → d", "Detach sesión (herdr queda en background)"},
+			{"ctrl+b → d", "Detach sesión (herdr queda en segundo plano)"},
 			{"ctrl+b → z", "Zoom / restaurar pane actual"},
 			{"ctrl+b → \"", "Split horizontal"},
 			{"ctrl+b → %", "Split vertical"},
@@ -75,7 +75,7 @@ var cheatsheetSections = []Section{
 		Color: cPeach,
 		Items: []Item{
 			{"yazi", "Gestor de archivos (Espacio: preview)"},
-			{"lazygit", "Interfaz visual de Git"},
+			{"lazygit", "Interfaz visual para Git"},
 			{"lazydocker", "Gestión de contenedores Docker"},
 			{"btop", "Monitor de recursos del sistema"},
 			{"micro <archivo>", "Editor rápido en terminal"},
@@ -90,8 +90,8 @@ var cheatsheetSections = []Section{
 		Color: cTeal,
 		Items: []Item{
 			{"z <carpeta>", "Saltar a directorio frecuente (zoxide)"},
-			{"Ctrl+R", "Historial sincronizado (atuin / fzf)"},
-			{"Tab", "Menú fzf interactivo con previews"},
+			{"Ctrl+R", "Historial interactivo sincronizado"},
+			{"Tab", "Menú fzf interactivo con autocompletado"},
 			{"rg <texto>", "Buscar texto ultra rápido (ripgrep)"},
 			{"fd <nombre>", "Buscar archivos ultra rápido"},
 			{"bat <archivo>", "Cat con sintaxis y números de línea"},
@@ -104,7 +104,7 @@ var cheatsheetSections = []Section{
 		Items: []Item{
 			{"agy", "Lanzar Antigravity CLI"},
 			{"claude", "Claude Code sin confirmaciones (alias)"},
-			{"ctrl+b → Shift+Q", "Settings de cuota"},
+			{"ctrl+b → Shift+Q", "Settings de cuota de Claude/Agy"},
 			{"ctrl+b → Shift+R", "Refrescar cuotas"},
 			{"⏱ 7d ↑47%", "Ventana · pace (↑ holgado / ↓ frena)"},
 			{"Shift+Tab", "Ciclo de modo (normal / bypass)"},
@@ -182,39 +182,28 @@ func runCheatsheet() {
 
 	draw := func() {
 		termW, _, err := term.GetSize(int(os.Stdout.Fd()))
-		if err != nil || termW < 60 {
+		if err != nil || termW < 40 {
 			termW = 80
 		}
-		boxW := termW - 4
-		if boxW > 76 {
-			boxW = 76
-		}
-		if boxW < 60 {
-			boxW = 60
-		}
 
-		// Hide cursor, clear screen, cursor to home
+		// Limpiar pantalla y posicionar cursor arriba a la izquierda
 		fmt.Print("\033[?25l\033[2J\033[H")
 
-		// Header
-		fmt.Printf("  %s%s┌%s┐%s\r\n", cBold, cMauve, strings.Repeat("─", boxW-2), cReset)
-		title := "  󰌌  herdr cheatsheet"
-		if filter != "" {
-			title += fmt.Sprintf("  / %s%s%s", cYellow, filter, cMauve)
+		// Barra de búsqueda si está activa o con filtro
+		if filter != "" || searchMode {
+			searchBar := fmt.Sprintf(" %s/%s %s%s%s", cBlue, cReset, cYellow, filter, cReset)
+			if searchMode {
+				searchBar += fmt.Sprintf("%s▌%s", cYellow, cReset)
+			}
+			fmt.Printf("%s\r\n\r\n", searchBar)
 		}
-		if searchMode {
-			title += fmt.Sprintf("%s▌%s", cYellow, cMauve)
-		}
-		innerHeaderWidth := boxW - 4
-		fmt.Printf("  %s%s│%s %s %s%s│%s\r\n", cBold, cMauve, cReset, padRight(title, innerHeaderWidth-1), cBold, cMauve, cReset)
-		fmt.Printf("  %s%s└%s┘%s\r\n\r\n", cBold, cMauve, strings.Repeat("─", boxW-2), cReset)
 
 		// Filtrar y renderizar paneles
 		var renderedPanels []string
 		ft := strings.ToLower(filter)
 
-		keyCols := 20
-		descCols := boxW - keyCols - 7
+		keyCols := 22
+		descCols := termW - keyCols - 5
 		if descCols < 20 {
 			descCols = 20
 		}
@@ -231,29 +220,25 @@ func runCheatsheet() {
 				continue
 			}
 
-			// Panel top border: ╭─ Title ──...──╮
+			// Divisor de sección elegante sin cajas dobles
 			titleStr := fmt.Sprintf(" %s ", sec.Title)
 			titleLen := runeWidth(titleStr)
-			dashCount := boxW - 2 - 1 - titleLen
+			dashCount := termW - 3 - titleLen
 			if dashCount < 2 {
 				dashCount = 2
 			}
-			panel := fmt.Sprintf("  %s%s╭─%s%s%s%s╮%s\r\n", cBold, sec.Color, titleStr, cSurface, strings.Repeat("─", dashCount), sec.Color+cBold, cReset)
+			panel := fmt.Sprintf("%s%s──%s%s%s%s\r\n", cBold, sec.Color, titleStr, cSurface, strings.Repeat("─", dashCount), cReset)
 
-			// Panel items with pixel-perfect alignment
+			// Items con padding exacto
 			for _, item := range matchingItems {
 				k := padRight(truncateRunes(item.Key, keyCols), keyCols)
 				d := padRight(truncateRunes(item.Desc, descCols), descCols)
-				panel += fmt.Sprintf("  %s│  %s%s%s %s%s%s  %s│%s\r\n",
-					cSurface,
+				panel += fmt.Sprintf("  %s%s%s %s%s%s\r\n",
 					sec.Color+cBold, k, cReset,
 					cText, d, cReset,
-					cSurface, cReset,
 				)
 			}
-
-			// Panel bottom border: ╰────────╯
-			panel += fmt.Sprintf("  %s╰%s╯%s\r\n", cSurface, strings.Repeat("─", boxW-2), cReset)
+			panel += "\r\n"
 			renderedPanels = append(renderedPanels, panel)
 		}
 
@@ -271,8 +256,8 @@ func runCheatsheet() {
 			}
 		}
 
-		// Footer
-		fmt.Printf("\r\n  %s%s↑↓ j/k%s %snavegar%s   %s%s/%s %sbuscar%s   %s%sq Esc%s %ssalir%s\r\n",
+		// Footer limpio al final
+		fmt.Printf(" %s%s↑↓ j/k%s %snavegar%s   %s%s/%s %sbuscar%s   %s%sq Esc%s %ssalir%s\r\n",
 			cBold, cMauve, cReset, cSubtext, cReset,
 			cBold, cBlue, cReset, cSubtext, cReset,
 			cBold, cRed, cReset, cSubtext, cReset,
@@ -287,7 +272,7 @@ func runCheatsheet() {
 			break
 		}
 
-		// Escape key or ANSI escape sequences
+		// Escape key o secuencias ANSI
 		if b == 27 {
 			time.Sleep(15 * time.Millisecond)
 			if reader.Buffered() > 0 {
@@ -344,7 +329,7 @@ func runCheatsheet() {
 			continue
 		}
 
-		// Normal navigation mode
+		// Modo navegación normal
 		switch b {
 		case 'q', 'Q':
 			return
