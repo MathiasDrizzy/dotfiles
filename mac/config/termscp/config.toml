@@ -1,0 +1,14 @@
+[user_interface]
+text_editor = "micro"
+default_protocol = "SFTP"
+show_hidden_files = false
+check_for_updates = true
+prompt_on_file_replace = true
+group_dirs = "first"
+notifications = true
+notification_threshold = 536870912
+
+[remote]
+ssh_config = "/Users/drizzy/.ssh/config"
+
+[remote.ssh_keys]

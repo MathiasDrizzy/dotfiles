@@ -1,0 +1,11 @@
+{
+    "colorscheme": "catppuccin-mocha",
+    "truecolor": "on",
+    "mouse": true,
+    "softwrap": true,
+    "diffgutter": true,
+    "ruler": true,
+    "tabsize": 4,
+    "tabstospaces": true,
+    "savecursor": true
+}

@@ -1,0 +1,28 @@
+# Tipografía
+font-family = "JetBrainsMono Nerd Font"
+font-size = 14
+cursor-style = block
+cursor-style-blink = false
+
+# Tema
+theme = "Catppuccin Mocha"
+
+# Efecto cristal translúcido
+background-opacity = 0.85
+background-blur-radius = 40
+macos-titlebar-style = hidden
+macos-window-shadow = true
+
+# Atajos y espaciado
+macos-option-as-alt = right
+window-padding-x = 16
+window-padding-y = 16
+
+# Cmd+C: si Ghostty tiene una selección, la copia; si no (dentro de herdr la selección
+# es de herdr), reenvía Cmd+C a la app para que herdr copie su propia selección.
+keybind = performable:super+c=copy_to_clipboard
+
+# BEGIN herdr-agent-usage font
+font-codepoint-map = U+E1A0-U+E1B6="Herdr Agent Icons Max"
+font-codepoint-map = U+E1C0-U+E1C5="Herdr Agent Icons Max"
+# END herdr-agent-usage font

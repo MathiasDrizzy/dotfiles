@@ -1,0 +1,37 @@
+# ── Navegación con flechas ─────────────────────────────
+[[mgr.prepend_keymap]]
+on = "<Left>"
+run = "leave"
+desc = "Volver a la carpeta padre"
+
+[[mgr.prepend_keymap]]
+on = "<Right>"
+run = "enter"
+desc = "Entrar a la carpeta"
+
+# ── Enter = confirmar y salir acá ──────────────────────
+[[mgr.prepend_keymap]]
+on = "<Enter>"
+run = ["enter", "quit"]
+desc = "Entrar a la carpeta y cerrar yazi dejando la shell ahí"
+
+# ── Operaciones con letras ─────────────────────────────
+[[mgr.prepend_keymap]]
+on = "r"
+run = "rename --cursor=before_ext"
+desc = "Renombrar"
+
+[[mgr.prepend_keymap]]
+on = "n"
+run = "create"
+desc = "Crear (terminar en / para carpeta)"
+
+[[mgr.prepend_keymap]]
+on = "o"
+run = "open"
+desc = "Abrir archivo con el editor"
+
+[[mgr.prepend_keymap]]
+on = "<Delete>"
+run = "remove"
+desc = "Mover a la papelera"

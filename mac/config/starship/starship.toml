@@ -1,0 +1,32 @@
+# Formato general en 2 líneas limpias
+format = """
+$directory$git_branch$git_status$python
+$character"""
+
+# Evita que Starship lance warnings de timeout en carpetas grandes
+scan_timeout = 500
+command_timeout = 1000
+
+# Evita saltos de línea innecesarios arriba
+add_newline = false
+
+[directory]
+style = "bold cyan"
+truncation_length = 3
+truncate_to_repo = true
+
+[git_branch]
+symbol = " "
+style = "bold purple"
+
+[git_status]
+style = "red"
+
+[python]
+symbol = " "
+style = "yellow"
+format = 'via [$symbol$version]($style) '
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"

@@ -1,0 +1,75 @@
+eval "$(mise activate zsh)"
+
+# Rutas locales
+export PATH="$HOME/.local/bin:$PATH"
+
+# Editor por defecto (yazi, git, etc.) — no vim
+export EDITOR="code -w"
+export VISUAL="$EDITOR"
+
+# Inicializar sistema de autocompletado
+autoload -Uz compinit && compinit -u
+
+# Herramientas de productividad (Zoxide, Fzf, Atuin)
+eval "$(zoxide init zsh)"
+# fzf: usar fd y excluir cachés (~311k dirs -> ~7k, 8.5s -> 0.16s)
+_FD_EXC="--hidden --follow --exclude .cache --exclude Library --exclude .npm --exclude .git --exclude node_modules --exclude .Trash"
+export FZF_DEFAULT_COMMAND="fd --type f --strip-cwd-prefix ${_FD_EXC}"
+export FZF_CTRL_T_COMMAND="fd --type f --type d --strip-cwd-prefix ${_FD_EXC}"
+export FZF_ALT_C_COMMAND="fd --type d --strip-cwd-prefix ${_FD_EXC}"
+export FZF_DEFAULT_OPTS="
+  --height 60% --layout=reverse --border
+  --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8
+  --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc
+  --color=marker:#b4befe,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8
+  --color=selected-bg:#45475a
+  --multi"
+
+eval "$(fzf --zsh)"
+eval "$(atuin init zsh)"
+
+# Plugins de autocompletado y resaltado visual (orden estricto)
+source /opt/homebrew/opt/fzf-tab/share/fzf-tab/fzf-tab.zsh
+source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+# yazi: la funcion y() deja la shell en la carpeta donde saliste
+function y() {
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	yazi "$@" --cwd-file="$tmp"
+	IFS= read -r -d "" cwd < "$tmp"
+	[ -n "$cwd" ] && [ "$cwd" != "$PWD" ] && builtin cd -- "$cwd"
+	rm -f -- "$tmp"
+}
+
+# Aliases útiles
+alias lg='lazygit'
+alias ld='lazydocker'
+alias sb='herdr plugin action invoke open-sidebar >/dev/null'
+alias sb-ext='herdr-sidebar-adapt external'   # sidebar angosto para monitor externo
+alias sb-lap='herdr-sidebar-adapt laptop'      # sidebar normal para laptop
+alias sb-auto='herdr-sidebar-adapt auto'       # detecta automáticamente
+alias mirador='mirador'
+
+# Claude Code: bypass DISPONIBLE en el ciclo de Shift+Tab, apagado al inicio
+alias claude='claude --allow-dangerously-skip-permissions'
+
+# Antigravity (agy): bypass de confirmaciones — equivalente al claude de arriba
+alias agy='agy --dangerously-skip-permissions'
+
+# Prompt Starship
+eval "$(starship init zsh)"
+
+
+# Homebrew: actualizacion masiva (formulae + casks) y limpieza
+brewup() {
+  echo "==> 1/4 Actualizando indice de Homebrew"
+  brew update || return 1
+  echo "==> 2/4 Actualizando formulae y casks"
+  brew upgrade
+  echo "==> 3/4 Limpiando versiones viejas (conserva cache de descargas)"
+  brew cleanup
+  echo "==> 4/4 Diagnostico"
+  brew doctor
+}
+alias brewout='brew outdated --verbose'   # ver que hay pendiente sin tocar nada

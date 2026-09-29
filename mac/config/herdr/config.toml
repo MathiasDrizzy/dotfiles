@@ -1,0 +1,85 @@
+onboarding = false
+
+[theme]
+name = "catppuccin"
+
+[ui]
+agent_panel_sort = "spaces" # herdr-agent-usage
+
+[ui.sound]
+enabled = false
+
+[ui.toast]
+delivery = "terminal"
+
+[ui.sidebar]
+
+[ui.sidebar.agents]
+row_gap = 0 # herdr-agent-usage
+rows = [[{ token = "$quota_group", bold = true, dim = false }], [{ token = "$quota_icon", fg = "#e9e9f0", bold = false, dim = false, rules = [{ contains = "⁠", fg = "#94e2d5" }, { contains = "⁡", fg = "#f9e2af" }, { contains = "⁢", fg = "#f38ba8" }] }, { token = "$quota_provider_model", fg = "#e9e9f0", bold = true, dim = false }], [{ token = "$quota_share_5h_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_share_5h_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_share_5h_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_share_5h_unknown", bold = false, dim = false }], [{ token = "$quota_share_week_inline_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_share_week_inline_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_share_week_inline_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_share_week_inline_unknown", bold = false, dim = false }, { token = "$quota_share_week_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_share_week_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_share_week_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_share_week_unknown", bold = false, dim = false }], [{ token = "$quota_share_month_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_share_month_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_share_month_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_share_month_unknown", bold = false, dim = false }], [{ token = "$quota_model", fg = "#e9e9f0", bold = false, dim = false }], [{ token = "$quota_topic", bold = false, dim = false }], [{ token = "$quota_error", fg = "#e4b957", bold = false, dim = false }], [{ token = "$quota_context_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_context_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_context_danger", fg = "#df919b", bold = false, dim = false }], [{ token = "$quota_5h_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_5h_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_5h_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_5h_unknown", bold = false, dim = false }], [{ token = "$quota_week_inline_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_week_inline_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_week_inline_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_week_inline_unknown", bold = false, dim = false }, { token = "$quota_week_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_week_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_week_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_week_unknown", bold = false, dim = false }], [{ token = "$quota_month_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_month_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_month_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_month_unknown", bold = false, dim = false }], [{ token = "$quota_nest_gap", bold = false, dim = false }]] # herdr-agent-usage-row
+
+# herdr-sidebar: abrir / enfocar / cerrar la barra
+[[keys.command]]
+key = "prefix+f"
+type = "plugin_action"
+command = "herdr-sidebar.open-sidebar"
+description = "toggle sidebar (explorer)"
+
+# herdr-sidebar: buscar archivo por nombre (como Ctrl+P de VS Code)
+[[keys.command]]
+key = "prefix+shift+f"
+type = "plugin_action"
+command = "herdr-sidebar.quick-open"
+description = "sidebar quick open"
+
+# termscp: explorador SFTP/FTP de dos paneles (tipo lazygit) en popup
+[[keys.command]]
+key = "prefix+t"
+type = "popup"
+command = "/opt/homebrew/bin/termscp"
+description = "termscp (sftp)"
+width = "90%"
+height = "90%"
+
+# sshs: elegir servidor de ~/.ssh/config y conectarse por SSH (pane temporal)
+[[keys.command]]
+key = "prefix+s"
+type = "pane"
+command = "/opt/homebrew/bin/sshs"
+description = "sshs (ssh hosts)"
+
+# sidebar-adapt: ajusta el ancho del sidebar según pantalla conectada (auto/laptop/external)
+[[keys.command]]
+key = "prefix+m"
+type = "plugin_action"
+command = "herdr-sidebar.adapt-width"
+description = "sidebar adapt (auto detecta monitor y ajusta columnas)"
+
+# cheatsheet: atajos de herdr y herramientas del entorno (ctrl+b h)
+[[keys.command]]
+key = "prefix+h"
+type = "popup"
+command = "/Users/drizzy/.local/bin/herdr-cheatsheet"
+description = "cheatsheet (atajos y comandos)"
+width = "55%"
+height = "70%"
+
+# shiki: notas + tareas + imagenes (TUI tipo yazi) en pane temporal a pantalla completa
+# Usa el lanzador del build parcheado (ver 3.5.9), NO /opt/homebrew/bin/shiki
+[[keys.command]]
+key = "prefix+o"
+type = "pane"
+command = "/Users/drizzy/.local/bin/shiki-herdr"
+description = "shiki (notas y tareas)"
+
+[[keys.command]]
+key = "prefix+shift+r"
+type = "plugin_action"
+command = "herdr-agent-usage.refresh"
+description = "refresh all agent quotas"
+
+[[keys.command]]
+key = "prefix+shift+q"
+type = "plugin_action"
+command = "herdr-agent-usage.open-settings"
+description = "open agent quota settings"
