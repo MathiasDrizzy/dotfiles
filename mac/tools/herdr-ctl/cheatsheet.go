@@ -62,7 +62,7 @@ var cheatsheetSections = []Section{
 			{"ctrl+b → Shift+←/→", "Mover cuadro a izq / der (swap)"},
 			{"ctrl+b → Shift+↑/↓", "Mover cuadro arriba / abajo"},
 			{"ctrl+b → Shift+C", "Mover cuadro a NUEVA pestaña"},
-			{"ctrl+b → > / <", "Mover cuadro a pestaña sig / ant"},
+			{"ctrl+b → > / <", "Reordenar pestaña a der / izq"},
 			{"ctrl+b → z", "Zoom / restaurar pane actual"},
 			{"ctrl+b → \"", "Split horizontal"},
 			{"ctrl+b → %", "Split vertical"},

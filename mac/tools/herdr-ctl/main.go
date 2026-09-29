@@ -257,29 +257,6 @@ func adaptSidebar(forceMode string) error {
 	return nil
 }
 
-func swapCurrentPane(dir string) error {
-	resp, err := callRPC("pane.list", map[string]interface{}{})
-	if err != nil {
-		return err
-	}
-	var paneList PaneListResult
-	if err := json.Unmarshal(resp.Result, &paneList); err != nil {
-		return err
-	}
-
-	for _, p := range paneList.Panes {
-		if p.Focused && p.Label == "Sidebar" {
-			notify("herdr-ctl", "El sidebar no se puede intercambiar")
-			return nil
-		}
-	}
-
-	cmd := exec.Command("/opt/homebrew/bin/herdr", "pane", "swap", "--current", "--direction", dir)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("error al intercambiar cuadro (%s): %s", err, string(out))
-	}
-	return nil
-}
 
 func movePaneTab(mode string) error {
 	resp, err := callRPC("pane.list", map[string]interface{}{})
@@ -381,15 +358,6 @@ func main() {
 			mode = os.Args[2]
 		}
 		if err := adaptSidebar(mode); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-	case "swap":
-		dir := "left"
-		if len(os.Args) > 2 {
-			dir = os.Args[2]
-		}
-		if err := swapCurrentPane(dir); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
