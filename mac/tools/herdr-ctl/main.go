@@ -42,6 +42,24 @@ type PaneInfo struct {
 	Tokens  map[string]interface{} `json:"tokens"`
 }
 
+type AgentListResult struct {
+	Type   string      `json:"type"`
+	Agents []AgentInfo `json:"agents"`
+}
+
+type AgentInfo struct {
+	TerminalID   string                 `json:"terminal_id"`
+	Name         string                 `json:"name"`
+	Agent        string                 `json:"agent"`
+	AgentStatus  string                 `json:"agent_status"`
+	PaneID       string                 `json:"pane_id"`
+	TabID        string                 `json:"tab_id"`
+	WorkspaceID  string                 `json:"workspace_id"`
+	Cwd          string                 `json:"cwd"`
+	Focused      bool                   `json:"focused"`
+	Tokens       map[string]interface{} `json:"tokens"`
+}
+
 type PaneLayoutResult struct {
 	Type   string     `json:"type"`
 	Layout LayoutData `json:"layout"`
@@ -372,6 +390,112 @@ func reloadConfig() error {
 	return nil
 }
 
+func listAgents() error {
+	resp, err := callRPC("agent.list", map[string]interface{}{})
+	if err != nil {
+		return err
+	}
+
+	var res AgentListResult
+	if err := json.Unmarshal(resp.Result, &res); err != nil {
+		return err
+	}
+
+	fmt.Printf("\n %s%s┌────────────────────────────────────────────────────────────────────────┐%s\n", cBold, cMauve, cReset)
+	fmt.Printf(" %s%s│  󰚩  ENJAMBRE DE AGENTES ACTIVOS (herdr.sock inter-agent bus)          │%s\n", cBold, cMauve, cReset)
+	fmt.Printf(" %s%s└────────────────────────────────────────────────────────────────────────┘%s\n\n", cBold, cMauve, cReset)
+
+	if len(res.Agents) == 0 {
+		fmt.Printf("  %sNo hay agentes activos detectados en este momento.%s\n\n", cSubtext, cReset)
+		return nil
+	}
+
+	fmt.Printf("  %s%-12s %-10s %-8s %-12s %-26s %s%s\n", cBold+cSubtext, "AGENTE", "ESTADO", "PANEL", "WORKSPACE", "MODELO", "TOPIC / TAREA", cReset)
+	fmt.Printf("  %s%s%s\n", cSurface, strings.Repeat("─", 74), cReset)
+
+	for _, a := range res.Agents {
+		statusColor := cGreen
+		if a.AgentStatus == "idle" {
+			statusColor = cTeal
+		} else if a.AgentStatus == "blocked" {
+			statusColor = cPeach
+		} else if a.AgentStatus == "error" {
+			statusColor = cRed
+		}
+
+		name := a.Name
+		if name == "" {
+			name = a.Agent
+		}
+
+		model := ""
+		if m, ok := a.Tokens["quota_provider_model"].(string); ok {
+			model = m
+		}
+
+		topic := ""
+		if t, ok := a.Tokens["quota_topic"].(string); ok {
+			topic = t
+		}
+
+		workspace := a.WorkspaceID
+		if g, ok := a.Tokens["quota_group"].(string); ok && g != "" {
+			workspace = g
+		}
+
+		fmt.Printf("  %s%-12s%s %s%-10s%s %-8s %-12s %-26s %s\n",
+			cBold+cMauve, truncateRunes(name, 12), cReset,
+			statusColor, truncateRunes(a.AgentStatus, 10), cReset,
+			a.PaneID,
+			truncateRunes(workspace, 12),
+			truncateRunes(model, 26),
+			truncateRunes(topic, 26),
+		)
+	}
+	fmt.Println()
+	return nil
+}
+
+func promptAgent(target, prompt string) error {
+	if target == "" || prompt == "" {
+		return fmt.Errorf("uso: herdr-ctl prompt <agente|pane_id> <mensaje>")
+	}
+	cmd := exec.Command("/opt/homebrew/bin/herdr", "agent", "prompt", target, prompt)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error al enviar prompt a %s: %s (%w)", target, string(out), err)
+	}
+	fmt.Printf("✓ Mensaje entregado a [%s]: %s\n", target, prompt)
+	notify("herdr-ctl", fmt.Sprintf("Mensaje enviado a agente %s", target))
+	return nil
+}
+
+func readAgent(target string) error {
+	if target == "" {
+		return fmt.Errorf("uso: herdr-ctl read <agente|pane_id>")
+	}
+	cmd := exec.Command("/opt/homebrew/bin/herdr", "agent", "read", target)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error al leer agente %s: %s (%w)", target, string(out), err)
+	}
+	fmt.Print(string(out))
+	return nil
+}
+
+func focusAgent(target string) error {
+	if target == "" {
+		return fmt.Errorf("uso: herdr-ctl focus <agente|pane_id>")
+	}
+	cmd := exec.Command("/opt/homebrew/bin/herdr", "agent", "focus", target)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error al enfocar agente %s: %s (%w)", target, string(out), err)
+	}
+	fmt.Printf("✓ Enfocado agente [%s]\n", target)
+	return nil
+}
+
 func main() {
 	cmd := "adapt"
 	if len(os.Args) > 1 {
@@ -402,6 +526,42 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	case "agents", "swarm":
+		if err := listAgents(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	case "prompt":
+		if len(os.Args) < 4 {
+			fmt.Fprintf(os.Stderr, "Uso: herdr-ctl prompt <agente|pane_id> <mensaje>\n")
+			os.Exit(1)
+		}
+		target := os.Args[2]
+		prompt := strings.Join(os.Args[3:], " ")
+		if err := promptAgent(target, prompt); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	case "read":
+		if len(os.Args) < 3 {
+			fmt.Fprintf(os.Stderr, "Uso: herdr-ctl read <agente|pane_id>\n")
+			os.Exit(1)
+		}
+		target := os.Args[2]
+		if err := readAgent(target); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	case "focus":
+		if len(os.Args) < 3 {
+			fmt.Fprintf(os.Stderr, "Uso: herdr-ctl focus <agente|pane_id>\n")
+			os.Exit(1)
+		}
+		target := os.Args[2]
+		if err := focusAgent(target); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	case "status":
 		resp, err := callRPC("pane.list", map[string]interface{}{})
 		if err != nil {
@@ -412,6 +572,6 @@ func main() {
 	case "cheatsheet", "help-tui":
 		runCheatsheet()
 	default:
-		fmt.Printf("Uso: herdr-ctl [adapt|swap|move-tab|reload|cheatsheet|status]\n")
+		fmt.Printf("Uso: herdr-ctl [adapt|swap|move-tab|reload|swarm|prompt|read|focus|cheatsheet|status]\n")
 	}
 }

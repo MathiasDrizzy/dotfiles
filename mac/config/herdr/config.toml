@@ -7,7 +7,7 @@ name = "catppuccin"
 agent_panel_sort = "spaces" # herdr-agent-usage
 
 [ui.sound]
-enabled = true
+enabled = false
 
 [ui.toast]
 delivery = "terminal"

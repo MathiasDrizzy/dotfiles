@@ -54,6 +54,13 @@ alias sb-lap='herdr-ctl adapt laptop'      # sidebar normal (24 cols) para lapto
 alias sb-auto='herdr-ctl adapt'            # detecta monitor y ajusta automáticamente
 alias mirador='mirador'
 
+# Enjambre e Intercomunicación de Agentes (Socket Unix ~/.config/herdr/herdr.sock)
+alias swarm='herdr-ctl swarm'
+alias agents='herdr-ctl swarm'
+alias aprompt='herdr-ctl prompt'
+alias aread='herdr-ctl read'
+alias afocus='herdr-ctl focus'
+
 # Claude Code: bypass DISPONIBLE en el ciclo de Shift+Tab, apagado al inicio
 alias claude='claude --allow-dangerously-skip-permissions'
 
