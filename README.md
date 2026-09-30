@@ -71,8 +71,7 @@ herdr-ctl status          # Consulta estado y paneles de herdr
 
 ### ⚡ Popups y Herramientas Flotantes
 * `ctrl+b → h` : **Cheatsheet interactivo** (popup con búsqueda `/` y todos los comandos).
-* `ctrl+b → t` : **Terminal popup (Scratchpad)** (terminal flotante para `sftp`, `hosts`, etc.).
-* `ctrl+b → o` : **Gestor de Notas** (popup interactivo con `fzf` + `glow` + `micro`).
+* `ctrl+b → t` : **Terminal popup (Scratchpad)** (terminal flotante para `sftp`, `hosts`, etc., cerrar con `Esc`, `Ctrl+D` o `exit`).
 * `ctrl+b → m` : **Auto-adaptar sidebar** según el monitor actual con `herdr-ctl`.
 * `ctrl+b → f` : Abrir / enfocar / alternar sidebar explorer.
 * `ctrl+b → Shift+F` : Búsqueda rápida de archivos (Quick Open tipo Ctrl+P).

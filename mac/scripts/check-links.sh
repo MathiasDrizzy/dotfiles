@@ -55,6 +55,7 @@ CONFIG_PAIRS=(
   "zshrc|$HOME/.zshrc"
   "zshenv|$HOME/.zshenv"
   "scripts/notes-manager.sh|$HOME/.local/bin/notes-manager"
+  "scripts/terminal-popup.sh|$HOME/.local/bin/terminal-popup"
 )
 
 drifts=0

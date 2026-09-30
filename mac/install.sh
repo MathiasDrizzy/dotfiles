@@ -148,6 +148,7 @@ REQUIRED_SOURCES=(
   "scripts/notes-manager.sh"
   "scripts/check-links.sh"
   "scripts/herdr-reload.sh"
+  "scripts/terminal-popup.sh"
 )
 
 for src in "${REQUIRED_SOURCES[@]}"; do

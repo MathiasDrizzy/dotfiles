@@ -76,3 +76,18 @@ brewup() {
   brew doctor
 }
 alias brewout='brew outdated --verbose'   # ver que hay pendiente sin tocar nada
+
+# Terminal Popup (scratchpad de herdr): salir con Escape si el prompt está vacío, o con Ctrl+Q
+if [[ -n "${HERDR_POPUP:-}" ]]; then
+  export KEYTIMEOUT=15
+  _popup_exit_on_esc() {
+    if [[ -z "$BUFFER" ]]; then
+      exit 0
+    else
+      zle kill-whole-line
+    fi
+  }
+  zle -N _popup_exit_on_esc
+  bindkey '\e' _popup_exit_on_esc
+  bindkey '^Q' _popup_exit_on_esc
+fi

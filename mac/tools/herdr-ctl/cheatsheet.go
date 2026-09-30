@@ -54,7 +54,6 @@ var cheatsheetSections = []Section{
 			{"ctrl+b → Shift+Q", "Settings de cuota (agent-usage)"},
 			{"ctrl+b → Shift+R", "Refrescar cuotas de agentes"},
 			{"ctrl+b → t", "terminal popup (scratchpad interactivo)"},
-			{"ctrl+b → o", "notas — gestor fzf + glow + micro (popup)"},
 			{"ctrl+b → ?", "Todos los atajos nativos de herdr"},
 			{"ctrl+b → q", "Salir de herdr (procesos siguen vivos)"},
 			{"ctrl+b → ↑↓←→", "Moverse entre cuadros"},

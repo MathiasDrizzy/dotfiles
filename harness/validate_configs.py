@@ -117,7 +117,8 @@ def test_shell_scripts():
         ("mac/zshrc", "zsh"),
         ("mac/scripts/notes-manager.sh", "bash"),
         ("mac/scripts/check-links.sh", "bash"),
-        ("mac/scripts/herdr-reload.sh", "bash")
+        ("mac/scripts/herdr-reload.sh", "bash"),
+        ("mac/scripts/terminal-popup.sh", "bash")
     ]
     for rel_path, shell_bin in scripts:
         full_path = os.path.join(REPO_ROOT, rel_path)
@@ -151,7 +152,8 @@ def test_portability():
         "mac/zshrc",
         "mac/scripts/notes-manager.sh",
         "mac/scripts/check-links.sh",
-        "mac/scripts/herdr-reload.sh"
+        "mac/scripts/herdr-reload.sh",
+        "mac/scripts/terminal-popup.sh"
     ]
     for rel_path in shell_files:
         full_path = os.path.join(REPO_ROOT, rel_path)

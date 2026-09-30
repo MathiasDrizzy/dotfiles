@@ -50,11 +50,11 @@ type = "plugin_action"
 command = "herdr-sidebar.quick-open"
 description = "sidebar quick open"
 
-# terminal: scratchpad interactivo flotante en popup (para sshs, termscp, comandos rápidos)
+# terminal: scratchpad interactivo flotante en popup (cerrar con Esc, Ctrl+D o exit)
 [[keys.command]]
 key = "prefix+t"
 type = "popup"
-command = "/bin/zsh"
+command = "/Users/drizzy/.local/bin/terminal-popup"
 description = "terminal popup (scratchpad)"
 width = "85%"
 height = "80%"
@@ -74,15 +74,6 @@ command = "/Users/drizzy/.local/bin/herdr-ctl cheatsheet"
 description = "cheatsheet (atajos y comandos)"
 width = 82
 height = 26
-
-# notes-manager: gestor interactivo de notas en markdown (fzf + glow + micro)
-[[keys.command]]
-key = "prefix+o"
-type = "popup"
-command = "/Users/drizzy/.local/bin/notes-manager"
-description = "notas (fzf + glow + micro)"
-width = "85%"
-height = "85%"
 
 [[keys.command]]
 key = "prefix+shift+r"
