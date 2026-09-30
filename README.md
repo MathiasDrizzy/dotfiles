@@ -60,12 +60,29 @@ herdr-ctl status          # Consulta estado y paneles de herdr
 
 ## 🎹 Atajos Principales de `herdr` (`prefix = ctrl+b`)
 
-* `ctrl+b → h` : **Cheatsheet interactivo** (popup con todos los comandos y atajos).
+### 🪟 Gestión de Paneles y Pestañas (Non-Vim, nativo con Flechas)
+* `ctrl+b → ↑ ↓ ← →` : Moverse entre cuadros de trabajo.
+* `ctrl+b → Shift+↑/↓/←/→` : Intercambiar posición de cuadros (swap).
+* `ctrl+b → Shift+C` : Mover el cuadro actual a una **NUEVA** pestaña.
+* `ctrl+b → > / <` : Reordenar pestañas a la derecha o izquierda.
+* `ctrl+b → z` : Zoom / pantalla completa del cuadro enfocado.
+* `ctrl+b → % / "` : Split vertical / horizontal.
+* `ctrl+b → x` : Cerrar cuadro actual.
+
+### ⚡ Popups y Herramientas Flotantes
+* `ctrl+b → h` : **Cheatsheet interactivo** (popup con búsqueda `/` y todos los comandos).
+* `ctrl+b → t` : **Terminal popup (Scratchpad)** (terminal flotante para `sftp`, `hosts`, etc.).
+* `ctrl+b → o` : **Gestor de Notas** (popup interactivo con `fzf` + `glow` + `micro`).
 * `ctrl+b → m` : **Auto-adaptar sidebar** según el monitor actual con `herdr-ctl`.
 * `ctrl+b → f` : Abrir / enfocar / alternar sidebar explorer.
-* `ctrl+b → Shift+F` : Búsqueda rápida de archivos (Quick Open).
+* `ctrl+b → Shift+F` : Búsqueda rápida de archivos (Quick Open tipo Ctrl+P).
 * `ctrl+b → Shift+Q` : Configuración de cuotas de modelos (agent-usage).
 * `ctrl+b → Shift+R` : Refrescar cuotas de agentes.
-* `ctrl+b → t` : termscp (SFTP de doble panel).
-* `ctrl+b → s` : sshs (selector de servidores SSH).
-* `ctrl+b → o` : shiki (notas y tareas TUI).
+
+### 🐚 Aliases Útiles en Terminal
+* `sftp` : Lanza `termscp` (explorador SFTP/FTP/S3).
+* `hosts` : Lanza `sshs` (selector visual de servidores SSH).
+* `notes` : Gestor de notas interactivo (`notes-manager`).
+* `lg` : `lazygit`.
+* `ld` : `lazydocker`.
+* `y` : `yazi` (al salir te deja en el directorio navegado).
