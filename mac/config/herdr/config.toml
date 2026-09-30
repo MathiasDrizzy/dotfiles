@@ -50,21 +50,14 @@ type = "plugin_action"
 command = "herdr-sidebar.quick-open"
 description = "sidebar quick open"
 
-# termscp: explorador SFTP/FTP de dos paneles (tipo lazygit) en popup
+# terminal: scratchpad interactivo flotante en popup (para sshs, termscp, comandos rápidos)
 [[keys.command]]
 key = "prefix+t"
 type = "popup"
-command = "/opt/homebrew/bin/termscp"
-description = "termscp (sftp)"
-width = "90%"
-height = "90%"
-
-# sshs: elegir servidor de ~/.ssh/config y conectarse por SSH (pane temporal)
-[[keys.command]]
-key = "prefix+s"
-type = "pane"
-command = "/opt/homebrew/bin/sshs"
-description = "sshs (ssh hosts)"
+command = "/bin/zsh"
+description = "terminal popup (scratchpad)"
+width = "85%"
+height = "80%"
 
 # sidebar-adapt: ajusta el ancho del sidebar según pantalla conectada (auto/laptop/external)
 [[keys.command]]

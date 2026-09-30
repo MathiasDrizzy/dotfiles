@@ -45,6 +45,9 @@ function y() {
 # Aliases útiles
 alias lg='lazygit'
 alias ld='lazydocker'
+alias sftp='termscp'
+alias hosts='sshs'
+alias notes='notes-manager'
 alias sb='herdr plugin action invoke open-sidebar >/dev/null'
 alias sb-ext='herdr-ctl adapt external'   # sidebar angosto (22 cols) para monitor externo
 alias sb-lap='herdr-ctl adapt laptop'      # sidebar normal (24 cols) para laptop
