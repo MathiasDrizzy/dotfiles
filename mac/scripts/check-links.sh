@@ -54,7 +54,6 @@ CONFIG_PAIRS=(
   "config/lazydocker/config.yml|$HOME/Library/Application Support/lazydocker/config.yml"
   "zshrc|$HOME/.zshrc"
   "zshenv|$HOME/.zshenv"
-  "scripts/notes-manager.sh|$HOME/.local/bin/notes-manager"
   "scripts/terminal-popup.sh|$HOME/.local/bin/terminal-popup"
 )
 
@@ -78,10 +77,10 @@ for pair in "${CONFIG_PAIRS[@]}"; do
       mkdir -p "$(dirname "$target")"
       ln -s "$source" "$target"
       echo -e "  ${C_GREEN}[ENLAZADO]${C_RESET} Creado symlink para $target"
-      ((symlinks_ok++))
+      symlinks_ok=$((symlinks_ok + 1))
     else
       echo -e "  ${C_YELLOW}[MISSING]${C_RESET} $target no existe en el sistema"
-      ((missing++))
+      missing=$((missing + 1))
     fi
     continue
   fi
@@ -95,7 +94,7 @@ for pair in "${CONFIG_PAIRS[@]}"; do
     # Comprobar si el link apunta al repo
     if [[ "$link_dest" == "$source" || "$link_dest" == "$canonical_source" || "$link_dest" == *"$repo_rel"* ]]; then
       echo -e "  ${C_GREEN}[SYMLINK OK]${C_RESET} $target"
-      ((symlinks_ok++))
+      symlinks_ok=$((symlinks_ok + 1))
     else
       echo -e "  ${C_YELLOW}[LINK EXTRAÑO]${C_RESET} $target apunta a $link_dest"
       if [ "$FIX_MODE" = true ]; then
@@ -109,16 +108,16 @@ for pair in "${CONFIG_PAIRS[@]}"; do
       if [ "$FIX_MODE" = true ]; then
         ln -sf "$source" "$target"
         echo -e "  ${C_GREEN}[CONVERTIDO A SYMLINK]${C_RESET} $target"
-        ((symlinks_ok++))
+        symlinks_ok=$((symlinks_ok + 1))
       else
         echo -e "  ${C_BLUE}[IN SYNC (Copia)]${C_RESET} $target (idéntico al repo)"
-        ((copies_in_sync++))
+        copies_in_sync=$((copies_in_sync + 1))
       fi
     else
       echo -e "  ${C_RED}[DRIFT / MODIFICADO FUERA DE GIT]${C_RESET} $target"
       echo -e "      ${C_SUBTEXT}El archivo en ~/.config difiere del repositorio:${C_RESET}"
       diff -u "$source" "$target" | head -n 12 || true
-      ((drifts++))
+      drifts=$((drifts + 1))
 
       if [ "$FIX_MODE" = true ]; then
         backup="${target}.bak.$(date +%s)"

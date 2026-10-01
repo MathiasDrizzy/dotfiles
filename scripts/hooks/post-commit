@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Post-commit versionado: si el commit cambió el config de herdr, lo recarga en caliente.
+set -u
+root="$(git rev-parse --show-toplevel)" || exit 0
+if git diff-tree -r --name-only --no-commit-id HEAD | grep -q "mac/config/herdr/config.toml"; then
+  echo "post-commit: cambió mac/config/herdr/config.toml; recargando herdr en caliente…"
+  "$root/mac/scripts/herdr-reload.sh" || true
+fi
+exit 0

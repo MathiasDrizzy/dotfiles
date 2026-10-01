@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # dotfiles/mac/install.sh
-# Script automatizado e idempotente para configurar macOS (Apple Silicon) al 100%
+# Script automatizado e idempotente para configurar macOS (Apple Silicon)
 # con Ghostty, herdr, Antigravity, zsh, Catppuccin Mocha y herramientas TUI.
-# Soporta flag --dry-run para pruebas de humo e integración continua.
+# Soporta --dry-run (simulación) y --links-only (solo crea directorios y enlaces
+# bajo $HOME; no instala paquetes, no descarga temas, no compila, no toca ~/.zshenv).
 # ==============================================================================
 set -euo pipefail
 
 DRY_RUN=false
+LINKS_ONLY=false
 for arg in "$@"; do
-  if [[ "$arg" == "--dry-run" || "$arg" == "-n" ]]; then
-    DRY_RUN=true
-  fi
+  case "$arg" in
+    --dry-run|-n) DRY_RUN=true ;;
+    --links-only) LINKS_ONLY=true ;;
+  esac
 done
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,6 +26,7 @@ if [ "$DRY_RUN" = true ]; then
   echo "════════════════════════════════════════════════════════════════"
 else
   echo "==> Iniciando instalación de dotfiles (macOS)..."
+  [ "$LINKS_ONLY" = true ] && echo "    (--links-only: solo directorios y enlaces bajo \$HOME)"
 fi
 
 # Helper para ejecución condicional
@@ -36,6 +40,8 @@ run_step() {
     "$@"
   fi
 }
+
+if [ "$LINKS_ONLY" = false ]; then
 
 # 1. Comprobar Homebrew
 if ! command -v brew &>/dev/null; then
@@ -102,6 +108,8 @@ else
   fi
 fi
 
+fi
+
 # 5. Crear directorios de configuración
 CONFIG_DIRS=(
   "$HOME/.config/ghostty"
@@ -145,7 +153,6 @@ REQUIRED_SOURCES=(
   "config/bat/config"
   "zshrc"
   "zshenv"
-  "scripts/notes-manager.sh"
   "scripts/check-links.sh"
   "scripts/herdr-reload.sh"
   "scripts/terminal-popup.sh"
@@ -168,6 +175,8 @@ else
   "$DOTFILES_DIR/scripts/check-links.sh" --fix
 fi
 
+if [ "$LINKS_ONLY" = false ]; then
+
 # 7. Tema Catppuccin Mocha para micro y btop
 if [ "$DRY_RUN" = true ]; then
   echo "  [DRY-RUN] Validación de descargas de temas Catppuccin Mocha"
@@ -178,7 +187,14 @@ else
     -o "$HOME/.config/btop/themes/catppuccin_mocha.theme" 2>/dev/null || true
 fi
 
-# 8. Compilar herdr-ctl
+# 8. Activar los hooks versionados del repo (pre-commit con el harness)
+if [ "$DRY_RUN" = true ]; then
+  echo "  [DRY-RUN] git config core.hooksPath scripts/hooks"
+else
+  git -C "$DOTFILES_DIR" config core.hooksPath scripts/hooks 2>/dev/null || true
+fi
+
+# 9. Compilar herdr-ctl
 if [ "$DRY_RUN" = true ]; then
   echo "  [DRY-RUN] Validando compilación de herdr-ctl (go vet + build dry-run)..."
   (
@@ -187,7 +203,7 @@ if [ "$DRY_RUN" = true ]; then
     go test ./...
     go build -o /dev/null .
   )
-  echo "  ✓ herdr-ctl compila al 100% sin advertencias."
+  echo "  ✓ herdr-ctl compila sin advertencias."
 else
   echo "==> Compilando herdr-ctl..."
   (
@@ -196,12 +212,16 @@ else
   )
 fi
 
+fi
+
 echo "============================================================"
-if [ "$DRY_RUN" = true ]; then
-  echo "✓ [DRY-RUN] Prueba de humo de install.sh superada al 100%!"
+if [ "$LINKS_ONLY" = true ]; then
+  echo "✓ --links-only: directorios y enlaces listos bajo $HOME."
+elif [ "$DRY_RUN" = true ]; then
+  echo "✓ [DRY-RUN] Prueba de humo de install.sh superada!"
   echo "  Todas las dependencias, rutas y compilaciones son válidas."
 else
-  echo "✓ Instalación completada al 100%!"
+  echo "✓ Instalación completada."
   echo "Para recargar tu shell: exec zsh"
 fi
 echo "============================================================"

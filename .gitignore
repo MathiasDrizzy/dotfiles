@@ -13,3 +13,10 @@ mac/bin/
 
 # Local scratch & logs
 *.log
+
+# Archivos de agentes locales
+CLAUDE.local.md
+.claude/
+ESTADO.md
+__pycache__/
+*.pyc

@@ -48,16 +48,16 @@ type AgentListResult struct {
 }
 
 type AgentInfo struct {
-	TerminalID   string                 `json:"terminal_id"`
-	Name         string                 `json:"name"`
-	Agent        string                 `json:"agent"`
-	AgentStatus  string                 `json:"agent_status"`
-	PaneID       string                 `json:"pane_id"`
-	TabID        string                 `json:"tab_id"`
-	WorkspaceID  string                 `json:"workspace_id"`
-	Cwd          string                 `json:"cwd"`
-	Focused      bool                   `json:"focused"`
-	Tokens       map[string]interface{} `json:"tokens"`
+	TerminalID  string                 `json:"terminal_id"`
+	Name        string                 `json:"name"`
+	Agent       string                 `json:"agent"`
+	AgentStatus string                 `json:"agent_status"`
+	PaneID      string                 `json:"pane_id"`
+	TabID       string                 `json:"tab_id"`
+	WorkspaceID string                 `json:"workspace_id"`
+	Cwd         string                 `json:"cwd"`
+	Focused     bool                   `json:"focused"`
+	Tokens      map[string]interface{} `json:"tokens"`
 }
 
 type PaneLayoutResult struct {
@@ -66,9 +66,9 @@ type PaneLayoutResult struct {
 }
 
 type LayoutData struct {
-	TabID string      `json:"tab_id"`
-	Area  Rect        `json:"area"`
-	Panes []LayoutPane `json:"panes"`
+	TabID  string        `json:"tab_id"`
+	Area   Rect          `json:"area"`
+	Panes  []LayoutPane  `json:"panes"`
 	Splits []LayoutSplit `json:"splits"`
 }
 
@@ -290,7 +290,6 @@ func adaptSidebar(forceMode string) error {
 	notify("herdr-ctl", msg)
 	return nil
 }
-
 
 func movePaneTab(mode string) error {
 	resp, err := callRPC("pane.list", map[string]interface{}{})
@@ -571,7 +570,9 @@ func main() {
 		fmt.Printf("herdr server conectado. Paneles:\n%s\n", string(resp.Result))
 	case "cheatsheet", "help-tui":
 		runCheatsheet()
+	case "keys-check":
+		os.Exit(runKeysCheck())
 	default:
-		fmt.Printf("Uso: herdr-ctl [adapt|swap|move-tab|reload|swarm|prompt|read|focus|cheatsheet|status]\n")
+		fmt.Printf("Uso: herdr-ctl [adapt|move-tab|reload|swarm|prompt|read|focus|cheatsheet|keys-check|status]\n")
 	}
 }

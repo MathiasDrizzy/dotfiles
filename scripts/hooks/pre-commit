@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Pre-commit versionado (se activa con: git config core.hooksPath scripts/hooks).
+# Corre el harness rápido (C2, C3, C4). Si el commit toca herdr, los scripts o la zshrc,
+# corre además el harness de comportamiento (abre un herdr aislado; unos 40 s).
+set -u
+root="$(git rev-parse --show-toplevel)" || exit 1
+cd "$root" || exit 1
+
+"$root/scripts/harness-quick.sh" || { echo "pre-commit: harness rápido falló; commit bloqueado." >&2; exit 1; }
+
+if git diff --cached --name-only | grep -qE '^(mac/config/herdr/|mac/scripts/|mac/tools/|mac/zshrc|mac/install\.sh|scripts/harness-behavior\.py)'; then
+  echo; echo "==> C5: harness de comportamiento (cambios en herdr/scripts/zshrc)"
+  python3 "$root/scripts/harness-behavior.py" || { echo "pre-commit: harness de comportamiento falló; commit bloqueado." >&2; exit 1; }
+fi
