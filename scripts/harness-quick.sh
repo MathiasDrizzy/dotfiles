@@ -8,13 +8,13 @@ fail=0
 step() { printf '\n==> %s\n' "$1"; }
 bad()  { echo "✗ $1" >&2; fail=1; }
 
-step "C2: sin IPs de LAN, hostnames ni rutas de DNS-blocker en archivos versionados"
+step "C2: sin IPs de la red local, hostnames ni datos de servicios internos en archivos versionados"
 # El patrón usa clases de caracteres ([.], [o]…) para que este mismo archivo no lo cumpla.
 # Los archivos borrados en el índice (git rm) no existen en disco: se excluyen.
 files=()
 while IFS= read -r f; do [ -f "$f" ] && files+=("$f"); done < <(git ls-files)
 if [ "${#files[@]}" -gt 0 ] && grep -nE '192[.]168[.]|pizer[o]|setpasswor[d]|/admi[n]' "${files[@]}"; then
-  bad "datos de red local o de DNS-blocker en el árbol (ver líneas arriba)"
+  bad "datos de red local o de servicios internos en el árbol (ver líneas arriba)"
 else
   echo "✓ limpio"
 fi
