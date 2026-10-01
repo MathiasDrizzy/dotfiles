@@ -177,10 +177,14 @@ class Lab:
             subprocess.run(["herdr", "server", "stop"], env=self.env, capture_output=True, timeout=10)
         except Exception:  # noqa: BLE001
             pass
-        for root, dirs, files in os.walk(self.tmp):  # el caché de Go deja archivos de solo lectura
+        # Los enlaces del HOME temporal apuntan al repo real: NUNCA seguirlos (os.chmod los sigue).
+        for root, dirs, files in os.walk(self.tmp, followlinks=False):
             for n in dirs + files:
+                path = os.path.join(root, n)
+                if os.path.islink(path):
+                    continue
                 try:
-                    os.chmod(os.path.join(root, n), 0o700 if n in dirs else 0o600)
+                    os.chmod(path, 0o700 if os.path.isdir(path) else 0o600)
                 except OSError:
                     pass
         shutil.rmtree(self.tmp, ignore_errors=True)
@@ -314,6 +318,46 @@ def e(lab):
     return bool(ok), "el comando del repo corrió" if ok else "prefix+shift+r no ejecutó el comando personalizado"
 
 
+def run_btop(lab, conf_path):
+    """Abre btop en un pty con el HOME temporal y lo cierra con q. Devuelve True si arrancó."""
+    pid, fd = pty.fork()
+    if pid == 0:
+        os.execvpe("btop", ["btop"], lab.env)
+    fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
+    end = time.time() + 3
+    got = b""
+    while time.time() < end:
+        r, _, _ = select.select([fd], [], [], 0.2)
+        if r:
+            try:
+                got += os.read(fd, 65536)
+            except OSError:
+                break
+    os.write(fd, b"q")
+    t0 = time.time()
+    while time.time() - t0 < 5:
+        done, _ = os.waitpid(pid, os.WNOHANG)
+        if done:
+            return len(got) > 0
+        time.sleep(0.2)
+    os.kill(pid, signal.SIGKILL)
+    os.waitpid(pid, 0)
+    return False
+
+
+@case("f btop abierto y cerrado no ensucia el repo")
+def f(lab):
+    # NO VERIFICADO: que save_config_on_exit=true fuera la causa; btop no reescribió ni con true y una clave ausente.
+    if shutil.which("btop") is None:
+        return True, "btop no está instalado: omitido"
+    cfg = os.path.join(MAC, "config", "btop", "btop.conf")
+    before = open(cfg).read()
+    ran = run_btop(lab, cfg)
+    status = subprocess.run(["git", "status", "--porcelain", "--", "mac/config/btop"], cwd=REPO, capture_output=True, text=True).stdout
+    unchanged = open(cfg).read() == before
+    return ran and unchanged, f"btop arrancó y cerró con q={ran}; btop.conf del repo sin cambios={unchanged}; git status de mac/config/btop: {status.strip() or 'limpio'}"
+
+
 def main():
     if shutil.which("herdr") is None:
         print("SKIP herdr no está instalado")
@@ -327,10 +371,15 @@ def main():
                      r'\1type = "shell"\ncommand = "touch ' + lab.marker + '"', cfg)
         open(lab.env["HERDR_CONFIG_PATH"], "w").write(cfg)
         lab.start_client()
-        for fn in (a1, a2, b, c, d1, d2, e):
+        for fn in (a1, a2, b, c, d1, d2, e, f):
             fn(lab)
     finally:
         lab.stop()
+    # Guarda: el harness no puede dejar modificado nada del repo (una vez rompió los modos por seguir symlinks).
+    drift = subprocess.run(["git", "diff", "--summary"], cwd=REPO, capture_output=True, text=True).stdout
+    ok = "mode change" not in drift
+    RESULTS.append(("z el harness no alteró los modos de archivos del repo", ok, "sin cambios de modo" if ok else drift.strip()))
+    print(f"{'PASS' if ok else 'FAIL'}  z el harness no alteró los modos de archivos del repo: {RESULTS[-1][2]}")
     bad = [r for r in RESULTS if not r[1]]
     print(f"\nharness-behavior: {len(RESULTS) - len(bad)}/{len(RESULTS)} en PASS")
     return 1 if bad else 0
