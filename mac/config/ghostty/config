@@ -17,6 +17,10 @@ macos-window-shadow = true
 macos-option-as-alt = right
 window-padding-x = 16
 window-padding-y = 16
+# Margen: `extend` prolonga el color de la celda vecina, así una TUI que pinta su propio fondo
+# (p. ej. un tema claro) no queda con un marco oscuro. Con filas que tienen celdas de fondo por
+# defecto (la shell normal, prompts) Ghostty no extiende y el margen sigue como antes.
+window-padding-color = extend
 
 # Cmd+C: si Ghostty tiene una selección, la copia; si no (dentro de herdr la selección
 # es de herdr), reenvía Cmd+C a la app para que herdr copie su propia selección.
