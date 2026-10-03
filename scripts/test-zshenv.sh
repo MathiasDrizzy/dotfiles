@@ -115,6 +115,17 @@ newhome; H="$T/home"; B="$T/respaldos"; echo t > "$H/.zshenv"; mkdir -p "$B/fijo
 DOTFILES_BACKUP_STAMP=fijo run "$H" "$B" "$LINKS" --fix
 check "directorio ya existente en el destino: no se anida, sufijo .1" '[ -f "$B/fijo/.zshenv.1" ] && [ -d "$B/fijo/.zshenv" ]'
 
+echo "== Z5: PATH no interactivo con el enlace a mac/zshenv"
+newhome; H="$T/home"; ln -s "$ROOT/mac/zshenv" "$H/.zshenv"
+count() { tr ':' '\n' | grep -c "^$H/.local/bin$"; }
+check "env -i zsh -c: \$HOME/.local/bin aparece exactamente 1 vez" '[ "$(env -i HOME="$H" zsh -c '"'"'echo $PATH'"'"' | count)" = 1 ]'
+check "tras source dos veces sigue siendo 1" '[ "$(env -i HOME="$H" zsh -c '"'"'source ~/.zshenv; source ~/.zshenv; echo $PATH'"'"' | count)" = 1 ]'
+check "con .local/bin ya en el PATH de entrada tampoco se duplica" '[ "$(env -i HOME="$H" PATH="$H/.local/bin:/usr/bin:/bin" zsh -c '"'"'echo $PATH'"'"' | count)" = 1 ]'
+ZSHRC_LINE="$(grep -m1 '^export PATH="\$HOME/.local/bin' "$ROOT/mac/zshrc")"
+check "zshrc usa su propia línea de PATH (el test depende de ella)" '[ -n "$ZSHRC_LINE" ]'
+check "tras la línea REAL de mac/zshrc sigue siendo 1 (y queda al inicio)" 'p="$(env -i HOME="$H" ZL="$ZSHRC_LINE" zsh -c '"'"'source ~/.zshenv; eval "$ZL"; echo $PATH'"'"')"; [ "$(echo "$p" | count)" = 1 ] && [ "${p%%:*}" = "$H/.local/bin" ]'
+check "se conserva lo anterior (rustup, cargo, brew)" 'p="$(env -i HOME="$H" zsh -c '"'"'echo $PATH'"'"')"; case "$p" in /opt/homebrew/opt/rustup/bin:*) true ;; *) false ;; esac; echo "$p" | grep -q "$H/.cargo/bin" && echo "$p" | grep -q "/opt/homebrew/bin"'
+
 echo
 if [ "$fails" -eq 0 ]; then echo "test-zshenv: PASS"; else echo "test-zshenv: $fails FAIL" >&2; fi
 exit "$fails"

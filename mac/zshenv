@@ -2,4 +2,7 @@
 if [ -x /opt/homebrew/bin/brew ]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
-export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$PATH"
+# ~/.local/bin (claude, agy, herdr-ctl…) también en shells no interactivas. `typeset -U` quita duplicados,
+# así que hacer `source` varias veces o repetirlo en ~/.zshrc no lo agrega de nuevo.
+typeset -U path PATH
+export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
