@@ -5,6 +5,8 @@
 # con Ghostty, herdr, Antigravity, zsh, Catppuccin Mocha y herramientas TUI.
 # Soporta --dry-run (simulación) y --links-only (solo crea directorios y enlaces
 # bajo $HOME; no instala paquetes, no descarga temas, no compila, no toca ~/.zshenv).
+# ~/.zshenv es el enlace a mac/zshenv. Si ya existe uno propio, el modo completo lo respalda en
+# .respaldos/ del repo antes de enlazar; --links-only ni lo toca.
 # ==============================================================================
 set -euo pipefail
 
@@ -56,20 +58,11 @@ else
   echo "  ✓ Homebrew disponible: $(brew --version | head -n 1)"
 fi
 
-# 2. Configurar ~/.zshenv (PATH global para agentes e interactivo)
+# 2. PATH para el resto de este script (el archivo ~/.zshenv lo enlaza check-links.sh en el paso 6,
+#    con respaldo si ya existía uno propio; aquí no se escribe nada en $HOME)
 if [ "$DRY_RUN" = true ]; then
-  echo "  [DRY-RUN] Configuración de ~/.zshenv (Homebrew + Rust + ~/.local/bin)"
+  echo "  [DRY-RUN] PATH de Homebrew + Rust + ~/.local/bin para esta ejecución"
 else
-  echo "==> Configurando ~/.zshenv..."
-  if [ ! -f "$HOME/.zshenv" ] || ! grep -q "herdr" "$HOME/.zshenv" 2>/dev/null; then
-    cat >> "$HOME/.zshenv" <<'EOF'
-# Homebrew + Rust
-if [ -x /opt/homebrew/bin/brew ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-fi
-export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
-EOF
-  fi
   if [ -x /opt/homebrew/bin/brew ]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
   fi
@@ -169,10 +162,18 @@ echo "  ✓ ${#REQUIRED_SOURCES[@]} archivos fuente verificados correctamente."
 
 if [ "$DRY_RUN" = true ]; then
   echo "  [DRY-RUN] Simulación de enlace de dotfiles via check-links.sh..."
-  "$DOTFILES_DIR/scripts/check-links.sh" || true
+  if [ "$LINKS_ONLY" = true ]; then
+    "$DOTFILES_DIR/scripts/check-links.sh" --no-zshenv || true
+  else
+    "$DOTFILES_DIR/scripts/check-links.sh" || true
+  fi
 else
   echo "==> Sincronizando enlaces simbólicos..."
-  "$DOTFILES_DIR/scripts/check-links.sh" --fix
+  if [ "$LINKS_ONLY" = true ]; then
+    "$DOTFILES_DIR/scripts/check-links.sh" --fix --no-zshenv
+  else
+    "$DOTFILES_DIR/scripts/check-links.sh" --fix
+  fi
 fi
 
 if [ "$LINKS_ONLY" = false ]; then
