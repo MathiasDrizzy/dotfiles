@@ -12,10 +12,12 @@ INSTALL="$ROOT/mac/install.sh"
 LINKS="$ROOT/mac/scripts/check-links.sh"
 OWN='export MI_VAR=propia  # contenido del usuario'
 
-fails=0
-ok()   { printf '  PASS  %s\n' "$1"; }
-fail() { printf '  FAIL  %s\n' "$1"; fails=$((fails + 1)); }
-check() { if eval "$2"; then ok "$1"; else fail "$1  [$2]"; fi; }
+fails=0; NAMES=()
+ok()   { NAMES+=("$1"); printf '  PASS  %s\n' "$1"; }
+fail() { NAMES+=("$1"); printf '  FAIL  %s\t[%s]\n' "$1" "${2:-}"; fails=$((fails + 1)); }   # nombre\t[comando]: el stop-gate declara por nombre
+SEC=""
+sec()   { SEC="$1"; echo "== $2"; }
+check() { if eval "$2"; then ok "[$SEC] $1"; else fail "[$SEC] $1" "$2"; fi; }
 
 # Para que `go` (dry-run de install.sh) no cree un caché de módulos de solo lectura en el HOME temporal.
 export GOMODCACHE="$(go env GOMODCACHE)" GOCACHE="$(go env GOCACHE)" GOPATH="$(go env GOPATH)"
@@ -34,7 +36,7 @@ run() { # run <home> <backup> <cmd...>   (salida en $OUT, rc en $RC)
 broken_links() { find "$1" -type l ! -exec test -e {} \; -print 2>/dev/null | grep -v '/go/' | wc -l | tr -d ' '; }
 strip() { sed 's/\x1b\[[0-9;]*m//g'; }
 
-echo "== Z1: HOME sin ~/.zshenv + --links-only"
+sec Z1 "Z1: HOME sin ~/.zshenv + --links-only"
 newhome; H="$T/home"; B="$T/respaldos"
 run "$H" "$B" "$INSTALL" --links-only
 check "rc=0" '[ $RC -eq 0 ]'
@@ -42,7 +44,7 @@ check "no se crea ~/.zshenv" '[ ! -e "$H/.zshenv" ] && [ ! -L "$H/.zshenv" ]'
 check "sí enlaza el resto (.zshrc es enlace al repo)" '[ -L "$H/.zshrc" ]'
 check "informa [OMITIDO]" 'echo "$OUT" | strip | grep -q "OMITIDO"'
 
-echo "== Z2/Z4 --links-only con ~/.zshenv propio (2 corridas)"
+sec Z2-links-only "Z2/Z4 --links-only con ~/.zshenv propio (2 corridas)"
 newhome; H="$T/home"; B="$T/respaldos"; echo "$OWN" > "$H/.zshenv"
 for i in 1 2; do
   run "$H" "$B" "$INSTALL" --links-only
@@ -52,7 +54,7 @@ for i in 1 2; do
 done
 check "no se creó ningún respaldo (no hizo falta)" '[ ! -d "$B" ]'
 
-echo "== Z2/Z4 --dry-run con ~/.zshenv propio (2 corridas)"
+sec Z2-dry-run "Z2/Z4 --dry-run con ~/.zshenv propio (2 corridas)"
 newhome; H="$T/home"; B="$T/respaldos"; echo "$OWN" > "$H/.zshenv"
 for i in 1 2; do
   run "$H" "$B" "$INSTALL" --dry-run
@@ -61,7 +63,7 @@ for i in 1 2; do
 done
 check "dry-run no creó enlaces ni respaldos" '[ ! -d "$B" ] && [ "$(find "$H" -type l | grep -v /go/ | wc -l | tr -d " ")" = 0 ]'
 
-echo "== Z3: check-links.sh sin --fix, estado real"
+sec Z3 "Z3: check-links.sh sin --fix, estado real"
 newhome; H="$T/home"; B="$T/respaldos"; echo "$OWN" > "$H/.zshenv"
 run "$H" "$B" "$LINKS"
 check "archivo propio: rc=1 (drift)" '[ $RC -eq 1 ]'
@@ -73,7 +75,7 @@ check "enlace a OTRO archivo llamado zshenv: rc=1" '[ $RC -eq 1 ]'
 check "enlace a otro archivo: se reporta LINK EXTRAÑO, no OK" 'echo "$OUT" | strip | grep -q "LINK EXTRAÑO.*\.zshenv"'
 check "con --no-zshenv y archivo propio: se omite y rc no lo cuenta" 'rm "$H/.zshenv"; echo "$OWN" > "$H/.zshenv"; run "$H" "$B" "$LINKS" --no-zshenv; echo "$OUT" | strip | grep -q "OMITIDO.*zshenv"'
 
-echo "== Z2/Z4 modo completo (check-links --fix, lo que install.sh corre en el paso 6) con ~/.zshenv propio"
+sec Z2-fix "Z2/Z4 modo completo (check-links --fix, lo que install.sh corre en el paso 6) con ~/.zshenv propio"
 newhome; H="$T/home"; B="$T/respaldos"; echo "$OWN" > "$H/.zshenv"
 run "$H" "$B" "$LINKS" --fix
 check "corrida 1: rc=0" '[ $RC -eq 0 ]'
@@ -87,19 +89,19 @@ check "sin enlaces rotos" '[ "$(broken_links "$H")" = 0 ]'
 run "$H" "$B" "$LINKS"
 check "verificación posterior: rc=0 y .zshenv OK" '[ $RC -eq 0 ] && echo "$OUT" | strip | grep -q "SYMLINK OK.*\.zshenv"'
 
-echo "== Z2: enlace extraño previo se respalda al arreglar"
+sec Z2-enlace "Z2: enlace extraño previo se respalda al arreglar"
 newhome; H="$T/home"; B="$T/respaldos"; mkdir -p "$T/otro"; echo "# otro" > "$T/otro/zshenv"; ln -s "$T/otro/zshenv" "$H/.zshenv"
 run "$H" "$B" "$LINKS" --fix
 check "rc=0 y el enlace viejo quedó en respaldos" '[ $RC -eq 0 ] && [ -L "$(find "$B" -name .zshenv | head -1)" ] && [ -f "$T/otro/zshenv" ]'
 
-echo "== Z2: dos respaldos en el mismo segundo no se pisan"
+sec Z2-segundo "Z2: dos respaldos en el mismo segundo no se pisan"
 newhome; H="$T/home"; B="$T/respaldos"; export DOTFILES_BACKUP_STAMP=fijo
 echo "primero" > "$H/.zshenv"; run "$H" "$B" "$LINKS" --fix
 rm "$H/.zshenv"; echo "segundo" > "$H/.zshenv"; run "$H" "$B" "$LINKS" --fix
 unset DOTFILES_BACKUP_STAMP
 check "rc=0 y existen los dos respaldos con su contenido" '[ $RC -eq 0 ] && [ "$(cat "$B/fijo/.zshenv")" = primero ] && [ "$(cat "$B/fijo/.zshenv.1")" = segundo ]'
 
-echo "== Hallazgos de Apoyo (reproducidos antes de corregir)"
+sec Apoyo "Hallazgos de Apoyo (reproducidos antes de corregir)"
 newhome; H="$T/home"; B="$T/respaldos"
 run "$H" "$B" "$LINKS"
 check "faltantes: no se anuncia 'verificado con éxito' (rc 0 por compatibilidad)" '[ $RC -eq 0 ] && ! echo "$OUT" | strip | grep -q "verificado con éxito" && echo "$OUT" | strip | grep -q "faltan 14 enlaces"'
@@ -115,7 +117,7 @@ newhome; H="$T/home"; B="$T/respaldos"; echo t > "$H/.zshenv"; mkdir -p "$B/fijo
 DOTFILES_BACKUP_STAMP=fijo run "$H" "$B" "$LINKS" --fix
 check "directorio ya existente en el destino: no se anida, sufijo .1" '[ -f "$B/fijo/.zshenv.1" ] && [ -d "$B/fijo/.zshenv" ]'
 
-echo "== Z5: PATH no interactivo con el enlace a mac/zshenv"
+sec Z5 "Z5: PATH no interactivo con el enlace a mac/zshenv"
 newhome; H="$T/home"; ln -s "$ROOT/mac/zshenv" "$H/.zshenv"
 count() { tr ':' '\n' | grep -c "^$H/.local/bin$"; }
 check "env -i zsh -c: \$HOME/.local/bin aparece exactamente 1 vez" '[ "$(env -i HOME="$H" zsh -c '"'"'echo $PATH'"'"' | count)" = 1 ]'
@@ -125,6 +127,11 @@ ZSHRC_LINE="$(grep -m1 '^export PATH="\$HOME/.local/bin' "$ROOT/mac/zshrc")"
 check "zshrc usa su propia línea de PATH (el test depende de ella)" '[ -n "$ZSHRC_LINE" ]'
 check "tras la línea REAL de mac/zshrc sigue siendo 1 (y queda al inicio)" 'p="$(env -i HOME="$H" ZL="$ZSHRC_LINE" zsh -c '"'"'source ~/.zshenv; eval "$ZL"; echo $PATH'"'"')"; [ "$(echo "$p" | count)" = 1 ] && [ "${p%%:*}" = "$H/.local/bin" ]'
 check "se conserva lo anterior (rustup, cargo, brew)" 'p="$(env -i HOME="$H" zsh -c '"'"'echo $PATH'"'"')"; case "$p" in /opt/homebrew/opt/rustup/bin:*) true ;; *) false ;; esac; echo "$p" | grep -q "$H/.cargo/bin" && echo "$p" | grep -q "/opt/homebrew/bin"'
+
+sec Unicos "Nombres únicos (el stop-gate declara rojo por nombre)"
+dups="$(printf '%s\n' "${NAMES[@]}" | sort | uniq -d)"
+check "los nombres de los checks son únicos" '[ -z "$dups" ]'
+[ -z "$dups" ] || printf '%s\n' "$dups" | sed 's/^/    duplicado: /'
 
 echo
 if [ "$fails" -eq 0 ]; then echo "test-zshenv: PASS"; else echo "test-zshenv: $fails FAIL" >&2; fi

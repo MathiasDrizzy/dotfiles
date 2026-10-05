@@ -56,6 +56,9 @@ step "C3: herdr-ctl (gofmt, go vet, go test)"
 step "Z: ~/.zshenv nunca se pierde (HOME temporal)"
 scripts/test-zshenv.sh || bad "test-zshenv falla"
 
+step "D1: stop-gate y rojo declarado"
+scripts/test-stop-gate.sh || bad "test-stop-gate falla"
+
 step "C4: conflictos de atajos contra los defaults de herdr"
 if command -v herdr >/dev/null; then
   (cd mac/tools/herdr-ctl && HERDR_CONFIG_PATH="$PWD/../../config/herdr/config.toml" go run . keys-check) || bad "keys-check con conflictos sin resolver"

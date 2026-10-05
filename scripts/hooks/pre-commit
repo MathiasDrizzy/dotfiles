@@ -12,3 +12,8 @@ if git diff --cached --name-only | grep -qE '^(mac/config/herdr/|mac/scripts/|ma
   echo; echo "==> C5: harness de comportamiento (cambios en herdr/scripts/zshrc)"
   python3 "$root/scripts/harness-behavior.py" || { echo "pre-commit: harness de comportamiento falló; commit bloqueado." >&2; exit 1; }
 fi
+
+if git diff --cached --name-only | grep -qE '^(mac/install\.sh|mac/scripts/check-links\.sh|scripts/test-install-full\.sh)'; then
+  echo; echo "==> D2: install.sh completo en aislamiento (cambios en el instalador)"
+  "$root/scripts/test-install-full.sh" || { echo "pre-commit: test-install-full falló; commit bloqueado." >&2; exit 1; }
+fi

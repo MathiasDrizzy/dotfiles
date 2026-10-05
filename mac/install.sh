@@ -20,6 +20,8 @@ for arg in "$@"; do
 done
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Prefijo de Homebrew. Solo se cambia para probar el instalador en aislamiento (scripts/test-install-full.sh).
+BREW_PREFIX="${DOTFILES_BREW_PREFIX:-/opt/homebrew}"
 
 if [ "$DRY_RUN" = true ]; then
   echo "════════════════════════════════════════════════════════════════"
@@ -45,6 +47,12 @@ run_step() {
 
 if [ "$LINKS_ONLY" = false ]; then
 
+# 0. Homebrew ya instalado en su prefijo pero fuera del PATH de esta shell (p. ej. recién instalado): se usa tal cual
+#    en vez de intentar reinstalarlo, y también en --dry-run (brew list) y en el resto del script.
+if ! command -v brew &>/dev/null && [ -x "$BREW_PREFIX/bin/brew" ]; then
+  export PATH="$BREW_PREFIX/bin:$PATH"
+fi
+
 # 1. Comprobar Homebrew
 if ! command -v brew &>/dev/null; then
   if [ "$DRY_RUN" = true ]; then
@@ -52,7 +60,7 @@ if ! command -v brew &>/dev/null; then
   else
     echo "==> Instalando Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    eval "$(/opt/homebrew/bin/brew shellenv)"
+    eval "$("$BREW_PREFIX/bin/brew" shellenv)"
   fi
 else
   echo "  ✓ Homebrew disponible: $(brew --version | head -n 1)"
@@ -63,10 +71,10 @@ fi
 if [ "$DRY_RUN" = true ]; then
   echo "  [DRY-RUN] PATH de Homebrew + Rust + ~/.local/bin para esta ejecución"
 else
-  if [ -x /opt/homebrew/bin/brew ]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
+  if [ -x "$BREW_PREFIX/bin/brew" ]; then
+    eval "$("$BREW_PREFIX/bin/brew" shellenv)"
   fi
-  export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
+  export PATH="$BREW_PREFIX/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
 fi
 
 # 3. Paquetes Homebrew esenciales
