@@ -209,7 +209,8 @@ if [ "$DRY_RUN" = true ]; then
   (
     cd "$DOTFILES_DIR/tools/herdr-ctl"
     go vet ./...
-    go test ./...
+    # Sin `go test`: los tests de herdr-ctl los corre scripts/harness-quick.sh. Mantenerlos aquí acoplaba un test de Go
+    # en rojo (fase roja de TDD) con el dry-run y con los checks de test-zshenv que lo ejecutan.
     go build -o /dev/null .
   )
   echo "  ✓ herdr-ctl compila sin advertencias."

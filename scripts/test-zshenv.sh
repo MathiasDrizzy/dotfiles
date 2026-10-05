@@ -128,6 +128,16 @@ check "zshrc usa su propia línea de PATH (el test depende de ella)" '[ -n "$ZSH
 check "tras la línea REAL de mac/zshrc sigue siendo 1 (y queda al inicio)" 'p="$(env -i HOME="$H" ZL="$ZSHRC_LINE" zsh -c '"'"'source ~/.zshenv; eval "$ZL"; echo $PATH'"'"')"; [ "$(echo "$p" | count)" = 1 ] && [ "${p%%:*}" = "$H/.local/bin" ]'
 check "se conserva lo anterior (rustup, cargo, brew)" 'p="$(env -i HOME="$H" zsh -c '"'"'echo $PATH'"'"')"; case "$p" in /opt/homebrew/opt/rustup/bin:*) true ;; *) false ;; esac; echo "$p" | grep -q "$H/.cargo/bin" && echo "$p" | grep -q "/opt/homebrew/bin"'
 
+sec D4 "D4: un test de Go en rojo NO rompe install.sh --dry-run (declarar el test de Go basta)"
+newhome; H="$T/home"; B="$T/respaldos"; REPO="$T/repo"; mkdir -p "$REPO"
+( cd "$ROOT" && git ls-files -z --cached --others --exclude-standard | while IFS= read -r -d '' f; do [ -e "$f" ] && printf '%s\0' "$f"; done | tar --null -T - -cf - ) | tar -xf - -C "$REPO"
+printf 'package main\n\nimport "testing"\n\nfunc TestRojoDeD4(t *testing.T) { t.Fatal("rojo a propósito") }\n' > "$REPO/mac/tools/herdr-ctl/zz_rojo_d4_test.go"
+check "la copia tiene un test de Go que falla de verdad (control del propio test)" '(cd "$REPO/mac/tools/herdr-ctl" && ! go test ./... >/dev/null 2>&1)'
+run "$H" "$B" "$REPO/mac/install.sh" --dry-run
+check "install.sh --dry-run termina con rc=0 aunque haya un test de Go en rojo" '[ $RC -eq 0 ]'
+check "el dry-run no ejecutó go test (no aparece el test en rojo)" '! echo "$OUT" | grep -q "TestRojoDeD4"'
+check "el dry-run sigue validando que herdr-ctl compila (go vet y go build)" 'echo "$OUT" | strip | grep -q "herdr-ctl compila"'
+
 sec Unicos "Nombres únicos (el stop-gate declara rojo por nombre)"
 dups="$(printf '%s\n' "${NAMES[@]}" | sort | uniq -d)"
 check "los nombres de los checks son únicos" '[ -z "$dups" ]'

@@ -18,7 +18,8 @@ fails=0; TMPS=()
 ok()   { printf '  PASS  %s\n' "$1"; }
 fail() { printf '  FAIL  %s\n' "$1"; fails=$((fails + 1)); }
 check() { if eval "$2"; then ok "$1"; else fail "$1  [$2]"; fi; }
-cleanup() { for t in ${TMPS[@]+"${TMPS[@]}"}; do chmod -R u+w "$t" 2>/dev/null; rm -rf "$t"; done; }
+CANARIOS=("$REAL_HOME/.cerebro-canario" "/usr/local/.cerebro-canario" "$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "${TMPDIR:-/tmp}")/.cerebro-canario-tmp" "/private/tmp/.cerebro-canario-tmp")
+cleanup() { rm -f "${CANARIOS[@]}" 2>/dev/null; for t in ${TMPS[@]+"${TMPS[@]}"}; do chmod -R u+w "$t" 2>/dev/null; rm -rf "$t"; done; }
 trap cleanup EXIT
 
 echo "== Pre-vuelo: ¿install.sh se puede aislar?"
@@ -28,16 +29,23 @@ if grep -nE '(^|[^_A-Za-z])/opt/homebrew' "$ROOT/mac/install.sh" | grep -v 'BREW
   echo; echo "test-install-full: $fails FAIL (no se ejecutó install.sh)" >&2; exit "$fails"
 fi
 ok "install.sh no tiene rutas fijas de /opt/homebrew fuera del valor por defecto de DOTFILES_BREW_PREFIX"
+if grep -nE '(^|[^_A-Za-z])/usr/local' "$ROOT/mac/install.sh" | grep -q .; then
+  grep -nE '(^|[^_A-Za-z])/usr/local' "$ROOT/mac/install.sh"
+  fail "install.sh tiene rutas fijas de /usr/local: no se ejecuta nada"
+  echo; echo "test-install-full: $fails FAIL (no se ejecutó install.sh)" >&2; exit "$fails"
+fi
+ok "install.sh no tiene rutas fijas de /usr/local"
 command -v sandbox-exec >/dev/null || { fail "falta sandbox-exec para la capa 3"; exit 1; }
 REAL_BIN_SUM="$(shasum "$REAL_HOME/.local/bin/herdr-ctl" 2>/dev/null)"
 REAL_ZSHENV_LINK="$(readlink "$REAL_HOME/.zshenv" 2>/dev/null)"
 REAL_BREW_MTIME="$(stat -f %m /opt/homebrew/bin/brew 2>/dev/null)"
+TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/installfull-root.XXXXXX")"; TMPS+=("$TEST_ROOT")   # único directorio escribible fuera de las cachés de Go
 GO_REAL="$(command -v go)"; GOROOT_REAL="$(go env GOROOT)"
 GOCACHE_REAL="$(go env GOCACHE)"; GOMODCACHE_REAL="$(go env GOMODCACHE)"; GOPATH_REAL="$(go env GOPATH)"
 
 # scenario <nombre> <dir del HOME> <dir del repo> → deja $B (base temporal) listo con repo copiado y stubs
 mkbase() {
-  B="$(mktemp -d "${TMPDIR:-/tmp}/installfull.XXXXXX")"; TMPS+=("$B")
+  B="$(mktemp -d "$TEST_ROOT/b.XXXXXX")"
   mkdir -p "$B/stubs" "$B/brewprefix/bin" "$B/logs" "$B/respaldos" "$B/gobin"
   ln -s "$GO_REAL" "$B/gobin/go"      # solo `go`, NO su directorio (puede ser /opt/homebrew/bin, donde vive el brew real)
   # stubs: solo registran
@@ -66,8 +74,13 @@ mkrepo() { # mkrepo <ruta destino>: copia del árbol de trabajo (versionado + si
   [ -f "$dest/mac/install.sh" ] || { echo "ERROR del test: la copia del repo salió vacía"; exit 2; }
   ( cd "$dest" && git init -q )
 }
-profile() { # perfil de sandbox: escritura prohibida en el Mac real
-  cat <<EOF
+rp() { python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1"; }
+# Perfil por LISTA DE PERMITIDOS: se prohíbe toda escritura y se permite solo la raíz propia de la prueba (TEST_ROOT, donde viven
+# las copias; NO todo $TMPDIR), las cachés de Go y /dev. Las rutas van resueltas (/var → /private/var): Seatbelt compara rutas reales.
+# Sin red. Si PROFILE_LEGACY=1 se usa el perfil antiguo (lista de denegaciones), SOLO para demostrar el rojo de los canarios.
+profile() {
+  if [ "${PROFILE_LEGACY:-}" = 1 ]; then
+    cat <<SBPL
 (version 1)
 (allow default)
 (deny network*)
@@ -75,17 +88,32 @@ profile() { # perfil de sandbox: escritura prohibida en el Mac real
   (subpath "$REAL_HOME/Library/Application Support") (subpath "$REAL_HOME/Documents") (subpath "$REAL_HOME/.cargo")
   (literal "$REAL_HOME/.zshenv") (literal "$REAL_HOME/.zshrc"))
 (allow file-write* (subpath "$GOCACHE_REAL") (subpath "$GOPATH_REAL/pkg/mod/cache"))
-EOF
+SBPL
+    return
+  fi
+  cat <<SBPL
+(version 1)
+(allow default)
+(deny network*)
+(deny file-write*)
+(allow file-write*
+  (subpath "$(rp "$TEST_ROOT")")
+  (subpath "$(rp "$GOCACHE_REAL")")
+  (subpath "$(rp "$GOPATH_REAL/pkg/mod/cache")")
+  (subpath "/dev"))
+SBPL
 }
-test_path() { printf '%s' "$B/stubs${BREW_ON_PATH:+:$B/brewprefix/bin}:$B/gobin:/usr/bin:/bin:/usr/sbin:/sbin"; }
-run_install() {
-  # Guarda de seguridad ANTES de ejecutar: el único brew/rustup alcanzable por el PATH debe ser el stub (o ninguno).
-  local who
-  for who in brew rustup; do
+test_path() { printf '%s' "${TEST_PATH_FRONT:+$TEST_PATH_FRONT:}$B/stubs${BREW_ON_PATH:+:$B/brewprefix/bin}:$B/gobin:/usr/bin:/bin:/usr/sbin:/sbin"; }
+path_guard() { # el único brew/rustup/curl alcanzable por el PATH de la prueba debe ser un stub (o ninguno)
+  local who p
+  for who in brew rustup curl; do
     p="$(PATH="$(test_path)" command -v "$who" 2>/dev/null)"
-    case "$p" in ""|"$B"/*) ;; *) echo "ABORTO: '$who' resolvería a $p (real); no se ejecuta install.sh"; exit 3 ;; esac
-  done # run_install <HOME> <repo> [args…]   (salida en $OUT, rc en $RC)
+    case "$p" in ""|"$B"/*) ;; *) echo "ABORTO: '$who' resolvería a $p (real); no se ejecuta install.sh"; return 3 ;; esac
+  done
+}
+run_install() { # run_install <HOME> <repo> [args…]   (salida en $OUT, rc en $RC)
   local h="$1" repo="$2"; shift 2
+  path_guard || exit 3
   OUT="$(sandbox-exec -p "$(profile)" env -i HOME="$h" TMPDIR="$B/tmp" \
       PATH="$(test_path)" GOROOT="$GOROOT_REAL" \
       DOTFILES_BREW_PREFIX="$B/brewprefix" DOTFILES_BACKUP_DIR="$B/respaldos" \
@@ -144,6 +172,30 @@ scenario "I1b: HOME con un ~/.zshenv propio"             "home"             "rep
 scenario "I3: Homebrew ya instalado en su prefijo pero fuera del PATH" "home" "repo" 0 0
 scenario "I2: HOME y repo con espacios"                  "home con espacios" "repo con espacios" 0
 scenario "I2b: HOME con espacios y ~/.zshenv propio"     "home con espacios" "repo con espacios" 1
+
+if [ -z "${ONLY:-}" ] || [ "${ONLY:-}" = "Canarios" ]; then
+echo "== Canarios de la sandbox (R17): escribir fuera de lo permitido tiene que FALLAR"
+for c in "${CANARIOS[@]}"; do
+  check "canario: escribir en $c dentro de la sandbox falla y el archivo no existe" 'rm -f "$c" 2>/dev/null; sandbox-exec -p "$(profile)" /usr/bin/touch "$c" 2>/dev/null; rc=$?; r=0; [ -e "$c" ] && { r=1; rm -f "$c"; }; [ $rc -ne 0 ] && [ $r -eq 0 ]'
+done
+for c in "${CANARIOS[@]}"; do
+  case "$c" in /usr/local/*) continue ;; esac     # de root: ahí el permiso del sistema ya lo impide, no prueba la sandbox
+  check "control: SIN sandbox el canario $c sí se puede crear (el canario no pasa en vacío)" 'touch "$c" 2>/dev/null && [ -e "$c" ]; r=$?; rm -f "$c"; [ $r -eq 0 ]'
+done
+check "canario: el temporal de la prueba SÍ es escribible (la lista de permitidos no está rota)" 'mkbase; sandbox-exec -p "$(profile)" /usr/bin/touch "$B/ok" 2>/dev/null && [ -e "$B/ok" ]'
+fi
+
+if [ -z "${ONLY:-}" ] || [ "${ONLY:-}" = "Guarda" ]; then
+echo "== Guarda anti-real (S3): un brew, rustup o curl REAL al frente del PATH aborta con exit 3 antes de install.sh"
+for who in brew rustup curl; do
+  mkbase; mkdir -p "$B/tmp"; F="$(mktemp -d "${TMPDIR:-/tmp}/falso.XXXXXX")"; TMPS+=("$F")
+  printf '#!/bin/sh\necho "$0 $*" >> "%s/real-%s.log"\n' "$F" "$who" > "$F/$who"; chmod +x "$F/$who"
+  mkdir -p "$B/home"; mkrepo "$B/repo"
+  out="$( ( TEST_PATH_FRONT="$F"; run_install "$B/home" "$B/repo" ) 2>&1 )"; rc=$?
+  check "$who real al frente del PATH: exit 3 y mensaje de aborto" '[ $rc -eq 3 ] && echo "$out" | grep -q "ABORTO"'
+  check "$who real al frente del PATH: install.sh no llegó a ejecutarse (sin logs de stubs ni del falso)" '[ ! -e "$B/logs/brew.log" ] && [ ! -e "$B/logs/curl.log" ] && [ ! -e "$B/logs/rustup.log" ] && [ -z "$(ls "$F"/*.log 2>/dev/null)" ] && [ ! -e "$B/home/.config" ]'
+done
+fi
 
 echo "== Real intacto (sin escrituras fuera de la copia)"
 check "canario: dentro de la sandbox NO se puede escribir en el HOME real" 'c="$REAL_HOME/.local/zz-canario-$$"; sandbox-exec -p "$(profile)" touch "$c" 2>/dev/null; rc=$?; r=0; [ -e "$c" ] && { r=1; rm -f "$c"; }; [ $rc -ne 0 ] && [ $r -eq 0 ]'
