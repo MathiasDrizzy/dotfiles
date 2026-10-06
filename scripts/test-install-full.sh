@@ -76,7 +76,7 @@ mkrepo() { # mkrepo <ruta destino>: copia del árbol de trabajo (versionado + si
 }
 rp() { python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1"; }
 # Perfil por LISTA DE PERMITIDOS: se prohíbe toda escritura y se permite solo la raíz propia de la prueba (TEST_ROOT, donde viven
-# las copias; NO todo $TMPDIR), las cachés de Go y /dev. Las rutas van resueltas (/var → /private/var): Seatbelt compara rutas reales.
+# las copias; NO todo $TMPDIR), las cachés de Go y /dev/null (nada más de /dev). Las rutas van resueltas (/var → /private/var): Seatbelt compara rutas reales.
 # Sin red. Si PROFILE_LEGACY=1 se usa el perfil antiguo (lista de denegaciones), SOLO para demostrar el rojo de los canarios.
 profile() {
   if [ "${PROFILE_LEGACY:-}" = 1 ]; then
@@ -100,12 +100,16 @@ SBPL
   (subpath "$(rp "$TEST_ROOT")")
   (subpath "$(rp "$GOCACHE_REAL")")
   (subpath "$(rp "$GOPATH_REAL/pkg/mod/cache")")
-  (subpath "/dev"))
+  (literal "/dev/null"))
 SBPL
 }
 test_path() { printf '%s' "${TEST_PATH_FRONT:+$TEST_PATH_FRONT:}$B/stubs${BREW_ON_PATH:+:$B/brewprefix/bin}:$B/gobin:/usr/bin:/bin:/usr/sbin:/sbin"; }
 path_guard() { # el único brew/rustup/curl alcanzable por el PATH de la prueba debe ser un stub (o ninguno)
   local who p
+  # Con $B vacía, el patrón "$B"/* aceptaría CUALQUIER ruta absoluta: antes de resolver nada, $B tiene que ser un directorio.
+  if [ -z "${B:-}" ] || [ ! -d "$B" ]; then echo "ABORTO: \$B vacía o no es un directorio ('${B:-}'); no se ejecuta install.sh"; return 3; fi
+  # Y debe colgar de la raíz de la prueba: con B=/usr, "$B"/* aceptaría el curl REAL de /usr/bin.
+  case "$(rp "$B")" in "$(rp "$TEST_ROOT")"/*) ;; *) echo "ABORTO: \$B ('$B') no está dentro de la raíz de la prueba; no se ejecuta install.sh"; return 3 ;; esac
   for who in brew rustup curl; do
     p="$(PATH="$(test_path)" command -v "$who" 2>/dev/null)"
     case "$p" in ""|"$B"/*) ;; *) echo "ABORTO: '$who' resolvería a $p (real); no se ejecuta install.sh"; return 3 ;; esac
@@ -182,6 +186,9 @@ for c in "${CANARIOS[@]}"; do
   case "$c" in /usr/local/*) continue ;; esac     # de root: ahí el permiso del sistema ya lo impide, no prueba la sandbox
   check "control: SIN sandbox el canario $c sí se puede crear (el canario no pasa en vacío)" 'touch "$c" 2>/dev/null && [ -e "$c" ]; r=$?; rm -f "$c"; [ $r -eq 0 ]'
 done
+check "control: SIN sandbox /dev/zero acepta escritura (el canario de /dev no pasa en vacío)" 'sh -c "echo x > /dev/zero" 2>/dev/null'
+check "canario: escribir en /dev/zero dentro de la sandbox FALLA (de /dev solo se permite lo mínimo)" '! sandbox-exec -p "$(profile)" /bin/sh -c "echo x > /dev/zero" 2>/dev/null'
+check "canario: escribir en /dev/null dentro de la sandbox SÍ funciona (lo que bash y go necesitan)" 'sandbox-exec -p "$(profile)" /bin/sh -c "echo x > /dev/null" 2>/dev/null'
 check "canario: el temporal de la prueba SÍ es escribible (la lista de permitidos no está rota)" 'mkbase; sandbox-exec -p "$(profile)" /usr/bin/touch "$B/ok" 2>/dev/null && [ -e "$B/ok" ]'
 fi
 
@@ -195,11 +202,40 @@ for who in brew rustup curl; do
   check "$who real al frente del PATH: exit 3 y mensaje de aborto" '[ $rc -eq 3 ] && echo "$out" | grep -q "ABORTO"'
   check "$who real al frente del PATH: install.sh no llegó a ejecutarse (sin logs de stubs ni del falso)" '[ ! -e "$B/logs/brew.log" ] && [ ! -e "$B/logs/curl.log" ] && [ ! -e "$B/logs/rustup.log" ] && [ -z "$(ls "$F"/*.log 2>/dev/null)" ] && [ ! -e "$B/home/.config" ]'
 done
+echo "== Guarda con \$B vacía o inexistente (E1): aborta con exit 3 antes de resolver nada"
+for valor in "" "$TEST_ROOT/no-existe-$$" "/usr" "/" "$HOME"; do
+  etiqueta="${valor:-vacía}"; case "$valor" in "") ;; "$TEST_ROOT"/*) etiqueta="inexistente" ;; *) etiqueta="un directorio real fuera de la raíz de la prueba ($valor)" ;; esac
+  out="$( ( B="$valor"; path_guard ) 2>&1 )"; rc=$?
+  check "path_guard con B $etiqueta: exit 3 y mensaje de aborto" '[ $rc -eq 3 ] && echo "$out" | grep -q "ABORTO"'
+  mkbase; mkdir -p "$B/tmp"; mkdir -p "$B/home"; mkrepo "$B/repo"; BSANO="$B"
+  out="$( ( B="$valor"; run_install "$BSANO/home" "$BSANO/repo" ) 2>&1 )"; rc=$?
+  check "run_install con B $etiqueta: exit 3 y install.sh no llegó a ejecutarse" '[ $rc -eq 3 ] && [ ! -e "$BSANO/logs/brew.log" ] && [ ! -e "$BSANO/home/.config" ]'
+done
 fi
 
 echo "== Real intacto (sin escrituras fuera de la copia)"
-check "canario: dentro de la sandbox NO se puede escribir en el HOME real" 'c="$REAL_HOME/.local/zz-canario-$$"; sandbox-exec -p "$(profile)" touch "$c" 2>/dev/null; rc=$?; r=0; [ -e "$c" ] && { r=1; rm -f "$c"; }; [ $rc -ne 0 ] && [ $r -eq 0 ]'
-check "canario: dentro de la sandbox NO hay red" '! sandbox-exec -p "$(profile)" /usr/bin/curl -s -m 3 -o /dev/null https://example.com 2>/dev/null'
+# Red: servidor efímero en 127.0.0.1 (sin red externa). El control prueba que el cliente SÍ conecta sin sandbox; dentro, no.
+PORTFILE="$(mktemp "${TMPDIR:-/tmp}/netcanary.XXXXXX")"; TMPS+=("$PORTFILE")
+python3 -u -c 'import socket
+s = socket.socket(); s.bind(("127.0.0.1", 0)); s.listen(8); print(s.getsockname()[1], flush=True); s.settimeout(120)
+while True:
+    try:
+        c, _ = s.accept(); c.close()
+    except Exception:
+        break' > "$PORTFILE" &
+NETPID=$!; trap '{ pkill -P $$; kill $NETPID; wait $NETPID; } 2>/dev/null; cleanup' EXIT; trap 'exit 130' INT; trap 'exit 143' TERM   # bash 3.2 no ejecuta el trap EXIT ante INT/TERM sin esto
+for _ in $(seq 1 40); do [ -s "$PORTFILE" ] && break; sleep 0.3; done    # hasta 12 s
+NETPORT="$(head -1 "$PORTFILE")"
+NETCLIENT='import socket,sys; s=socket.create_connection(("127.0.0.1",int(sys.argv[1])),timeout=3); s.close()'
+check "control: SIN sandbox el cliente conecta al servidor local 127.0.0.1 (el canario de red no pasa en vacío)" '[ -n "$NETPORT" ] && python3 -c "$NETCLIENT" "$NETPORT" 2>/dev/null'
+net_blocked() { # 0 solo si la sandbox bloquea la conexión con "Operation not permitted" (un puerto vacío u otro error NO cuenta)
+  local port="$1" err
+  [ -n "$port" ] || return 1
+  err="$(sandbox-exec -p "$(profile)" python3 -c "$NETCLIENT" "$port" 2>&1)" && return 1
+  printf '%s' "$err" | grep -qiE 'not permitted|PermissionError'
+}
+check "autoprueba: el canario de red NO pasa con el puerto vacío" '! net_blocked ""'
+check "canario: dentro de la sandbox la MISMA conexión local falla con Operation not permitted (deny network*)" 'net_blocked "$NETPORT"'
 check "el herdr-ctl real no cambió (shasum igual que antes de la prueba)" '[ "$(shasum "$REAL_HOME/.local/bin/herdr-ctl" 2>/dev/null)" = "$REAL_BIN_SUM" ]'
 check "el ~/.zshenv real apunta a lo mismo que antes" '[ "$(readlink "$REAL_HOME/.zshenv" 2>/dev/null)" = "$REAL_ZSHENV_LINK" ]'
 check "el brew real no cambió (mtime igual que antes)" '[ "$(stat -f %m /opt/homebrew/bin/brew 2>/dev/null)" = "$REAL_BREW_MTIME" ]'
