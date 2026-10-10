@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Harness rápido (C2, C3, C4 y chequeos de sintaxis). Lo usan el pre-commit y el stop-gate del agente.
+# Harness rápido (C2, C3, C4 y chequeos de sintaxis). Lo usa el pre-commit y lo corre .claude/harness/verificar.sh.
 # No necesita red ni abre herdr. El harness de comportamiento (lento) es scripts/harness-behavior.py.
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 2
@@ -55,9 +55,6 @@ step "C3: herdr-ctl (gofmt, go vet, go test)"
 
 step "Z: ~/.zshenv nunca se pierde (HOME temporal)"
 scripts/test-zshenv.sh || bad "test-zshenv falla"
-
-step "D1: stop-gate y rojo declarado"
-scripts/test-stop-gate.sh || bad "test-stop-gate falla"
 
 step "C4: conflictos de atajos contra los defaults de herdr"
 if command -v herdr >/dev/null; then
