@@ -14,7 +14,7 @@ OWN='export MI_VAR=propia  # contenido del usuario'
 
 fails=0; NAMES=()
 ok()   { NAMES+=("$1"); printf '  PASS  %s\n' "$1"; }
-fail() { NAMES+=("$1"); printf '  FAIL  %s\t[%s]\n' "$1" "${2:-}"; fails=$((fails + 1)); }   # nombre\t[comando]: el stop-gate declara por nombre
+fail() { NAMES+=("$1"); printf '  FAIL  %s\t[%s]\n' "$1" "${2:-}"; fails=$((fails + 1)); }   # nombre\t[comando]: nombre estable por check
 SEC=""
 sec()   { SEC="$1"; echo "== $2"; }
 check() { if eval "$2"; then ok "[$SEC] $1"; else fail "[$SEC] $1" "$2"; fi; }
@@ -138,7 +138,7 @@ check "install.sh --dry-run termina con rc=0 aunque haya un test de Go en rojo" 
 check "el dry-run no ejecutó go test (no aparece el test en rojo)" '! echo "$OUT" | grep -q "TestRojoDeD4"'
 check "el dry-run sigue validando que herdr-ctl compila (go vet y go build)" 'echo "$OUT" | strip | grep -q "herdr-ctl compila"'
 
-sec Unicos "Nombres únicos (el stop-gate declara rojo por nombre)"
+sec Unicos "Nombres únicos"
 dups="$(printf '%s\n' "${NAMES[@]}" | sort | uniq -d)"
 check "los nombres de los checks son únicos" '[ -z "$dups" ]'
 [ -z "$dups" ] || printf '%s\n' "$dups" | sed 's/^/    duplicado: /'
