@@ -97,3 +97,27 @@ if [[ -n "${HERDR_POPUP:-}" ]]; then
   bindkey '\e' _popup_exit_on_esc
   bindkey '^Q' _popup_exit_on_esc
 fi
+# >>> claude (cerebro) >>>
+# Claude Code: antes de abrir se actualiza (`claude update`, instalación nativa) y arranca en bypass
+# (sin pedir permisos). Los hooks de cada repo siguen corriendo igual. Para abrir sin bypass: `command claude`.
+# Los subcomandos (update, mcp, doctor, etc.) pasan directo, sin actualizar ni agregar el flag.
+unalias claude 2>/dev/null
+claude() {
+  case "$1" in
+    update|upgrade|mcp|config|doctor|plugin|plugins|install|setup-token|migrate-installer|-v|--version|-h|--help)
+      command claude "$@"; return ;;
+  esac
+  # Headless (-p/--print) o con la salida redirigida: sin actualizar, para no ensuciar la salida (claude -p | jq).
+  local a
+  for a in "$@"; do case "$a" in -p|--print) command claude --dangerously-skip-permissions "$@"; return ;; esac; done
+  if [ -t 1 ]; then
+    local salida
+    if salida="$(command claude update 2>&1)"; then
+      print -r -u2 -- "${salida##*$'\n'}"
+    else
+      print -r -u2 -- "claude: no se pudo actualizar; abro con la versión instalada ($(command claude --version 2>/dev/null))"
+    fi
+  fi
+  command claude --dangerously-skip-permissions "$@"
+}
+# <<< claude (cerebro) <<<
