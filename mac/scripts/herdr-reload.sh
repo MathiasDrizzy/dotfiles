@@ -8,7 +8,6 @@ set -euo pipefail
 
 # Colores Catppuccin Mocha
 C_RESET="\033[0m"
-C_BOLD="\033[1m"
 C_MAUVE="\033[38;2;203;166;247m"
 C_GREEN="\033[38;2;166;227;161m"
 C_RED="\033[38;2;243;139;168m"

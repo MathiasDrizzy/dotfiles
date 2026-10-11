@@ -14,8 +14,8 @@ DRY_RUN=false
 LINKS_ONLY=false
 for arg in "$@"; do
   case "$arg" in
-    --dry-run|-n) DRY_RUN=true ;;
-    --links-only) LINKS_ONLY=true ;;
+  --dry-run | -n) DRY_RUN=true ;;
+  --links-only) LINKS_ONLY=true ;;
   esac
 done
 
@@ -47,67 +47,67 @@ run_step() {
 
 if [ "$LINKS_ONLY" = false ]; then
 
-# 0. Homebrew ya instalado en su prefijo pero fuera del PATH de esta shell (p. ej. recién instalado): se usa tal cual
-#    en vez de intentar reinstalarlo, y también en --dry-run (brew list) y en el resto del script.
-if ! command -v brew &>/dev/null && [ -x "$BREW_PREFIX/bin/brew" ]; then
-  export PATH="$BREW_PREFIX/bin:$PATH"
-fi
-
-# 1. Comprobar Homebrew
-if ! command -v brew &>/dev/null; then
-  if [ "$DRY_RUN" = true ]; then
-    echo "  [DRY-RUN] Homebrew no detectado. Se instalaría curl https://raw.githubusercontent.com/.../install.sh"
-  else
-    echo "==> Instalando Homebrew..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    eval "$("$BREW_PREFIX/bin/brew" shellenv)"
+  # 0. Homebrew ya instalado en su prefijo pero fuera del PATH de esta shell (p. ej. recién instalado): se usa tal cual
+  #    en vez de intentar reinstalarlo, y también en --dry-run (brew list) y en el resto del script.
+  if ! command -v brew &>/dev/null && [ -x "$BREW_PREFIX/bin/brew" ]; then
+    export PATH="$BREW_PREFIX/bin:$PATH"
   fi
-else
-  echo "  ✓ Homebrew disponible: $(brew --version | head -n 1)"
-fi
 
-# 2. PATH para el resto de este script (el archivo ~/.zshenv lo enlaza check-links.sh en el paso 6,
-#    con respaldo si ya existía uno propio; aquí no se escribe nada en $HOME)
-if [ "$DRY_RUN" = true ]; then
-  echo "  [DRY-RUN] PATH de Homebrew + Rust + ~/.local/bin para esta ejecución"
-else
-  if [ -x "$BREW_PREFIX/bin/brew" ]; then
-    eval "$("$BREW_PREFIX/bin/brew" shellenv)"
-  fi
-  export PATH="$BREW_PREFIX/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
-fi
-
-# 3. Paquetes Homebrew esenciales
-BREW_PACKAGES=(
-  herdr ghostty micro glow bat git-delta go rustup
-  yazi ffmpeg poppler fd ripgrep fzf zoxide atuin starship mise
-  lazygit lazydocker termscp sshs btop chafa
-  fzf-tab zsh-autosuggestions zsh-syntax-highlighting
-)
-
-if [ "$DRY_RUN" = true ]; then
-  echo "  [DRY-RUN] Verificando lista de ${#BREW_PACKAGES[@]} paquetes Homebrew esenciales..."
-  for pkg in "${BREW_PACKAGES[@]}"; do
-    if brew list "$pkg" &>/dev/null; then
-      echo "    ✓ Paquete instalado: $pkg"
+  # 1. Comprobar Homebrew
+  if ! command -v brew &>/dev/null; then
+    if [ "$DRY_RUN" = true ]; then
+      echo "  [DRY-RUN] Homebrew no detectado. Se instalaría curl https://raw.githubusercontent.com/.../install.sh"
     else
-      echo "    ℹ Paquete pendiente de instalar: $pkg"
+      echo "==> Instalando Homebrew..."
+      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      eval "$("$BREW_PREFIX/bin/brew" shellenv)"
     fi
-  done
-else
-  echo "==> Instalando fórmulas y casks de Homebrew..."
-  brew install "${BREW_PACKAGES[@]}"
-  brew install --cask font-jetbrains-mono-nerd-font || true
-fi
-
-# 4. Activar toolchain de Rust
-if [ "$DRY_RUN" = true ]; then
-  echo "  [DRY-RUN] Verificando toolchain de Rust (rustup default stable)"
-else
-  if command -v rustup &>/dev/null; then
-    rustup default stable || true
+  else
+    echo "  ✓ Homebrew disponible: $(brew --version | head -n 1)"
   fi
-fi
+
+  # 2. PATH para el resto de este script (el archivo ~/.zshenv lo enlaza check-links.sh en el paso 6,
+  #    con respaldo si ya existía uno propio; aquí no se escribe nada en $HOME)
+  if [ "$DRY_RUN" = true ]; then
+    echo "  [DRY-RUN] PATH de Homebrew + Rust + ~/.local/bin para esta ejecución"
+  else
+    if [ -x "$BREW_PREFIX/bin/brew" ]; then
+      eval "$("$BREW_PREFIX/bin/brew" shellenv)"
+    fi
+    export PATH="$BREW_PREFIX/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
+  fi
+
+  # 3. Paquetes Homebrew esenciales
+  BREW_PACKAGES=(
+    herdr ghostty micro glow bat git-delta go rustup
+    yazi ffmpeg poppler fd ripgrep fzf zoxide atuin starship mise
+    lazygit lazydocker termscp sshs btop chafa
+    fzf-tab zsh-autosuggestions zsh-syntax-highlighting
+  )
+
+  if [ "$DRY_RUN" = true ]; then
+    echo "  [DRY-RUN] Verificando lista de ${#BREW_PACKAGES[@]} paquetes Homebrew esenciales..."
+    for pkg in "${BREW_PACKAGES[@]}"; do
+      if brew list "$pkg" &>/dev/null; then
+        echo "    ✓ Paquete instalado: $pkg"
+      else
+        echo "    ℹ Paquete pendiente de instalar: $pkg"
+      fi
+    done
+  else
+    echo "==> Instalando fórmulas y casks de Homebrew..."
+    brew install "${BREW_PACKAGES[@]}"
+    brew install --cask font-jetbrains-mono-nerd-font || true
+  fi
+
+  # 4. Activar toolchain de Rust
+  if [ "$DRY_RUN" = true ]; then
+    echo "  [DRY-RUN] Verificando toolchain de Rust (rustup default stable)"
+  else
+    if command -v rustup &>/dev/null; then
+      rustup default stable || true
+    fi
+  fi
 
 fi
 
@@ -186,41 +186,41 @@ fi
 
 if [ "$LINKS_ONLY" = false ]; then
 
-# 7. Tema Catppuccin Mocha para micro y btop
-if [ "$DRY_RUN" = true ]; then
-  echo "  [DRY-RUN] Validación de descargas de temas Catppuccin Mocha"
-else
-  curl -fsSL https://raw.githubusercontent.com/catppuccin/micro/main/themes/catppuccin-mocha.micro \
-    -o "$HOME/.config/micro/colorschemes/catppuccin-mocha.micro" 2>/dev/null || true
-  curl -fsSL https://raw.githubusercontent.com/catppuccin/btop/main/themes/catppuccin_mocha.theme \
-    -o "$HOME/.config/btop/themes/catppuccin_mocha.theme" 2>/dev/null || true
-fi
+  # 7. Tema Catppuccin Mocha para micro y btop
+  if [ "$DRY_RUN" = true ]; then
+    echo "  [DRY-RUN] Validación de descargas de temas Catppuccin Mocha"
+  else
+    curl -fsSL https://raw.githubusercontent.com/catppuccin/micro/main/themes/catppuccin-mocha.micro \
+      -o "$HOME/.config/micro/colorschemes/catppuccin-mocha.micro" 2>/dev/null || true
+    curl -fsSL https://raw.githubusercontent.com/catppuccin/btop/main/themes/catppuccin_mocha.theme \
+      -o "$HOME/.config/btop/themes/catppuccin_mocha.theme" 2>/dev/null || true
+  fi
 
-# 8. Activar los hooks versionados del repo (pre-commit con el harness)
-if [ "$DRY_RUN" = true ]; then
-  echo "  [DRY-RUN] git config core.hooksPath scripts/hooks"
-else
-  git -C "$DOTFILES_DIR" config core.hooksPath scripts/hooks 2>/dev/null || true
-fi
+  # 8. Activar los hooks versionados del repo (pre-commit con el harness)
+  if [ "$DRY_RUN" = true ]; then
+    echo "  [DRY-RUN] git config core.hooksPath scripts/hooks"
+  else
+    git -C "$DOTFILES_DIR" config core.hooksPath scripts/hooks 2>/dev/null || true
+  fi
 
-# 9. Compilar herdr-ctl
-if [ "$DRY_RUN" = true ]; then
-  echo "  [DRY-RUN] Validando compilación de herdr-ctl (go vet + build dry-run)..."
-  (
-    cd "$DOTFILES_DIR/tools/herdr-ctl"
-    go vet ./...
-    # Sin `go test`: los tests de herdr-ctl los corre scripts/harness-quick.sh. Mantenerlos aquí acoplaba un test de Go
-    # en rojo (fase roja de TDD) con el dry-run y con los checks de test-zshenv que lo ejecutan.
-    go build -o /dev/null .
-  )
-  echo "  ✓ herdr-ctl compila sin advertencias."
-else
-  echo "==> Compilando herdr-ctl..."
-  (
-    cd "$DOTFILES_DIR/tools/herdr-ctl"
-    go build -ldflags="-s -w" -o "$HOME/.local/bin/herdr-ctl"
-  )
-fi
+  # 9. Compilar herdr-ctl
+  if [ "$DRY_RUN" = true ]; then
+    echo "  [DRY-RUN] Validando compilación de herdr-ctl (go vet + build dry-run)..."
+    (
+      cd "$DOTFILES_DIR/tools/herdr-ctl"
+      go vet ./...
+      # Sin `go test`: los tests de herdr-ctl los corre scripts/harness-quick.sh. Mantenerlos aquí acoplaba un test de Go
+      # en rojo (fase roja de TDD) con el dry-run y con los checks de test-zshenv que lo ejecutan.
+      go build -o /dev/null .
+    )
+    echo "  ✓ herdr-ctl compila sin advertencias."
+  else
+    echo "==> Compilando herdr-ctl..."
+    (
+      cd "$DOTFILES_DIR/tools/herdr-ctl"
+      go build -ldflags="-s -w" -o "$HOME/.local/bin/herdr-ctl"
+    )
+  fi
 
 fi
 

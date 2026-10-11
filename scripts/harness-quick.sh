@@ -6,7 +6,10 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 2
 
 fail=0
 step() { printf '\n==> %s\n' "$1"; }
-bad()  { echo "✗ $1" >&2; fail=1; }
+bad() {
+  echo "✗ $1" >&2
+  fail=1
+}
 
 step "C2: sin IPs de la red local, hostnames ni datos de servicios internos en archivos versionados"
 # El patrón usa clases de caracteres ([.], [o]…) para que este mismo archivo no lo cumpla.
@@ -22,7 +25,7 @@ fi
 step "Sintaxis de scripts (bash -n) y TOML"
 for f in $(git ls-files '*.sh' 'scripts/hooks/*' 'mac/install.sh' 'mac/zshrc' 'mac/zshenv' | sort -u); do
   [ -f "$f" ] || continue
-  case "$f" in mac/zshrc|mac/zshenv) shell=zsh ;; *) shell=bash ;; esac
+  case "$f" in mac/zshrc | mac/zshenv) shell=zsh ;; *) shell=bash ;; esac
   command -v "$shell" >/dev/null || continue
   "$shell" -n "$f" 2>/dev/null || bad "sintaxis inválida en $f"
 done
@@ -49,7 +52,10 @@ step "C3: herdr-ctl (gofmt, go vet, go test)"
 (
   cd mac/tools/herdr-ctl || exit 1
   unformatted="$(gofmt -l .)"
-  [ -z "$unformatted" ] || { echo "gofmt pendiente en: $unformatted" >&2; exit 1; }
+  [ -z "$unformatted" ] || {
+    echo "gofmt pendiente en: $unformatted" >&2
+    exit 1
+  }
   go vet ./... && go test ./...
 ) || bad "herdr-ctl falla"
 

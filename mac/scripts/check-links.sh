@@ -36,9 +36,9 @@ NO_ZSHENV=false
 STRICT=false
 for arg in "$@"; do
   case "$arg" in
-    --fix|--sync) FIX_MODE=true ;;
-    --no-zshenv) NO_ZSHENV=true ;;
-    --strict) STRICT=true ;;
+  --fix | --sync) FIX_MODE=true ;;
+  --no-zshenv) NO_ZSHENV=true ;;
+  --strict) STRICT=true ;;
   esac
 done
 
@@ -50,7 +50,10 @@ backup_target() {
   mkdir -p "$(dirname "$dest")"
   # Nunca pisar un respaldo anterior (dos corridas en el mismo segundo): sufijo .1, .2…
   local base="$dest" n=1
-  while [ -e "$dest" ] || [ -L "$dest" ]; do dest="$base.$n"; n=$((n + 1)); done
+  while [ -e "$dest" ] || [ -L "$dest" ]; do
+    dest="$base.$n"
+    n=$((n + 1))
+  done
   if [ -L "$target" ]; then
     # Un enlace relativo movido de carpeta se rompería: el respaldo apunta al destino absoluto original.
     abs="$(python3 -c 'import os,sys; t=sys.argv[1]; print(os.path.normpath(os.path.join(os.path.dirname(t), os.readlink(t))))' "$target")"
@@ -63,7 +66,10 @@ backup_target() {
 
 # Ruta real (sin enlaces) de un archivo. Sin python3 no se puede comparar rutas de forma fiable
 # (una cadena vacía igualaría a otra vacía y daría un falso OK), así que se aborta.
-command -v python3 >/dev/null 2>&1 || { echo "check-links.sh necesita python3" >&2; exit 2; }
+command -v python3 >/dev/null 2>&1 || {
+  echo "check-links.sh necesita python3" >&2
+  exit 2
+}
 real_path() {
   python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1"
 }
@@ -135,7 +141,8 @@ for pair in "${CONFIG_PAIRS[@]}"; do
   if [ -L "$target" ]; then
     link_dest="$(readlink "$target")"
     # Comparar rutas reales: un enlace a otro archivo que se llame igual NO es el del repo.
-    real_target="$(real_path "$target")"; real_source="$(real_path "$source")"
+    real_target="$(real_path "$target")"
+    real_source="$(real_path "$source")"
     if [ -n "$real_target" ] && [ "$real_target" = "$real_source" ]; then
       echo -e "  ${C_GREEN}[SYMLINK OK]${C_RESET} $target"
       symlinks_ok=$((symlinks_ok + 1))

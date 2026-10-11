@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016,SC2030,SC2031,SC2034,SC2088,SC2329
+# The checks are single-quoted strings that check() evals later, and many variables and functions are only used inside
+# them or in subshells, so shellcheck cannot see those uses; "~" appears only in check labels.
 # Prueba de punta a punta de `mac/install.sh` en modo completo, sin tocar el Mac real (ORD-dotfiles-005 D2).
 #
 # Aislamiento (varias capas, porque el modo completo instala paquetes):
@@ -14,65 +17,91 @@
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REAL_HOME="$HOME"
-fails=0; TMPS=()
-ok()   { printf '  PASS  %s\n' "$1"; }
-fail() { printf '  FAIL  %s\n' "$1"; fails=$((fails + 1)); }
+fails=0
+TMPS=()
+ok() { printf '  PASS  %s\n' "$1"; }
+fail() {
+  printf '  FAIL  %s\n' "$1"
+  fails=$((fails + 1))
+}
 check() { if eval "$2"; then ok "$1"; else fail "$1  [$2]"; fi; }
 CANARIOS=("$REAL_HOME/.cerebro-canario" "/usr/local/.cerebro-canario" "$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "${TMPDIR:-/tmp}")/.cerebro-canario-tmp" "/private/tmp/.cerebro-canario-tmp")
-cleanup() { rm -f "${CANARIOS[@]}" 2>/dev/null; for t in ${TMPS[@]+"${TMPS[@]}"}; do chmod -R u+w "$t" 2>/dev/null; rm -rf "$t"; done; }
+cleanup() {
+  rm -f "${CANARIOS[@]}" 2>/dev/null
+  for t in ${TMPS[@]+"${TMPS[@]}"}; do
+    chmod -R u+w "$t" 2>/dev/null
+    rm -rf "$t"
+  done
+}
 trap cleanup EXIT
 
 echo "== Pre-vuelo: ¿install.sh se puede aislar?"
 if grep -nE '(^|[^_A-Za-z])/opt/homebrew' "$ROOT/mac/install.sh" | grep -v 'BREW_PREFIX:-/opt/homebrew' | grep -q .; then
   grep -nE '(^|[^_A-Za-z])/opt/homebrew' "$ROOT/mac/install.sh" | grep -v 'BREW_PREFIX:-/opt/homebrew'
   fail "install.sh tiene rutas fijas de /opt/homebrew: no se ejecuta nada (podría llamar al brew real)"
-  echo; echo "test-install-full: $fails FAIL (no se ejecutó install.sh)" >&2; exit "$fails"
+  echo
+  echo "test-install-full: $fails FAIL (no se ejecutó install.sh)" >&2
+  exit "$fails"
 fi
 ok "install.sh no tiene rutas fijas de /opt/homebrew fuera del valor por defecto de DOTFILES_BREW_PREFIX"
 if grep -nE '(^|[^_A-Za-z])/usr/local' "$ROOT/mac/install.sh" | grep -q .; then
   grep -nE '(^|[^_A-Za-z])/usr/local' "$ROOT/mac/install.sh"
   fail "install.sh tiene rutas fijas de /usr/local: no se ejecuta nada"
-  echo; echo "test-install-full: $fails FAIL (no se ejecutó install.sh)" >&2; exit "$fails"
+  echo
+  echo "test-install-full: $fails FAIL (no se ejecutó install.sh)" >&2
+  exit "$fails"
 fi
 ok "install.sh no tiene rutas fijas de /usr/local"
-command -v sandbox-exec >/dev/null || { fail "falta sandbox-exec para la capa 3"; exit 1; }
+command -v sandbox-exec >/dev/null || {
+  fail "falta sandbox-exec para la capa 3"
+  exit 1
+}
 REAL_BIN_SUM="$(shasum "$REAL_HOME/.local/bin/herdr-ctl" 2>/dev/null)"
 REAL_ZSHENV_LINK="$(readlink "$REAL_HOME/.zshenv" 2>/dev/null)"
 REAL_BREW_MTIME="$(stat -f %m /opt/homebrew/bin/brew 2>/dev/null)"
-TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/installfull-root.XXXXXX")"; TMPS+=("$TEST_ROOT")   # único directorio escribible fuera de las cachés de Go
-GO_REAL="$(command -v go)"; GOROOT_REAL="$(go env GOROOT)"
-GOCACHE_REAL="$(go env GOCACHE)"; GOMODCACHE_REAL="$(go env GOMODCACHE)"; GOPATH_REAL="$(go env GOPATH)"
+TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/installfull-root.XXXXXX")"
+TMPS+=("$TEST_ROOT") # único directorio escribible fuera de las cachés de Go
+GO_REAL="$(command -v go)"
+GOROOT_REAL="$(go env GOROOT)"
+GOCACHE_REAL="$(go env GOCACHE)"
+GOMODCACHE_REAL="$(go env GOMODCACHE)"
+GOPATH_REAL="$(go env GOPATH)"
 
 # scenario <nombre> <dir del HOME> <dir del repo> → deja $B (base temporal) listo con repo copiado y stubs
 mkbase() {
   B="$(mktemp -d "$TEST_ROOT/b.XXXXXX")"
   mkdir -p "$B/stubs" "$B/brewprefix/bin" "$B/logs" "$B/respaldos" "$B/gobin"
-  ln -s "$GO_REAL" "$B/gobin/go"      # solo `go`, NO su directorio (puede ser /opt/homebrew/bin, donde vive el brew real)
+  ln -s "$GO_REAL" "$B/gobin/go" # solo `go`, NO su directorio (puede ser /opt/homebrew/bin, donde vive el brew real)
   # stubs: solo registran
-  cat > "$B/stubs/brew" <<EOF
+  cat >"$B/stubs/brew" <<EOF
 #!/usr/bin/env bash
 echo "brew \$*" >> "$B/logs/brew.log"; echo "\$0" >> "$B/logs/brew.bin"
 case "\$1" in --version) echo "Homebrew 0.0-stub" ;; list) exit 1 ;; shellenv) : ;; esac
 exit 0
 EOF
-  cat > "$B/stubs/curl" <<EOF
+  cat >"$B/stubs/curl" <<EOF
 #!/usr/bin/env bash
 echo "curl \$*" >> "$B/logs/curl.log"
 out=""; prev=""; for a in "\$@"; do [ "\$prev" = "-o" ] && out="\$a"; prev="\$a"; done
 [ -n "\$out" ] && echo "# tema de prueba (stub)" > "\$out"
 exit 0
 EOF
-  cat > "$B/stubs/rustup" <<EOF
+  cat >"$B/stubs/rustup" <<EOF
 #!/usr/bin/env bash
 echo "rustup \$*" >> "$B/logs/rustup.log"; exit 0
 EOF
-  mv "$B/stubs/brew" "$B/brewprefix/bin/brew"; chmod +x "$B/stubs/"* "$B/brewprefix/bin/brew"
+  mv "$B/stubs/brew" "$B/brewprefix/bin/brew"
+  chmod +x "$B/stubs/"* "$B/brewprefix/bin/brew"
 }
 mkrepo() { # mkrepo <ruta destino>: copia del árbol de trabajo (versionado + sin versionar no ignorado) + git init
-  local dest="$1"; mkdir -p "$dest"
-  ( cd "$ROOT" && git ls-files -z --cached --others --exclude-standard | while IFS= read -r -d '' f; do [ -e "$f" ] && printf '%s\0' "$f"; done | tar --null -T - -cf - ) | tar -xf - -C "$dest"
-  [ -f "$dest/mac/install.sh" ] || { echo "ERROR del test: la copia del repo salió vacía"; exit 2; }
-  ( cd "$dest" && git init -q )
+  local dest="$1"
+  mkdir -p "$dest"
+  (cd "$ROOT" && git ls-files -z --cached --others --exclude-standard | while IFS= read -r -d '' f; do [ -e "$f" ] && printf '%s\0' "$f"; done | tar --null -T - -cf -) | tar -xf - -C "$dest"
+  [ -f "$dest/mac/install.sh" ] || {
+    echo "ERROR del test: la copia del repo salió vacía"
+    exit 2
+  }
+  (cd "$dest" && git init -q)
 }
 rp() { python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1"; }
 # Perfil por LISTA DE PERMITIDOS: se prohíbe toda escritura y se permite solo la raíz propia de la prueba (TEST_ROOT, donde viven
@@ -107,37 +136,56 @@ test_path() { printf '%s' "${TEST_PATH_FRONT:+$TEST_PATH_FRONT:}$B/stubs${BREW_O
 path_guard() { # el único brew/rustup/curl alcanzable por el PATH de la prueba debe ser un stub (o ninguno)
   local who p
   # Con $B vacía, el patrón "$B"/* aceptaría CUALQUIER ruta absoluta: antes de resolver nada, $B tiene que ser un directorio.
-  if [ -z "${B:-}" ] || [ ! -d "$B" ]; then echo "ABORTO: \$B vacía o no es un directorio ('${B:-}'); no se ejecuta install.sh"; return 3; fi
+  if [ -z "${B:-}" ] || [ ! -d "$B" ]; then
+    echo "ABORTO: \$B vacía o no es un directorio ('${B:-}'); no se ejecuta install.sh"
+    return 3
+  fi
   # Y debe colgar de la raíz de la prueba: con B=/usr, "$B"/* aceptaría el curl REAL de /usr/bin.
-  case "$(rp "$B")" in "$(rp "$TEST_ROOT")"/*) ;; *) echo "ABORTO: \$B ('$B') no está dentro de la raíz de la prueba; no se ejecuta install.sh"; return 3 ;; esac
+  case "$(rp "$B")" in "$(rp "$TEST_ROOT")"/*) ;; *)
+    echo "ABORTO: \$B ('$B') no está dentro de la raíz de la prueba; no se ejecuta install.sh"
+    return 3
+    ;;
+  esac
   for who in brew rustup curl; do
     p="$(PATH="$(test_path)" command -v "$who" 2>/dev/null)"
-    case "$p" in ""|"$B"/*) ;; *) echo "ABORTO: '$who' resolvería a $p (real); no se ejecuta install.sh"; return 3 ;; esac
+    case "$p" in "" | "$B"/*) ;; *)
+      echo "ABORTO: '$who' resolvería a $p (real); no se ejecuta install.sh"
+      return 3
+      ;;
+    esac
   done
 }
 run_install() { # run_install <HOME> <repo> [args…]   (salida en $OUT, rc en $RC)
-  local h="$1" repo="$2"; shift 2
+  local h="$1" repo="$2"
+  shift 2
   path_guard || exit 3
   OUT="$(sandbox-exec -p "$(profile)" env -i HOME="$h" TMPDIR="$B/tmp" \
-      PATH="$(test_path)" GOROOT="$GOROOT_REAL" \
-      DOTFILES_BREW_PREFIX="$B/brewprefix" DOTFILES_BACKUP_DIR="$B/respaldos" \
-      GOCACHE="$GOCACHE_REAL" GOMODCACHE="$GOMODCACHE_REAL" GOPATH="$GOPATH_REAL" \
-      bash "$repo/mac/install.sh" "$@" 2>&1)"; RC=$?
+    PATH="$(test_path)" GOROOT="$GOROOT_REAL" \
+    DOTFILES_BREW_PREFIX="$B/brewprefix" DOTFILES_BACKUP_DIR="$B/respaldos" \
+    GOCACHE="$GOCACHE_REAL" GOMODCACHE="$GOMODCACHE_REAL" GOPATH="$GOPATH_REAL" \
+    bash "$repo/mac/install.sh" "$@" 2>&1)"
+  RC=$?
 }
 strip() { sed 's/\x1b\[[0-9;]*m//g'; }
-broken() { find "$1" -type l ! -exec test -e {} \; -print 2>/dev/null | grep -v '/go/' | wc -l | tr -d ' '; }
-snapshot() { ( cd "$1" && find . -path ./go -prune -o \( -type l -print \) | sort | while read -r l; do printf '%s -> %s\n' "$l" "$(readlink "$l")"; done; ls -1A .config .local/bin 2>/dev/null ); }
-expected_pkgs() { awk '/^BREW_PACKAGES=\(/{f=1;next} f&&/^\)/{exit} f{print}' "$ROOT/mac/install.sh" | tr -s ' \n' '\n' | grep -v '^$' | sort | tr '\n' ' '; }
+broken() { find "$1" -type l ! -exec test -e {} \; -print 2>/dev/null | grep -vc '/go/' | tr -d ' '; }
+snapshot() { (
+  cd "$1" && find . -path ./go -prune -o \( -type l -print \) | sort | while read -r l; do printf '%s -> %s\n' "$l" "$(readlink "$l")"; done
+  ls -1A .config .local/bin 2>/dev/null
+); }
+expected_pkgs() { awk '/^[[:space:]]*BREW_PACKAGES=\(/{f=1;next} f&&/^[[:space:]]*\)/{exit} f{print}' "$ROOT/mac/install.sh" | tr -s ' \n' '\n' | grep -v '^$' | sort | tr '\n' ' '; }
 
 scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espacios> <zshenv propio: 0|1>
   local title="$1" hname="$2" rname="$3" own="$4" brewpath="${5:-1}"
   [ -z "${ONLY:-}" ] || [[ "$title" == "$ONLY"* ]] || return 0
   echo "== $title"
-  BREW_ON_PATH=""; [ "$brewpath" = 1 ] && BREW_ON_PATH=1
-  mkbase; mkdir -p "$B/tmp"
+  BREW_ON_PATH=""
+  [ "$brewpath" = 1 ] && BREW_ON_PATH=1
+  mkbase
+  mkdir -p "$B/tmp"
   local H="$B/$hname" REPO="$B/$rname"
-  mkdir -p "$H"; mkrepo "$REPO"
-  [ "$own" = 1 ] && echo 'export MI_VAR=propia  # contenido del usuario' > "$H/.zshenv"
+  mkdir -p "$H"
+  mkrepo "$REPO"
+  [ "$own" = 1 ] && echo 'export MI_VAR=propia  # contenido del usuario' >"$H/.zshenv"
 
   run_install "$H" "$REPO"
   check "corrida 1: rc=0" '[ $RC -eq 0 ]'
@@ -159,7 +207,9 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
     check "no se creó ningún respaldo" '[ -z "$(find "$B/respaldos" -type f)" ]'
   fi
 
-  snap1="$(snapshot "$H")"; calls1="$(cat "$B/logs/brew.log")"; nresp1="$(find "$B/respaldos" -type f | wc -l | tr -d ' ')"
+  snap1="$(snapshot "$H")"
+  calls1="$(cat "$B/logs/brew.log")"
+  nresp1="$(find "$B/respaldos" -type f | wc -l | tr -d ' ')"
   run_install "$H" "$REPO"
   check "corrida 2: rc=0" '[ $RC -eq 0 ]'
   check "corrida 2 idempotente: mismos enlaces y archivos" '[ "$(snapshot "$H")" = "$snap1" ]'
@@ -171,60 +221,89 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
   check "todo brew invocado fue el stub de la prueba (ruta registrada por el propio stub)" '[ -s "$B/logs/brew.bin" ] && ! grep -v "^$B/" "$B/logs/brew.bin" | grep -q .'
 }
 
-scenario "I1: HOME limpio, dos corridas"                 "home"             "repo"              0
-scenario "I1b: HOME con un ~/.zshenv propio"             "home"             "repo"              1
+scenario "I1: HOME limpio, dos corridas" "home" "repo" 0
+scenario "I1b: HOME con un ~/.zshenv propio" "home" "repo" 1
 scenario "I3: Homebrew ya instalado en su prefijo pero fuera del PATH" "home" "repo" 0 0
-scenario "I2: HOME y repo con espacios"                  "home con espacios" "repo con espacios" 0
-scenario "I2b: HOME con espacios y ~/.zshenv propio"     "home con espacios" "repo con espacios" 1
+scenario "I2: HOME y repo con espacios" "home con espacios" "repo con espacios" 0
+scenario "I2b: HOME con espacios y ~/.zshenv propio" "home con espacios" "repo con espacios" 1
 
 if [ -z "${ONLY:-}" ] || [ "${ONLY:-}" = "Canarios" ]; then
-echo "== Canarios de la sandbox (R17): escribir fuera de lo permitido tiene que FALLAR"
-for c in "${CANARIOS[@]}"; do
-  check "canario: escribir en $c dentro de la sandbox falla y el archivo no existe" 'rm -f "$c" 2>/dev/null; sandbox-exec -p "$(profile)" /usr/bin/touch "$c" 2>/dev/null; rc=$?; r=0; [ -e "$c" ] && { r=1; rm -f "$c"; }; [ $rc -ne 0 ] && [ $r -eq 0 ]'
-done
-for c in "${CANARIOS[@]}"; do
-  case "$c" in /usr/local/*) continue ;; esac     # de root: ahí el permiso del sistema ya lo impide, no prueba la sandbox
-  check "control: SIN sandbox el canario $c sí se puede crear (el canario no pasa en vacío)" 'touch "$c" 2>/dev/null && [ -e "$c" ]; r=$?; rm -f "$c"; [ $r -eq 0 ]'
-done
-check "control: SIN sandbox /dev/zero acepta escritura (el canario de /dev no pasa en vacío)" 'sh -c "echo x > /dev/zero" 2>/dev/null'
-check "canario: escribir en /dev/zero dentro de la sandbox FALLA (de /dev solo se permite lo mínimo)" '! sandbox-exec -p "$(profile)" /bin/sh -c "echo x > /dev/zero" 2>/dev/null'
-check "canario: escribir en /dev/null dentro de la sandbox SÍ funciona (lo que bash y go necesitan)" 'sandbox-exec -p "$(profile)" /bin/sh -c "echo x > /dev/null" 2>/dev/null'
-check "canario: el temporal de la prueba SÍ es escribible (la lista de permitidos no está rota)" 'mkbase; sandbox-exec -p "$(profile)" /usr/bin/touch "$B/ok" 2>/dev/null && [ -e "$B/ok" ]'
+  echo "== Canarios de la sandbox (R17): escribir fuera de lo permitido tiene que FALLAR"
+  for c in "${CANARIOS[@]}"; do
+    check "canario: escribir en $c dentro de la sandbox falla y el archivo no existe" 'rm -f "$c" 2>/dev/null; sandbox-exec -p "$(profile)" /usr/bin/touch "$c" 2>/dev/null; rc=$?; r=0; [ -e "$c" ] && { r=1; rm -f "$c"; }; [ $rc -ne 0 ] && [ $r -eq 0 ]'
+  done
+  for c in "${CANARIOS[@]}"; do
+    case "$c" in /usr/local/*) continue ;; esac # de root: ahí el permiso del sistema ya lo impide, no prueba la sandbox
+    check "control: SIN sandbox el canario $c sí se puede crear (el canario no pasa en vacío)" 'touch "$c" 2>/dev/null && [ -e "$c" ]; r=$?; rm -f "$c"; [ $r -eq 0 ]'
+  done
+  check "control: SIN sandbox /dev/zero acepta escritura (el canario de /dev no pasa en vacío)" 'sh -c "echo x > /dev/zero" 2>/dev/null'
+  check "canario: escribir en /dev/zero dentro de la sandbox FALLA (de /dev solo se permite lo mínimo)" '! sandbox-exec -p "$(profile)" /bin/sh -c "echo x > /dev/zero" 2>/dev/null'
+  check "canario: escribir en /dev/null dentro de la sandbox SÍ funciona (lo que bash y go necesitan)" 'sandbox-exec -p "$(profile)" /bin/sh -c "echo x > /dev/null" 2>/dev/null'
+  check "canario: el temporal de la prueba SÍ es escribible (la lista de permitidos no está rota)" 'mkbase; sandbox-exec -p "$(profile)" /usr/bin/touch "$B/ok" 2>/dev/null && [ -e "$B/ok" ]'
 fi
 
 if [ -z "${ONLY:-}" ] || [ "${ONLY:-}" = "Guarda" ]; then
-echo "== Guarda anti-real (S3): un brew, rustup o curl REAL al frente del PATH aborta con exit 3 antes de install.sh"
-for who in brew rustup curl; do
-  mkbase; mkdir -p "$B/tmp"; F="$(mktemp -d "${TMPDIR:-/tmp}/falso.XXXXXX")"; TMPS+=("$F")
-  printf '#!/bin/sh\necho "$0 $*" >> "%s/real-%s.log"\n' "$F" "$who" > "$F/$who"; chmod +x "$F/$who"
-  mkdir -p "$B/home"; mkrepo "$B/repo"
-  out="$( ( TEST_PATH_FRONT="$F"; run_install "$B/home" "$B/repo" ) 2>&1 )"; rc=$?
-  check "$who real al frente del PATH: exit 3 y mensaje de aborto" '[ $rc -eq 3 ] && echo "$out" | grep -q "ABORTO"'
-  check "$who real al frente del PATH: install.sh no llegó a ejecutarse (sin logs de stubs ni del falso)" '[ ! -e "$B/logs/brew.log" ] && [ ! -e "$B/logs/curl.log" ] && [ ! -e "$B/logs/rustup.log" ] && [ -z "$(ls "$F"/*.log 2>/dev/null)" ] && [ ! -e "$B/home/.config" ]'
-done
-echo "== Guarda con \$B vacía o inexistente (E1): aborta con exit 3 antes de resolver nada"
-for valor in "" "$TEST_ROOT/no-existe-$$" "/usr" "/" "$HOME"; do
-  etiqueta="${valor:-vacía}"; case "$valor" in "") ;; "$TEST_ROOT"/*) etiqueta="inexistente" ;; *) etiqueta="un directorio real fuera de la raíz de la prueba ($valor)" ;; esac
-  out="$( ( B="$valor"; path_guard ) 2>&1 )"; rc=$?
-  check "path_guard con B $etiqueta: exit 3 y mensaje de aborto" '[ $rc -eq 3 ] && echo "$out" | grep -q "ABORTO"'
-  mkbase; mkdir -p "$B/tmp"; mkdir -p "$B/home"; mkrepo "$B/repo"; BSANO="$B"
-  out="$( ( B="$valor"; run_install "$BSANO/home" "$BSANO/repo" ) 2>&1 )"; rc=$?
-  check "run_install con B $etiqueta: exit 3 y install.sh no llegó a ejecutarse" '[ $rc -eq 3 ] && [ ! -e "$BSANO/logs/brew.log" ] && [ ! -e "$BSANO/home/.config" ]'
-done
+  echo "== Guarda anti-real (S3): un brew, rustup o curl REAL al frente del PATH aborta con exit 3 antes de install.sh"
+  for who in brew rustup curl; do
+    mkbase
+    mkdir -p "$B/tmp"
+    F="$(mktemp -d "${TMPDIR:-/tmp}/falso.XXXXXX")"
+    TMPS+=("$F")
+    printf '#!/bin/sh\necho "$0 $*" >> "%s/real-%s.log"\n' "$F" "$who" >"$F/$who"
+    chmod +x "$F/$who"
+    mkdir -p "$B/home"
+    mkrepo "$B/repo"
+    out="$( (
+      TEST_PATH_FRONT="$F"
+      run_install "$B/home" "$B/repo"
+    ) 2>&1)"
+    rc=$?
+    check "$who real al frente del PATH: exit 3 y mensaje de aborto" '[ $rc -eq 3 ] && echo "$out" | grep -q "ABORTO"'
+    check "$who real al frente del PATH: install.sh no llegó a ejecutarse (sin logs de stubs ni del falso)" '[ ! -e "$B/logs/brew.log" ] && [ ! -e "$B/logs/curl.log" ] && [ ! -e "$B/logs/rustup.log" ] && [ -z "$(ls "$F"/*.log 2>/dev/null)" ] && [ ! -e "$B/home/.config" ]'
+  done
+  echo "== Guarda con \$B vacía o inexistente (E1): aborta con exit 3 antes de resolver nada"
+  for valor in "" "$TEST_ROOT/no-existe-$$" "/usr" "/" "$HOME"; do
+    etiqueta="${valor:-vacía}"
+    case "$valor" in "") ;; "$TEST_ROOT"/*) etiqueta="inexistente" ;; *) etiqueta="un directorio real fuera de la raíz de la prueba ($valor)" ;; esac
+    out="$( (
+      B="$valor"
+      path_guard
+    ) 2>&1)"
+    rc=$?
+    check "path_guard con B $etiqueta: exit 3 y mensaje de aborto" '[ $rc -eq 3 ] && echo "$out" | grep -q "ABORTO"'
+    mkbase
+    mkdir -p "$B/tmp"
+    mkdir -p "$B/home"
+    mkrepo "$B/repo"
+    BSANO="$B"
+    out="$( (
+      B="$valor"
+      run_install "$BSANO/home" "$BSANO/repo"
+    ) 2>&1)"
+    rc=$?
+    check "run_install con B $etiqueta: exit 3 y install.sh no llegó a ejecutarse" '[ $rc -eq 3 ] && [ ! -e "$BSANO/logs/brew.log" ] && [ ! -e "$BSANO/home/.config" ]'
+  done
 fi
 
 echo "== Real intacto (sin escrituras fuera de la copia)"
 # Red: servidor efímero en 127.0.0.1 (sin red externa). El control prueba que el cliente SÍ conecta sin sandbox; dentro, no.
-PORTFILE="$(mktemp "${TMPDIR:-/tmp}/netcanary.XXXXXX")"; TMPS+=("$PORTFILE")
+PORTFILE="$(mktemp "${TMPDIR:-/tmp}/netcanary.XXXXXX")"
+TMPS+=("$PORTFILE")
 python3 -u -c 'import socket
 s = socket.socket(); s.bind(("127.0.0.1", 0)); s.listen(8); print(s.getsockname()[1], flush=True); s.settimeout(120)
 while True:
     try:
         c, _ = s.accept(); c.close()
     except Exception:
-        break' > "$PORTFILE" &
-NETPID=$!; trap '{ pkill -P $$; kill $NETPID; wait $NETPID; } 2>/dev/null; cleanup' EXIT; trap 'exit 130' INT; trap 'exit 143' TERM   # bash 3.2 no ejecuta el trap EXIT ante INT/TERM sin esto
-for _ in $(seq 1 40); do [ -s "$PORTFILE" ] && break; sleep 0.3; done    # hasta 12 s
+        break' >"$PORTFILE" &
+NETPID=$!
+trap '{ pkill -P $$; kill $NETPID; wait $NETPID; } 2>/dev/null; cleanup' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM # bash 3.2 no ejecuta el trap EXIT ante INT/TERM sin esto
+for _ in $(seq 1 40); do
+  [ -s "$PORTFILE" ] && break
+  sleep 0.3
+done # hasta 12 s
 NETPORT="$(head -1 "$PORTFILE")"
 NETCLIENT='import socket,sys; s=socket.create_connection(("127.0.0.1",int(sys.argv[1])),timeout=3); s.close()'
 check "control: SIN sandbox el cliente conecta al servidor local 127.0.0.1 (el canario de red no pasa en vacío)" '[ -n "$NETPORT" ] && python3 -c "$NETCLIENT" "$NETPORT" 2>/dev/null'
