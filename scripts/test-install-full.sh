@@ -59,9 +59,6 @@ command -v sandbox-exec >/dev/null || {
 REAL_BIN_SUM="$(shasum "$REAL_HOME/.local/bin/herdr-ctl" 2>/dev/null)"
 REAL_ZSHENV_LINK="$(readlink "$REAL_HOME/.zshenv" 2>/dev/null)"
 REAL_BREW_MTIME="$(stat -f %m /opt/homebrew/bin/brew 2>/dev/null)"
-# On a fresh Mac (or CI runner) the first /usr/bin/python3 call creates an xcrun cache file in the real temp dir, which the
-# sandbox correctly denies. Create it here, outside the sandbox, so only real escapes are reported.
-python3 -c pass >/dev/null 2>&1 || true
 TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/installfull-root.XXXXXX")"
 TMPS+=("$TEST_ROOT") # único directorio escribible fuera de las cachés de Go
 GO_REAL="$(command -v go)"
@@ -132,7 +129,9 @@ SBPL
   (subpath "$(rp "$TEST_ROOT")")
   (subpath "$(rp "$GOCACHE_REAL")")
   (subpath "$(rp "$GOPATH_REAL/pkg/mod/cache")")
-  (literal "/dev/null"))
+  (literal "/dev/null")
+  ; Apple's python3/git shims write a throwaway xcrun_db-* cache file in the real temp dir (seen on CI runners).
+  (regex #"^/(private/)?var/folders/[^/]+/[^/]+/T/xcrun_db-[A-Za-z0-9]+$"))
 SBPL
 }
 test_path() { printf '%s' "${TEST_PATH_FRONT:+$TEST_PATH_FRONT:}$B/stubs${BREW_ON_PATH:+:$B/brewprefix/bin}:$B/gobin:/usr/bin:/bin:/usr/sbin:/sbin"; }
