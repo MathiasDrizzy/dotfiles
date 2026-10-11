@@ -26,5 +26,8 @@ follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) once it 
 - The README is now in English.
 - Ghostty uses `background-blur` and no longer extends the padding color.
 
+### Security
+- `herdr-ctl` is built with Go 1.27.2, which fixes the 13 standard-library advisories reported by `govulncheck` for 1.27.1.
+
 ### Fixed
 - `~/.zshenv` is no longer lost on install and keeps `~/.local/bin` on the non-interactive `PATH`.
