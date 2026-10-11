@@ -59,6 +59,9 @@ command -v sandbox-exec >/dev/null || {
 REAL_BIN_SUM="$(shasum "$REAL_HOME/.local/bin/herdr-ctl" 2>/dev/null)"
 REAL_ZSHENV_LINK="$(readlink "$REAL_HOME/.zshenv" 2>/dev/null)"
 REAL_BREW_MTIME="$(stat -f %m /opt/homebrew/bin/brew 2>/dev/null)"
+# On a fresh Mac (or CI runner) the first /usr/bin/python3 call creates an xcrun cache file in the real temp dir, which the
+# sandbox correctly denies. Create it here, outside the sandbox, so only real escapes are reported.
+python3 -c pass >/dev/null 2>&1 || true
 TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/installfull-root.XXXXXX")"
 TMPS+=("$TEST_ROOT") # único directorio escribible fuera de las cachés de Go
 GO_REAL="$(command -v go)"
