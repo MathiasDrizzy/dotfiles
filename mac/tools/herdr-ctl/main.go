@@ -106,7 +106,7 @@ func callRPC(method string, params interface{}) (*RPCResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error al conectar con socket herdr: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	req := RPCRequest{
 		ID:     "herdr-ctl",
@@ -160,9 +160,10 @@ func parseSplitPath(splitID string) []bool {
 	}
 	var path []bool
 	for _, ch := range parts[2] {
-		if ch == '0' {
+		switch ch {
+		case '0':
 			path = append(path, false)
-		} else if ch == '1' {
+		case '1':
 			path = append(path, true)
 		}
 	}
@@ -414,11 +415,12 @@ func listAgents() error {
 
 	for _, a := range res.Agents {
 		statusColor := cGreen
-		if a.AgentStatus == "idle" {
+		switch a.AgentStatus {
+		case "idle":
 			statusColor = cTeal
-		} else if a.AgentStatus == "blocked" {
+		case "blocked":
 			statusColor = cPeach
-		} else if a.AgentStatus == "error" {
+		case "error":
 			statusColor = cRed
 		}
 

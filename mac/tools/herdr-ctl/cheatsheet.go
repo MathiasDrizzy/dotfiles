@@ -293,7 +293,7 @@ func runCheatsheet() {
 	fd := int(os.Stdin.Fd())
 	oldState, err := term.MakeRaw(fd)
 	if err == nil {
-		defer term.Restore(fd, oldState)
+		defer func() { _ = term.Restore(fd, oldState) }()
 	}
 
 	restore := func() {
