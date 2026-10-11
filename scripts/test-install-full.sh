@@ -217,7 +217,7 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
   check "corrida 2: mismas llamadas a brew que la 1 (registradas dos veces)" '[ "$(cat "$B/logs/brew.log")" = "$(printf "%s\n%s" "$calls1" "$calls1")" ]'
   check "corrida 2: sin enlaces rotos" '[ "$(broken "$H")" = 0 ]'
   [ "$brewpath" = 1 ] || check "no intentó reinstalar Homebrew (no hubo curl a Homebrew/install) y sí usó el brew del prefijo" '! grep -q "Homebrew/install" "$B/logs/curl.log" && grep -q "^brew install " "$B/logs/brew.log"'
-  check "la sandbox no reportó escrituras denegadas" '! echo "$OUT" | grep -qi "operation not permitted"'
+  check "la sandbox no reportó escrituras denegadas" '! echo "$OUT" | grep -i "operation not permitted" | head -5 | tee /dev/stderr | grep -q .'
   check "todo brew invocado fue el stub de la prueba (ruta registrada por el propio stub)" '[ -s "$B/logs/brew.bin" ] && ! grep -v "^$B/" "$B/logs/brew.bin" | grep -q .'
 }
 
