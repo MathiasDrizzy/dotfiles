@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: mac/tools/herdr-ctl/go.mod
+          cache-dependency-path: mac/tools/herdr-ctl/go.sum
+
+      - name: Quick harness (public-repo hygiene, syntax, herdr-ctl, zshenv)
+        run: scripts/harness-quick.sh
+
+      - name: Full install in a sandbox
+        run: scripts/test-install-full.sh
+
+  lint:
+    name: Lint shell scripts
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install shellcheck and shfmt
+        run: brew install shellcheck shfmt
+
+      - name: shellcheck
+        run: git ls-files -z '*.sh' 'scripts/hooks/*' | xargs -0 shellcheck
+
+      - name: shfmt
+        run: git ls-files -z '*.sh' 'scripts/hooks/*' | xargs -0 shfmt -d
