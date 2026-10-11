@@ -131,7 +131,7 @@ SBPL
   (subpath "$(rp "$GOPATH_REAL/pkg/mod/cache")")
   (literal "/dev/null")
   ; Apple's python3/git shims write a throwaway xcrun_db-* cache file in the real temp dir (seen on CI runners).
-  (regex #"^/(private/)?var/folders/[^/]+/[^/]+/T/xcrun_db-[A-Za-z0-9]+$"))
+  (regex #"^/(private/)?var/folders/[^/]+/[^/]+/T/xcrun_db(-[A-Za-z0-9]+)?$"))
 SBPL
 }
 test_path() { printf '%s' "${TEST_PATH_FRONT:+$TEST_PATH_FRONT:}$B/stubs${BREW_ON_PATH:+:$B/brewprefix/bin}:$B/gobin:/usr/bin:/bin:/usr/sbin:/sbin"; }
