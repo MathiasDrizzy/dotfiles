@@ -19,6 +19,7 @@ follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) once it 
   full-install test that runs in a sandbox with canaries.
 - Security policy, editor settings, architecture decision records and this changelog.
 - MIT license.
+- `golangci-lint` v2, `govulncheck` and race-detector tests for `herdr-ctl`, with pinned tool versions, plus Dependabot for its Go modules.
 - Continuous integration on GitHub Actions (macOS): repo checks, `shellcheck` and `shfmt`, with Dependabot for the actions.
 
 ### Changed

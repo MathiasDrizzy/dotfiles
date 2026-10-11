@@ -35,6 +35,9 @@ jobs:
       - name: Full install in a sandbox
         run: scripts/test-install-full.sh
 
+      - name: Go checks (vet, test -race, golangci-lint, govulncheck)
+        run: scripts/go-checks.sh
+
   lint:
     name: Lint shell scripts
     runs-on: macos-latest
@@ -45,11 +48,14 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install shellcheck and shfmt
-        run: brew install shellcheck shfmt
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: mac/tools/herdr-ctl/go.mod
+          cache-dependency-path: mac/tools/herdr-ctl/go.sum
 
-      - name: shellcheck
-        run: git ls-files -z '*.sh' 'scripts/hooks/*' | xargs -0 shellcheck
+      - name: Set up uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
 
-      - name: shfmt
-        run: git ls-files -z '*.sh' 'scripts/hooks/*' | xargs -0 shfmt -d
+      - name: shellcheck and shfmt
+        run: scripts/lint-shell.sh
