@@ -130,7 +130,7 @@ SBPL
   (subpath "$(rp "$GOCACHE_REAL")")
   (subpath "$(rp "$GOPATH_REAL/pkg/mod/cache")")
   (literal "/dev/null")
-  ; Apple's python3/git shims write a throwaway xcrun_db-* cache file in the real temp dir (seen on CI runners).
+  ; Apple's python3/git shims write an xcrun_db cache file in the real temp dir (created as xcrun_db-* then renamed; seen on CI runners).
   (regex #"^/(private/)?var/folders/[^/]+/[^/]+/T/xcrun_db(-[A-Za-z0-9]+)?$"))
 SBPL
 }
