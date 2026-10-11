@@ -99,4 +99,4 @@ scripts/test-install-full.sh              # full install in a sandbox with a tem
 
 ## License
 
-No license has been chosen yet; until one is added, all rights are reserved.
+Released under the [MIT License](LICENSE).

@@ -18,6 +18,8 @@ follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) once it 
 - Test harness: a quick check run by the pre-commit hook, a behavior test that drives a sandboxed herdr, and a
   full-install test that runs in a sandbox with canaries.
 - Security policy, editor settings, architecture decision records and this changelog.
+- MIT license.
+- Continuous integration on GitHub Actions (macOS): repo checks, `shellcheck` and `shfmt`, with Dependabot for the actions.
 
 ### Changed
 - The README is now in English.
