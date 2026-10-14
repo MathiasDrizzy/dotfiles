@@ -76,7 +76,7 @@ afocus <agent>          # jump to its pane                 (herdr-ctl focus)
 
 ## Aliases (in `mac/zshrc`)
 
-`lg` lazygit · `ld` lazydocker · `sftp` termscp · `hosts` sshs · `y` yazi (leaves the shell in the folder you exit from) · `sb`, `sb-ext`, `sb-lap`, `sb-auto` sidebar · `agy` Antigravity CLI (fallback agent) · `claude` Claude Code (updates itself, then opens in bypass mode; `command claude` skips that) · `brewup`, `brewout` Homebrew.
+`lg` lazygit · `ld` lazydocker · `sftp` termscp · `hosts` sshs · `y` yazi (leaves the shell in the folder you exit from) · `sb`, `sb-ext`, `sb-lap`, `sb-auto` sidebar · `agy` Antigravity CLI (fallback agent) · `claude` Claude Code (updates itself, then opens in bypass mode; `command claude` skips that) · `brewup` (non-interactive: no prompts, never asks for a password), `brewout` Homebrew.
 
 ## Development and testing
 

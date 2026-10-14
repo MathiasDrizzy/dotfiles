@@ -72,6 +72,10 @@ eval "$(starship init zsh)"
 
 # Homebrew: actualizacion masiva (formulae + casks) y limpieza
 brewup() {
+  # Sin preguntas: NONINTERACTIVE evita los "y/n" y SUDO_ASKPASS apunta a un
+  # programa que falla, asi que sudo nunca pide contrasena (un cask que la
+  # necesite falla y queda listado en vez de bloquear).
+  local -x NONINTERACTIVE=1 HOMEBREW_NO_ENV_HINTS=1 SUDO_ASKPASS=/usr/bin/false
   echo "==> 1/4 Actualizando indice de Homebrew"
   brew update || return 1
   echo "==> 2/4 Actualizando formulae y casks"
