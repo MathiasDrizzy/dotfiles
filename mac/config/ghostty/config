@@ -7,9 +7,9 @@ cursor-style-blink = false
 # Tema
 theme = "Catppuccin Mocha"
 
-# Efecto cristal translúcido
+# Translucent glass effect, without blur (the blur renders gray in screenshots and Mission Control)
 background-opacity = 0.85
-background-blur = 40
+background-blur = false
 macos-titlebar-style = hidden
 macos-window-shadow = true
 

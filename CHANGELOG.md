@@ -25,6 +25,8 @@ follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) once it 
 ### Changed
 - The README is now in English.
 - Ghostty uses `background-blur` and no longer extends the padding color.
+- Ghostty no longer blurs the background (`background-blur = false`): the blur rendered gray in screenshots and when switching desktops.
+- `brewup` is non-interactive: no prompts and it never asks for a password.
 
 ### Security
 - `herdr-ctl` is built with Go 1.27.2, which fixes the 13 standard-library advisories reported by `govulncheck` for 1.27.1.
