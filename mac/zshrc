@@ -42,6 +42,17 @@ function y() {
 	rm -f -- "$tmp"
 }
 
+# lazyfinder: shell function that leaves the shell in the folder you exit from (skipped if not installed).
+# The init output is cached and regenerated only when the lazyfinder binary is newer, so startup does not spawn it.
+if (( $+commands[lazyfinder] )); then
+	_lf_init="${XDG_CACHE_HOME:-$HOME/.cache}/lazyfinder-init.zsh"
+	if [[ ! -s $_lf_init || $commands[lazyfinder] -nt $_lf_init ]]; then
+		mkdir -p -- "${_lf_init:h}" && lazyfinder --shell-init zsh >|"$_lf_init"
+	fi
+	[[ -s $_lf_init ]] && source "$_lf_init"
+	unset _lf_init
+fi
+
 # Aliases útiles
 alias lg='lazygit'
 alias ld='lazydocker'

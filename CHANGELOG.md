@@ -8,6 +8,8 @@ follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) once it 
 ## [Unreleased]
 
 ### Added
+- `mac/zshrc` loads lazyfinder's shell integration (cached, skipped when lazyfinder is not installed) so the shell
+  stays in the folder you leave the TUI in; covered by `scripts/test-lazyfinder-init.sh`.
 - macOS terminal setup: Ghostty, herdr, zsh and the everyday TUIs (yazi, micro, starship, termscp, lazygit,
   lazydocker, btop, bat) with the Catppuccin Mocha theme, kept as versioned configs and linked into `$HOME`.
 - Idempotent installer `mac/install.sh` with `--dry-run` and `--links-only`, and `mac/scripts/check-links.sh` to
