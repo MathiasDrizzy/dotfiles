@@ -9,7 +9,10 @@ source "$CONFIG_DIR/colors.sh"
 
 STATE="$HOME/.cache/sketchybar/spaces"
 HOVER="$HOME/.cache/sketchybar/space_hover"
-SLOT_WIDTH=26 # keep in step with icon.width in the rc: a fixed icon width ignores the paddings
+SWAPPING="$HOME/.cache/sketchybar/swapping"
+PARK=swap-park   # empty workspace that holds the focus during a swap
+STASH=swap-stash # holds one side of a swap
+SLOT_WIDTH=26    # keep in step with icon.width in the rc: a fixed icon width ignores the paddings
 HIDDEN_ICON=0x00000000
 ANIMATION_CURVE=tanh
 ANIMATION_FRAMES=6
@@ -19,18 +22,28 @@ ANIMATION_SECONDS=0.15
 
 focused="${FOCUSED_WORKSPACE:-$(aerospace list-workspaces --focused)}"
 
-# Swaps the windows of two workspaces and keeps the focus on the same content.
+# Swaps the windows of two workspaces. Windows only move while both workspaces are hidden (the focus parks on scratch
+# workspaces), so nothing on screen is re-tiled one window at a time; afterwards the focus follows the content that was
+# on screen. The bar skips refreshes meanwhile and repaints once at the end.
 swap_workspaces() {
-  local from="$1" to="$2" id
-  local from_ids to_ids
+  local from="$1" to="$2" id visible="" from_ids to_ids
   from_ids="$(aerospace list-windows --workspace "$from" --format '%{window-id}')"
   to_ids="$(aerospace list-windows --workspace "$to" --format '%{window-id}')"
+  touch "$SWAPPING"
+  case "$focused" in
+  "$from" | "$to")
+    visible="$focused"
+    aerospace workspace "$PARK"
+    ;;
+  esac
+  for id in $to_ids; do aerospace move-node-to-workspace --window-id "$id" "$STASH"; done
   for id in $from_ids; do aerospace move-node-to-workspace --window-id "$id" "$to"; done
   for id in $to_ids; do aerospace move-node-to-workspace --window-id "$id" "$from"; done
-  case "$focused" in
+  case "$visible" in
   "$from") aerospace workspace "$to" ;;
   "$to") aerospace workspace "$from" ;;
   esac
+  rm -f "$SWAPPING"
 }
 
 # The click script also runs when a drag is released: if the pointer sits on another workspace, that is the swap target.
@@ -66,6 +79,7 @@ mouse.exited)
   ;;
 esac
 [ "$2" = refresh ] || exit 0
+[ -e "$SWAPPING" ] && exit 0
 
 mkdir -p "$(dirname "$STATE")"
 previous=" $(cat "$STATE" 2>/dev/null) "

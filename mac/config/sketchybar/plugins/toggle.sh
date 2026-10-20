@@ -1,68 +1,43 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1091
 # Expands or collapses the status items; the chevron points toward where they will go.
-# The items grow from nothing (width and colors animate together) so the pills next to them glide instead of jumping.
+# The items fade in and out at their final size: squeezing their width made the labels pile up on each other.
 source "$CONFIG_DIR/colors.sh"
 source "$CONFIG_DIR/icons.sh"
 
 ITEMS=(sys sys_mem control battery) # the content
-PILLS=(sys_pill control battery)    # what has the glass background
-ANIMATION_CURVE=tanh
-ANIMATION_FRAMES=8
-ANIMATION_SECONDS=0.25
-DEFAULT_WIDTH=40
+PILLS=(sys_pill control battery)    # what has the glass background (the bracket is shown and hidden with its items)
+ANIMATION_CURVE=sin
+ANIMATION_FRAMES=22
+ANIMATION_SECONDS=0.45
 
-# Last laid-out width of an item (SketchyBar keeps it while the item is hidden).
-width_of() {
-  sketchybar --query "$1" | jq -r '(.bounding_rects // {}) | to_entries[0].value.size[0] // empty' | cut -d. -f1
-}
 color_of() { sketchybar --query "$1" | jq -r ".$2.color"; }
 
 state="$(sketchybar --query sys | jq -r '.geometry.drawing')"
 
-widths=()
-icon_colors=()
-label_colors=()
+faded=()
+shown=()
 for item in "${ITEMS[@]}"; do
-  widths+=("$(width_of "$item")")
-  icon_colors+=("$(color_of "$item" icon)")
-  label_colors+=("$(color_of "$item" label)")
-done
-
-shrunk=()
-settled=()
-grown=()
-index=0
-for item in "${ITEMS[@]}"; do
-  width="${widths[$index]:-$DEFAULT_WIDTH}"
-  shrunk+=(--set "$item" width=0 icon.color="$TRANSPARENT" label.color="$TRANSPARENT")
-  grown+=(--set "$item" width="$width" icon.color="${icon_colors[$index]}" label.color="${label_colors[$index]}")
-  settled+=(--set "$item" width=dynamic)
-  index=$((index + 1))
+  icon_color="$(color_of "$item" icon)"
+  label_color="$(color_of "$item" label)"
+  faded+=(--set "$item" icon.color="$TRANSPARENT" label.color="$TRANSPARENT")
+  shown+=(--set "$item" icon.color="$icon_color" label.color="$label_color")
 done
 for pill in "${PILLS[@]}"; do
-  shrunk+=(--set "$pill" background.color="$TRANSPARENT" background.border_color="$TRANSPARENT")
-  grown+=(--set "$pill" background.color="$BAR_COLOR" background.border_color="$BAR_BORDER")
+  faded+=(--set "$pill" background.color="$TRANSPARENT" background.border_color="$TRANSPARENT")
+  shown+=(--set "$pill" background.color="$BAR_COLOR" background.border_color="$BAR_BORDER")
 done
 
 if [ "$state" = "on" ]; then
-  # Collapse: shrink and fade, then hide and give every property its real value back for the next expansion.
-  sketchybar --animate "$ANIMATION_CURVE" "$ANIMATION_FRAMES" "${shrunk[@]}" --set chevron icon="$CHEVRON_LEFT"
+  # Collapse: fade out, then hide and give every color its real value back for the next expansion.
+  sketchybar --animate "$ANIMATION_CURVE" "$ANIMATION_FRAMES" "${faded[@]}" --set chevron icon="$CHEVRON_LEFT"
   sleep "$ANIMATION_SECONDS"
   args=()
   for item in "${ITEMS[@]}" sys_pill; do args+=(--set "$item" drawing=off); done
-  index=0
-  for item in "${ITEMS[@]}"; do
-    args+=(--set "$item" width=dynamic icon.color="${icon_colors[$index]}" label.color="${label_colors[$index]}")
-    index=$((index + 1))
-  done
-  for pill in "${PILLS[@]}"; do args+=(--set "$pill" background.color="$BAR_COLOR" background.border_color="$BAR_BORDER"); done
-  sketchybar "${args[@]}"
+  sketchybar "${args[@]}" "${shown[@]}"
 else
-  # Expand: start squeezed and transparent in the same call that shows the items, then animate to the real look.
+  # Expand: show the items already transparent in the same call, then fade them to their real look.
   args=()
   for item in "${ITEMS[@]}" sys_pill; do args+=(--set "$item" drawing=on); done
-  sketchybar "${args[@]}" "${shrunk[@]}" --animate "$ANIMATION_CURVE" "$ANIMATION_FRAMES" "${grown[@]}" --set chevron icon="$CHEVRON_RIGHT"
-  sleep "$ANIMATION_SECONDS"
-  sketchybar "${settled[@]}"
+  sketchybar "${args[@]}" "${faded[@]}" --animate "$ANIMATION_CURVE" "$ANIMATION_FRAMES" "${shown[@]}" --set chevron icon="$CHEVRON_RIGHT"
 fi

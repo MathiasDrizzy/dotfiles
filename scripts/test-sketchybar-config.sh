@@ -36,7 +36,7 @@ plugins_exist() {
 symbols_defined() {
   local v
   for v in $(grep -ho '\$[A-Z][A-Z_0-9]*' "$SB"/sketchybarrc "$SB"/plugins/*.sh | tr -d '$' | sort -u); do
-    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | DROP | DROP_FRAMES | DEFAULT_WIDTH | HOVER | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS) continue ;; esac
+    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | SWAPPING | PARK | STASH | DROP | DROP_FRAMES | HOVER | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS) continue ;; esac
     grep -q "^$v=" "$SB/colors.sh" "$SB/icons.sh" || {
       echo "undefined: $v" >&2
       return 1
@@ -84,11 +84,11 @@ no_global_escape() {
   ! grep -qi 'escape' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift"
 }
 workspace_drag_swaps() {
-  grep -q 'move-node-to-workspace' "$SB/plugins/aerospace.sh" && grep -q 'aerospace.sh \$sid click' "$SB/sketchybarrc"
+  grep -q 'move-node-to-workspace' "$SB/plugins/aerospace.sh" && grep -q 'aerospace workspace "$PARK"' "$SB/plugins/aerospace.sh" && grep -q 'aerospace.sh \$sid click' "$SB/sketchybarrc"
 }
 status_items_animate() {
   # The right-hand items must grow and fade in one animated call, not pop in.
-  grep -q -- '--animate' "$SB/plugins/toggle.sh" && grep -q 'sys_pill' "$SB/plugins/toggle.sh"
+  grep -q -- '--animate' "$SB/plugins/toggle.sh" && grep -q 'sys_pill' "$SB/plugins/toggle.sh" && ! grep -q 'width=' "$SB/plugins/toggle.sh"
 }
 installer_ok() {
   local f
