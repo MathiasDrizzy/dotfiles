@@ -100,22 +100,22 @@ sketchybar --add item chevron right \
 sketchybar --add item vorssaint right \
   --set vorssaint icon="$SETTINGS" icon.color="$MAUVE" icon.font="$FONT:Bold:14.0" icon.width=28 icon.align=center \
   icon.padding_left=0 icon.padding_right=0 label.drawing=off \
-  script="$PLUGIN_DIR/hover.sh" click_script="open -a Vorssaint" \
+  script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/vorssaint.sh" \
   --subscribe vorssaint mouse.entered mouse.exited \
   --add item clock right \
-  --set clock icon.drawing=off label.font="$FONT:Bold:12.0" label.padding_left=6 label.padding_right=6 update_freq=10 \
+  --set clock icon.drawing=off label.font="$FONT:Bold:12.0" label.padding_left=12 label.padding_right=6 update_freq=10 \
   script="$PLUGIN_DIR/clock.sh" click_script="open -a Calendar" \
   --subscribe clock mouse.entered mouse.exited \
   --add item battery right \
-  --set battery icon.width=28 icon.align=center update_freq=30 script="$PLUGIN_DIR/battery.sh" \
+  --set battery icon.width=24 icon.align=center icon.y_offset=-1 label.padding_right=6 update_freq=30 script="$PLUGIN_DIR/battery.sh" \
   click_script="open x-apple.systempreferences:com.apple.Battery-Settings.extension" \
   --subscribe battery system_woke power_source_change mouse.entered mouse.exited \
   --add item wifi right \
-  --set wifi icon.width=28 icon.align=center icon.padding_left=0 icon.padding_right=0 update_freq=10 script="$PLUGIN_DIR/wifi.sh" \
+  --set wifi icon.width=24 icon.align=center icon.padding_left=0 icon.padding_right=0 update_freq=10 script="$PLUGIN_DIR/wifi.sh" \
   click_script="open x-apple.systempreferences:com.apple.wifi-settings-extension" \
   --subscribe wifi wifi_change mouse.entered mouse.exited \
   --add item sys right \
-  --set sys icon.drawing=off label.padding_left=8 update_freq=2 script="$PLUGIN_DIR/sys.sh" \
+  --set sys icon.drawing=off label.padding_left=10 label.padding_right=4 update_freq=2 script="$PLUGIN_DIR/sys.sh" \
   click_script="$PLUGIN_DIR/monitor.sh" \
   --subscribe sys mouse.entered mouse.exited
 
