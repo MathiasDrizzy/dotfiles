@@ -55,7 +55,24 @@ What this repo adds on top of herdr's defaults:
 
 ## AeroSpace (tiling windows, `mac/config/aerospace/aerospace.toml`)
 
-An i3-like tiling window manager that needs no SIP changes. Shortcuts use `alt`: `alt+h/j/k/l` focus, `alt+shift+h/j/k/l` move, `alt+1…9` workspaces, `alt+shift+1…9` send the window to a workspace, `alt+enter` new Ghostty, `alt+shift+;` service mode (`esc` reloads the config). Only numbered workspaces are bound, so the shell's `alt+b/f/d` word motions keep working. It needs the Accessibility permission, one macOS Space (no native desktops), and `defaults write com.apple.dock expose-group-apps -bool true` so Mission Control shows hidden windows properly.
+An i3-like tiling window manager that needs no SIP changes. It replaces the native macOS desktops with its own **workspaces** (1 to 9): use a single macOS Space and switch workspaces with the keys below. No vim keys; arrows instead.
+
+| Shortcut | What it does |
+|---|---|
+| `alt+←↑↓→` | Move focus between windows |
+| `alt+shift+←↑↓→` | Move the window in that direction |
+| `alt+1…9` | Go to workspace 1…9 |
+| `alt+shift+1…9` | Send the window to workspace 1…9 |
+| `ctrl+alt+← / →` | Previous / next workspace |
+| `alt+tab` | Back to the previous workspace |
+| `alt+- / alt+=` | Shrink / grow the window |
+| `alt+/` · `alt+,` | Tiles layout · accordion layout |
+| `alt+shift+space` | Toggle floating / tiling |
+| `alt+shift+enter` | Fullscreen |
+| `alt+enter` | New Ghostty window |
+| `alt+shift+;` | Service mode (`esc` reloads the config, `r` resets the layout, `backspace` closes all windows but the current one, `alt+shift+arrows` joins with a neighbor) |
+
+Only numbered workspaces are bound, so the shell's `alt+b/f/d` word motions keep working. It needs the Accessibility permission and `defaults write com.apple.dock expose-group-apps -bool true` so Mission Control shows hidden windows properly.
 
 ## herdr-ctl (Go, `mac/tools/herdr-ctl`)
 
