@@ -82,7 +82,7 @@ The keyboard is Latin American, so the punctuation keys are aliased by the symbo
 A floating glass bar in the Ghostty palette (Catppuccin Mocha), split into pills so the camera housing stays clear. The native menu bar is set to auto-hide (System Settings → Control Center → *Automatically hide and show the menu bar*: Always).
 
 - Left: Apple menu (click for About, Settings, Sleep, Lock, Log out, Restart, Shut down), the AeroSpace workspaces (focused one highlighted, empty ones dimmed, click to switch) and the track that is playing (click to pause, via [`media-control`](https://github.com/ungive/media-control)).
-- Right: the clock and a `<` that expands CPU, memory, Wi-Fi, volume and battery; click `>` to collapse them again.
+- Right: a `<` that expands live CPU, memory, Wi-Fi and battery (click `>` to collapse), the Vorssaint button and the date in Spanish. Every item highlights on hover and opens its settings on click; the Apple menu closes when the mouse leaves it.
 
 AeroSpace starts it and notifies it of workspace changes. Reload after editing: `sketchybar --reload`. Installed by `install.sh`.
 

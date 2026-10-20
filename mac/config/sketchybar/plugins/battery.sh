@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1091
+case "$SENDER" in mouse.*) exec "$CONFIG_DIR/plugins/hover.sh" ;; esac
 source "$CONFIG_DIR/colors.sh"
 source "$CONFIG_DIR/icons.sh"
 

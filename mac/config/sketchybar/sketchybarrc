@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# SketchyBar: left = AeroSpace workspaces + now playing, right = clock and a ">" that expands the status items.
-# Docs: https://felixkratz.github.io/SketchyBar/  ·  reload: sketchybar --reload
+# SketchyBar: left = Apple menu, AeroSpace workspaces and now playing; right = a "<" that expands the status items,
+# Vorssaint and the clock. Docs: https://felixkratz.github.io/SketchyBar/  ·  reload: sketchybar --reload
 
 CONFIG_DIR="${CONFIG_DIR:-$HOME/.config/sketchybar}"
 PLUGIN_DIR="$CONFIG_DIR/plugins"
-FONT="JetBrainsMono Nerd Font"
+FONT="JetBrainsMono Nerd Font" # the same family as the Ghostty terminal
 
 # shellcheck source=colors.sh
 source "$CONFIG_DIR/colors.sh"
@@ -20,27 +20,34 @@ sketchybar --bar \
   topmost=off sticky=on shadow=off
 
 sketchybar --default \
-  updates=when_shown \
-  icon.font="$FONT:Bold:15.0" label.font="$FONT:Medium:13.0" \
-  icon.color=$TEXT label.color=$TEXT \
-  icon.padding_left=6 icon.padding_right=4 label.padding_left=0 label.padding_right=6 \
-  padding_left=2 padding_right=2 \
-  background.height=22 background.corner_radius=8
+  updates=on \
+  icon.font="$FONT:Bold:14.0" label.font="$FONT:Regular:12.0" \
+  icon.color="$TEXT" label.color="$TEXT" \
+  icon.padding_left=8 icon.padding_right=4 label.padding_left=0 label.padding_right=8 \
+  padding_left=1 padding_right=1 \
+  background.height=24 background.corner_radius=8 background.drawing=off
+
+pill() { # item or bracket name: the glass look shared by every pill
+  sketchybar --set "$1" \
+    background.color="$BAR_COLOR" background.border_color="$BAR_BORDER" background.border_width=1 \
+    background.height=30 background.corner_radius=12 background.drawing=on
+}
 
 # --- Left: Apple menu (a popup with the system actions) ---
 sketchybar --add item apple left \
   --set apple \
-  icon="$APPLE" icon.font="$FONT:Bold:16.0" icon.padding_left=10 icon.padding_right=10 label.drawing=off \
-  background.color=$BAR_COLOR background.border_color=$BAR_BORDER background.border_width=1 \
-  background.height=30 background.corner_radius=12 background.drawing=on \
-  popup.background.color=0xf21e1e2e popup.background.border_color=$BAR_BORDER \
+  icon="$APPLE" icon.font="$FONT:Bold:16.0" icon.padding_left=11 icon.padding_right=11 label.drawing=off \
+  popup.background.color=0xf21e1e2e popup.background.border_color="$BAR_BORDER" \
   popup.background.border_width=1 popup.background.corner_radius=12 popup.align=left \
-  click_script="sketchybar --set apple popup.drawing=toggle"
+  script="$PLUGIN_DIR/apple.sh" \
+  --subscribe apple mouse.entered mouse.exited mouse.exited.global mouse.clicked
+pill apple
 
 apple_entry() { # name, icon, label, command
   sketchybar --add item "apple.$1" popup.apple \
-    --set "apple.$1" icon="$2" label="$3" icon.color=$MAUVE label.padding_right=12 \
-    click_script="sketchybar --set apple popup.drawing=off; $4"
+    --set "apple.$1" icon="$2" label="$3" icon.color="$MAUVE" icon.width=30 icon.align=center icon.padding_left=6 icon.padding_right=2 label.padding_right=14 \
+    script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/apple.sh close; $4" \
+    --subscribe "apple.$1" mouse.entered mouse.exited
 }
 apple_entry about "$INFO" "Acerca de este Mac" "open -a 'System Information'"
 apple_entry settings "$SETTINGS" "Ajustes del Sistema" "open -a 'System Settings'"
@@ -54,57 +61,62 @@ apple_entry shutdown "$POWER" "Apagar" "osascript -e 'tell application \"System 
 sketchybar --add event aerospace_workspace_change
 for sid in $(aerospace list-workspaces --all); do
   sketchybar --add item "space.$sid" left \
-    --subscribe "space.$sid" aerospace_workspace_change \
+    --subscribe "space.$sid" aerospace_workspace_change mouse.entered mouse.exited \
     --set "space.$sid" \
-    icon="$sid" icon.padding_left=8 icon.padding_right=8 icon.font="$FONT:Bold:13.0" \
-    label.drawing=off background.drawing=off \
+    icon="$sid" icon.padding_left=9 icon.padding_right=9 icon.font="$FONT:Bold:12.0" \
+    label.drawing=off \
     click_script="aerospace workspace $sid" \
     script="$PLUGIN_DIR/aerospace.sh $sid"
 done
-
-sketchybar --add bracket spaces '/space\..*/' \
-  --set spaces background.color=$BAR_COLOR background.border_color=$BAR_BORDER background.border_width=1 \
-  background.height=30 background.corner_radius=12 background.drawing=on
+sketchybar --add bracket spaces '/space\..*/'
+pill spaces
 
 # --- Left: now playing (only visible while something plays) ---
 sketchybar --add item media left \
   --set media \
-  icon="$MUSIC" icon.color=$MAUVE label.max_chars=34 scroll_texts=off \
-  drawing=off update_freq=3 updates=on \
-  background.color=$BAR_COLOR background.border_color=$BAR_BORDER background.border_width=1 \
-  background.height=30 background.corner_radius=12 background.drawing=on \
+  icon="$MUSIC" icon.color="$MAUVE" label.max_chars=34 scroll_texts=off \
+  drawing=off update_freq=3 \
   click_script="media-control toggle-play-pause" \
   script="$PLUGIN_DIR/media.sh"
+pill media
 
-# --- Right (added right to left): chevron, clock, then the expandable status items ---
+# --- Right (added right to left): chevron, Vorssaint, clock, then the expandable status items ---
 sketchybar --add item chevron right \
-  --set chevron icon="$CHEVRON_LEFT" icon.font="$FONT:Bold:12.0" icon.color=$MAUVE \
-  label.drawing=off click_script="$PLUGIN_DIR/toggle.sh"
+  --set chevron icon="$CHEVRON_LEFT" icon.font="$FONT:Bold:12.0" icon.color="$MAUVE" \
+  icon.padding_left=8 icon.padding_right=8 label.drawing=off \
+  script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/toggle.sh" \
+  --subscribe chevron mouse.entered mouse.exited
 
-sketchybar --add item clock right \
-  --set clock icon="$CLOCK" icon.color=$MAUVE update_freq=10 \
-  script="$PLUGIN_DIR/clock.sh" \
+sketchybar --add item vorssaint right \
+  --set vorssaint icon="$SETTINGS" icon.color="$MAUVE" label.drawing=off \
+  script="$PLUGIN_DIR/hover.sh" click_script="open -a Vorssaint" \
+  --subscribe vorssaint mouse.entered mouse.exited \
+  --add item clock right \
+  --set clock icon="$CLOCK" icon.color="$MAUVE" update_freq=10 \
+  script="$PLUGIN_DIR/clock.sh" click_script="open -a Calendar" \
+  --subscribe clock mouse.entered mouse.exited \
   --add item battery right \
-  --set battery update_freq=120 script="$PLUGIN_DIR/battery.sh" \
-  --subscribe battery system_woke power_source_change \
-  --add item volume right \
-  --set volume script="$PLUGIN_DIR/volume.sh" \
-  --subscribe volume volume_change \
+  --set battery update_freq=30 script="$PLUGIN_DIR/battery.sh" \
+  click_script="open x-apple.systempreferences:com.apple.Battery-Settings.extension" \
+  --subscribe battery system_woke power_source_change mouse.entered mouse.exited \
   --add item wifi right \
-  --set wifi update_freq=15 script="$PLUGIN_DIR/wifi.sh" \
-  --subscribe wifi wifi_change \
+  --set wifi update_freq=10 script="$PLUGIN_DIR/wifi.sh" \
+  click_script="open x-apple.systempreferences:com.apple.wifi-settings-extension" \
+  --subscribe wifi wifi_change mouse.entered mouse.exited \
   --add item mem right \
-  --set mem icon="$MEM" update_freq=10 script="$PLUGIN_DIR/mem.sh" \
+  --set mem icon.drawing=off label.padding_left=8 update_freq=2 script="$PLUGIN_DIR/mem.sh" \
+  click_script="open -a 'Activity Monitor'" \
+  --subscribe mem mouse.entered mouse.exited \
   --add item cpu right \
-  --set cpu icon="$CPU" update_freq=5 script="$PLUGIN_DIR/cpu.sh"
+  --set cpu icon.drawing=off label.padding_left=8 update_freq=2 script="$PLUGIN_DIR/cpu.sh" \
+  click_script="open -a 'Activity Monitor'" \
+  --subscribe cpu mouse.entered mouse.exited
 
-sketchybar --add bracket status chevron clock battery volume wifi mem cpu \
-  --set status background.color=$BAR_COLOR background.border_color=$BAR_BORDER background.border_width=1 \
-  background.height=30 background.corner_radius=12 background.drawing=on
+sketchybar --add bracket status chevron vorssaint clock battery wifi mem cpu
+pill status
 
 # Status items start collapsed; the chevron toggles them.
-sketchybar --set cpu drawing=off --set mem drawing=off --set wifi drawing=off \
-  --set volume drawing=off --set battery drawing=off
+sketchybar --set cpu drawing=off --set mem drawing=off --set wifi drawing=off --set battery drawing=off
 
 sketchybar --hotload on
 sketchybar --update
