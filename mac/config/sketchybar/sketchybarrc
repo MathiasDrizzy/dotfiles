@@ -36,7 +36,7 @@ pill() { # item or bracket name: the glass look shared by every pill
 # --- Left: Apple menu (a popup with the system actions) ---
 sketchybar --add item apple left \
   --set apple \
-  icon="$APPLE" icon.font="$FONT:Bold:16.0" icon.padding_left=11 icon.padding_right=11 label.drawing=off \
+  icon="$APPLE" icon.font="$FONT:Bold:16.0" icon.width=36 icon.align=center icon.padding_left=0 icon.padding_right=0 label.drawing=off \
   popup.background.color=0xf21e1e2e popup.background.border_color="$BAR_BORDER" \
   popup.background.border_width=1 popup.background.corner_radius=12 popup.align=left \
   script="$PLUGIN_DIR/apple.sh" \
@@ -92,27 +92,26 @@ pill media
 # --- Right (added right to left): chevron, time, date, then the expandable status items ---
 sketchybar --add item chevron right \
   --set chevron icon="$CHEVRON_LEFT" icon.font="$FONT:Bold:12.0" icon.color="$MAUVE" \
-  icon.padding_left=8 icon.padding_right=8 label.drawing=off \
+  icon.width=28 icon.align=center icon.padding_left=0 icon.padding_right=0 label.drawing=off \
   script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/toggle.sh" \
   --subscribe chevron mouse.entered mouse.exited
 
-# Date and time stacked in one slot: the time (bold) on top and the date (small, dim) below. The date item has
-# padding_right=-78 (the label width) so it overlaps the clock; both labels share one fixed width and are centered.
-sketchybar --add item clock right \
-  --set clock icon.drawing=off label.font="$FONT:Bold:13.0" label.width=78 label.align=center \
-  label.padding_left=0 label.padding_right=0 label.y_offset=5 update_freq=10 \
+# Vorssaint settings (its own menu bar icon is hidden together with the native bar) and the date + time
+sketchybar --add item vorssaint right \
+  --set vorssaint icon="$SETTINGS" icon.color="$MAUVE" icon.font="$FONT:Bold:14.0" icon.width=28 icon.align=center \
+  icon.padding_left=0 icon.padding_right=0 label.drawing=off \
+  script="$PLUGIN_DIR/hover.sh" click_script="open -a Vorssaint" \
+  --subscribe vorssaint mouse.entered mouse.exited \
+  --add item clock right \
+  --set clock icon.drawing=off label.font="$FONT:Bold:12.0" label.padding_left=6 label.padding_right=6 update_freq=10 \
   script="$PLUGIN_DIR/clock.sh" click_script="open -a Calendar" \
   --subscribe clock mouse.entered mouse.exited \
-  --add item date right \
-  --set date icon.drawing=off padding_right=-78 label.font="$FONT:Regular:10.0" label.color="$SUBTEXT" \
-  label.width=78 label.align=center label.padding_left=0 label.padding_right=0 label.y_offset=-7 update_freq=60 \
-  script="$PLUGIN_DIR/clock.sh" \
   --add item battery right \
-  --set battery update_freq=30 script="$PLUGIN_DIR/battery.sh" \
+  --set battery icon.width=28 icon.align=center update_freq=30 script="$PLUGIN_DIR/battery.sh" \
   click_script="open x-apple.systempreferences:com.apple.Battery-Settings.extension" \
   --subscribe battery system_woke power_source_change mouse.entered mouse.exited \
   --add item wifi right \
-  --set wifi update_freq=10 script="$PLUGIN_DIR/wifi.sh" \
+  --set wifi icon.width=28 icon.align=center icon.padding_left=0 icon.padding_right=0 update_freq=10 script="$PLUGIN_DIR/wifi.sh" \
   click_script="open x-apple.systempreferences:com.apple.wifi-settings-extension" \
   --subscribe wifi wifi_change mouse.entered mouse.exited \
   --add item sys right \
@@ -120,7 +119,7 @@ sketchybar --add item clock right \
   click_script="$PLUGIN_DIR/monitor.sh" \
   --subscribe sys mouse.entered mouse.exited
 
-sketchybar --add bracket status chevron clock date battery wifi sys
+sketchybar --add bracket status chevron vorssaint clock battery wifi sys
 pill status
 
 # Status items start collapsed; the chevron toggles them.
