@@ -1,6 +1,7 @@
 // ctlcenter: open macOS Control Center from a script and tell whether its panel is on screen.
 //   ctlcenter open     presses fn+C, the system shortcut that opens Control Center (and closes it when it is open)
 //   ctlcenter top      exits 0 while the pointer is in the top strip where the system menu bar reveals itself
+//   ctlcenter pressed  exits 0 while the left mouse button is held down
 //   ctlcenter visible  exits 0 while a Control Center window is on screen, 1 otherwise
 import AppKit
 import CoreGraphics
@@ -48,9 +49,11 @@ case "open":
     openControlCenter()
 case "top":
     exit(pointerIsAtTop() ? 0 : 1)
+case "pressed":
+    exit(CGEventSource.buttonState(.combinedSessionState, button: .left) ? 0 : 1)
 case "visible":
     exit(panelIsVisible() ? 0 : 1)
 default:
-    FileHandle.standardError.write(Data("usage: ctlcenter open|top|visible\n".utf8))
+    FileHandle.standardError.write(Data("usage: ctlcenter open|top|pressed|visible\n".utf8))
     exit(2)
 }

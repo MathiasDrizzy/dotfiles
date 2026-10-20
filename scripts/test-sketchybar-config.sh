@@ -36,7 +36,7 @@ plugins_exist() {
 symbols_defined() {
   local v
   for v in $(grep -ho '\$[A-Z][A-Z_0-9]*' "$SB"/sketchybarrc "$SB"/plugins/*.sh | tr -d '$' | sort -u); do
-    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | HOVER | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS) continue ;; esac
+    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | DROP | DROP_FRAMES | DEFAULT_WIDTH | HOVER | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS) continue ;; esac
     grep -q "^$v=" "$SB/colors.sh" "$SB/icons.sh" || {
       echo "undefined: $v" >&2
       return 1
@@ -86,6 +86,10 @@ no_global_escape() {
 workspace_drag_swaps() {
   grep -q 'move-node-to-workspace' "$SB/plugins/aerospace.sh" && grep -q 'aerospace.sh \$sid click' "$SB/sketchybarrc"
 }
+status_items_animate() {
+  # The right-hand items must grow and fade in one animated call, not pop in.
+  grep -q -- '--animate' "$SB/plugins/toggle.sh" && grep -q 'sys_pill' "$SB/plugins/toggle.sh"
+}
 installer_ok() {
   local f
   grep -q 'brew install felixkratz/formulae/sketchybar' "$ROOT/mac/install.sh" &&
@@ -108,6 +112,7 @@ check "no plugin toggles the bar topmost flag (it blanks the pills)" no_topmost_
 check "AeroSpace workspaces refresh in one animated call from one driver item" workspaces_refresh_once
 check "Control Center closes with fn+C, never a global Escape" no_global_escape
 check "dragging a workspace onto another swaps their windows" workspace_drag_swaps
+check "the right-hand panel opens and closes with an animation" status_items_animate
 check "install.sh installs the formulae and check-links.sh links the files" installer_ok
 
 if [ "$fails" -eq 0 ]; then echo "test-sketchybar-config: PASS"; else

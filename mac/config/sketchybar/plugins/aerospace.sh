@@ -13,6 +13,8 @@ SLOT_WIDTH=26 # keep in step with icon.width in the rc: a fixed icon width ignor
 HIDDEN_ICON=0x00000000
 ANIMATION_CURVE=tanh
 ANIMATION_FRAMES=6
+DROP_FRAMES=4
+DROP=0x99cba6f7
 ANIMATION_SECONDS=0.15
 
 focused="${FOCUSED_WORKSPACE:-$(aerospace list-workspaces --focused)}"
@@ -36,6 +38,9 @@ if [ "$2" = click ]; then
   target="$(cat "$HOVER" 2>/dev/null)"
   if [ -n "$target" ] && [ "$target" != "$1" ]; then
     swap_workspaces "$1" "$target"
+    : >"$HOVER"
+    # Repaint now instead of waiting for the next tick, so the swap reads as one move.
+    sketchybar --trigger aerospace_workspace_change
   else
     "$CONFIG_DIR/plugins/close_popups.sh"
     aerospace workspace "$1"
@@ -46,12 +51,17 @@ fi
 case "$SENDER" in
 mouse.entered)
   echo "$1" >"$HOVER"
-  [ "$1" = "$focused" ] || sketchybar --set "$NAME" background.color=0x44cba6f7 icon.color="$TEXT"
+  if "$HOME/.local/bin/ctlcenter" pressed 2>/dev/null; then
+    # A drag is on: the workspace under the pointer lights up as the drop target.
+    sketchybar --animate "$ANIMATION_CURVE" "$DROP_FRAMES" --set "$NAME" background.color="$DROP" icon.color="$BASE"
+  elif [ "$1" != "$focused" ]; then
+    sketchybar --set "$NAME" background.color=0x44cba6f7 icon.color="$TEXT"
+  fi
   exit 0
   ;;
 mouse.exited)
   [ "$(cat "$HOVER" 2>/dev/null)" = "$1" ] && : >"$HOVER"
-  [ "$1" = "$focused" ] || sketchybar --set "$NAME" background.color="$TRANSPARENT" icon.color="$TEXT"
+  [ "$1" = "$focused" ] || sketchybar --animate "$ANIMATION_CURVE" "$DROP_FRAMES" --set "$NAME" background.color="$TRANSPARENT" icon.color="$TEXT"
   exit 0
   ;;
 esac
