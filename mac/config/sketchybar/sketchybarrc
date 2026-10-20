@@ -73,7 +73,7 @@ for sid in $(aerospace list-workspaces --all); do
     --subscribe "space.$sid" aerospace_workspace_change mouse.entered mouse.exited \
     --set "space.$sid" \
     icon="$sid" icon.padding_left=9 icon.padding_right=9 icon.font="$FONT:Bold:12.0" \
-    label.drawing=off \
+    label.drawing=off update_freq=1 \
     click_script="aerospace workspace $sid" \
     script="$PLUGIN_DIR/aerospace.sh $sid"
 done
@@ -84,7 +84,7 @@ pill spaces
 sketchybar --add item media left \
   --set media \
   icon="$MUSIC" icon.color="$MAUVE" label.max_chars=34 scroll_texts=off \
-  drawing=off update_freq=3 \
+  drawing=off update_freq=2 \
   click_script="media-control toggle-play-pause" \
   script="$PLUGIN_DIR/media.sh"
 pill media

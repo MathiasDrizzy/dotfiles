@@ -2,6 +2,7 @@
 # Icon glyphs (Nerd Font Material Design codepoints), sourced by sketchybarrc and the plugins.
 
 MUSIC='󰝚'         # U+F075A
+PAUSE='󰏤'         # U+F03E4
 PLAY='󰐊'          # U+F040A
 PAUSE='󰏤'         # U+F03E4
 NEXT='󰒭'          # U+F04AD
