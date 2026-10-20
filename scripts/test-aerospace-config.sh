@@ -3,6 +3,8 @@
 #  A1  the file parses as TOML and declares config-version 2
 #  A2  no binding uses alt-b, alt-f or alt-d: zsh/readline word motions (Option is Alt in Ghostty) must keep working
 #  A3b no binding uses the vim keys h, j, k or l (Mathias does not use vim-style keys: arrows instead)
+#  A3c no binding uses the US punctuation keys (minus, equal, slash, semicolon, quote, brackets, backslash, backtick):
+#      Mathias's keyboard is Latin American, where those physical keys carry other symbols; the config aliases them
 #  A3  every workspace binding has its move-node-to-workspace twin
 #  A4  on-window-detected callbacks have the documented shape (list of {if, run} objects)
 #  A5  the installer links the config (REQUIRED_SOURCES, CONFIG_PAIRS) and installs the cask
@@ -38,6 +40,7 @@ callbacks() { python3 -I -c 'import sys,tomllib
 d=tomllib.load(open(sys.argv[1],"rb")); c=d.get("on-window-detected", [])
 sys.exit(0 if isinstance(c,list) and all(isinstance(x,dict) and "run" in x and set(x)<={"if","run","check-further-callbacks"} for x in c) else 1)' "$CFG"; }
 no_vim_keys() { bindings | awk '$2 ~ /^(alt|ctrl|cmd)?(-shift)?-?[hjkl]$/ || $2 ~ /-[hjkl]$/ {found=1} END{exit found?0:1}'; }
+no_us_punctuation() { bindings | awk '$2 ~ /-(minus|equal|slash|backslash|semicolon|quote|backtick|leftSquareBracket|rightSquareBracket)$/ {found=1} END{exit found?0:1}'; }
 installer_links() {
   grep -q 'config/aerospace/aerospace.toml' "$ROOT/mac/install.sh" &&
     grep -q 'config/aerospace/aerospace.toml|' "$ROOT/mac/scripts/check-links.sh" &&
@@ -47,6 +50,7 @@ installer_links() {
 check "the config parses as TOML (config-version 2)" parses
 check "no binding steals alt-b, alt-f or alt-d from the shell" not no_readline_keys
 check "no binding uses the vim keys h, j, k or l" not no_vim_keys
+check "no binding uses US punctuation keys (Latin American keyboard)" not no_us_punctuation
 check "each workspace binding has a move-node-to-workspace twin" twins
 check "on-window-detected callbacks have the documented shape" callbacks
 check "install.sh and check-links.sh link the config and install the cask" installer_links

@@ -1,5 +1,5 @@
 # AeroSpace: i3-like tiling window manager (no SIP changes needed).
-# Docs: https://nikitabobko.github.io/AeroSpace/guide  ·  reload the config: alt-shift-; then Esc
+# Docs: https://nikitabobko.github.io/AeroSpace/guide  ·  reload the config: option+shift+ñ, then Esc
 
 config-version = 2
 
@@ -22,7 +22,11 @@ automatically-unhide-macos-hidden-apps = false
 persistent-workspaces = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
 focus-follows-mouse.enabled = false
-key-mapping.preset = 'qwerty'
+# AeroSpace reads key names as physical US-qwerty positions. This keyboard is Latin American, so the punctuation keys
+# sit elsewhere: these aliases name the keys by the symbol printed on them.
+key-mapping.key-notation-to-key-code.latamMinus = 'slash'               # the key labelled "-"
+key-mapping.key-notation-to-key-code.latamPlus = 'rightSquareBracket'   # the key labelled "+"
+key-mapping.key-notation-to-key-code.latamNtilde = 'semicolon'          # the key labelled "ñ"
 
 gaps.inner.horizontal = 6
 gaps.inner.vertical = 6
@@ -40,7 +44,7 @@ on-window-detected = [
     # Arrow keys instead of vim keys (h/j/k/l).
     alt-enter = 'exec-and-forget open -na Ghostty'
 
-    alt-slash = 'layout tiles horizontal vertical'
+    alt-period = 'layout tiles horizontal vertical'
     alt-comma = 'layout accordion horizontal vertical'
     alt-shift-space = 'layout floating tiling'    # toggle floating / tiling for the focused window
     alt-shift-enter = 'fullscreen'
@@ -55,8 +59,8 @@ on-window-detected = [
     alt-shift-up = 'move up'
     alt-shift-right = 'move right'
 
-    alt-minus = 'resize smart -50'
-    alt-equal = 'resize smart +50'
+    alt-latamMinus = 'resize smart -50'
+    alt-latamPlus = 'resize smart +50'
 
     # Previous / next workspace, like ctrl+arrows did for the native desktops.
     ctrl-alt-left = 'workspace --wrap-around prev'
@@ -85,7 +89,7 @@ on-window-detected = [
     alt-tab = 'workspace-back-and-forth'
     alt-shift-tab = 'move-workspace-to-monitor --wrap-around next'
 
-    alt-shift-semicolon = 'mode service'
+    alt-shift-latamNtilde = 'mode service'
 
 [mode.service.binding]
     esc = ['reload-config', 'mode main']

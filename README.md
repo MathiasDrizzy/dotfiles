@@ -65,14 +65,14 @@ An i3-like tiling window manager that needs no SIP changes. It replaces the nati
 | `alt+shift+1…9` | Send the window to workspace 1…9 |
 | `ctrl+alt+← / →` | Previous / next workspace |
 | `alt+tab` | Back to the previous workspace |
-| `alt+- / alt+=` | Shrink / grow the window |
-| `alt+/` · `alt+,` | Tiles layout · accordion layout |
+| `alt+-` / `alt++` (the keys labelled - and +) | Shrink / grow the window |
+| `alt+.` · `alt+,` | Tiles layout · accordion layout |
 | `alt+shift+space` | Toggle floating / tiling |
 | `alt+shift+enter` | Fullscreen |
 | `alt+enter` | New Ghostty window |
-| `alt+shift+;` | Service mode (`esc` reloads the config, `r` resets the layout, `backspace` closes all windows but the current one, `alt+shift+arrows` joins with a neighbor) |
+| `alt+shift+ñ` | Service mode (`esc` reloads the config, `r` resets the layout, `backspace` closes all windows but the current one, `alt+shift+arrows` joins with a neighbor) |
 
-Only numbered workspaces are bound, so the shell's `alt+b/f/d` word motions keep working. It needs the Accessibility permission and `defaults write com.apple.dock expose-group-apps -bool true` so Mission Control shows hidden windows properly.
+The keyboard is Latin American, so the punctuation keys are aliased by the symbol printed on them (`key-mapping` in the config). Only numbered workspaces are bound, so the shell's `alt+b/f/d` word motions keep working. It needs the Accessibility permission and `defaults write com.apple.dock expose-group-apps -bool true` so Mission Control shows hidden windows properly.
 
 ## herdr-ctl (Go, `mac/tools/herdr-ctl`)
 
