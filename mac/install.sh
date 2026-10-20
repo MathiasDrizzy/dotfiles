@@ -98,6 +98,7 @@ if [ "$LINKS_ONLY" = false ]; then
     echo "==> Instalando fórmulas y casks de Homebrew..."
     brew install "${BREW_PACKAGES[@]}"
     brew install --cask font-jetbrains-mono-nerd-font || true
+    brew install --cask font-sketchybar-app-font || true
     brew install --cask nikitabobko/tap/aerospace || true
     brew install felixkratz/formulae/borders || true
     brew install felixkratz/formulae/sketchybar || true
@@ -152,6 +153,7 @@ REQUIRED_SOURCES=(
   "config/sketchybar/sketchybarrc"
   "config/sketchybar/colors.sh"
   "config/sketchybar/icons.sh"
+  "config/sketchybar/icon_map.sh"
   "config/sketchybar/plugins/aerospace.sh"
   "config/sketchybar/plugins/media.sh"
   "config/sketchybar/plugins/toggle.sh"

@@ -91,6 +91,7 @@ CONFIG_PAIRS=(
   "config/sketchybar/sketchybarrc|$HOME/.config/sketchybar/sketchybarrc"
   "config/sketchybar/colors.sh|$HOME/.config/sketchybar/colors.sh"
   "config/sketchybar/icons.sh|$HOME/.config/sketchybar/icons.sh"
+  "config/sketchybar/icon_map.sh|$HOME/.config/sketchybar/icon_map.sh"
   "config/sketchybar/plugins/aerospace.sh|$HOME/.config/sketchybar/plugins/aerospace.sh"
   "config/sketchybar/plugins/media.sh|$HOME/.config/sketchybar/plugins/media.sh"
   "config/sketchybar/plugins/toggle.sh|$HOME/.config/sketchybar/plugins/toggle.sh"

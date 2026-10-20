@@ -60,16 +60,20 @@ apple_entry restart "$RESTART" "Reiniciar" "osascript -e 'tell application \"Sys
 apple_entry shutdown "$POWER" "Apagar" "osascript -e 'tell application \"System Events\" to shut down'"
 
 # --- Left: the active app; click for its menus (File, Edit, View...) in a popup ---
-sketchybar --add item front_pad left --set front_pad width=6 icon.drawing=off label.drawing=off \
-  --add item front_app left \
-  --set front_app icon.drawing=off label.drawing=off width=25 background.drawing=on background.color=0x00000000 \
-  background.image.scale=0.6 background.image.drawing=on \
+sketchybar --add item front_app left \
+  --set front_app icon.font="sketchybar-app-font:Regular:$ICON_SIZE" icon.color="$MAUVE" icon.width=30 icon.align=center \
+  icon.padding_left=0 icon.padding_right=0 label.drawing=off \
   popup.background.color=0xf21e1e2e popup.background.border_color="$BAR_COLOR" \
   popup.background.border_width=1 popup.background.corner_radius=12 popup.align=left \
   script="$PLUGIN_DIR/appmenu.sh" \
   --subscribe front_app front_app_switched mouse.entered mouse.exited mouse.exited.global mouse.clicked
-sketchybar --add bracket front_pill front_pad front_app
+sketchybar --add bracket front_pill front_app
 pill front_pill
+# shellcheck source=icon_map.sh disable=SC1091
+source "$CONFIG_DIR/icon_map.sh"
+__icon_map "$(aerospace list-windows --focused --format '%{app-name}' 2>/dev/null)"
+# shellcheck disable=SC2154 # icon_result is set by __icon_map
+sketchybar --set front_app icon="$icon_result"
 
 # --- Left: AeroSpace workspaces ---
 sketchybar --add event aerospace_workspace_change

@@ -4,9 +4,10 @@
 #   appmenu.sh                 event handler (front_app_switched, mouse.*)
 #   appmenu.sh menu <Name>     list the items of one menu
 #   appmenu.sh run <Menu> <Item>
-# shellcheck disable=SC1091
+# shellcheck disable=SC1091,SC2154
 source "$CONFIG_DIR/colors.sh"
 source "$CONFIG_DIR/icons.sh"
+source "$CONFIG_DIR/icon_map.sh"
 
 FONT="JetBrainsMono Nerd Font"
 MAX_ENTRIES=30
@@ -114,7 +115,10 @@ esac
 
 is_open="$(sketchybar --query front_app | jq -r '.popup.drawing')"
 case "$SENDER" in
-front_app_switched) sketchybar --set front_app background.image="app.$INFO" ;;
+front_app_switched)
+  __icon_map "$INFO"
+  sketchybar --set front_app icon="$icon_result"
+  ;;
 mouse.clicked)
   if [ "$is_open" = on ]; then close; else show_top; fi
   ;;
