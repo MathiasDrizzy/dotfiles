@@ -82,7 +82,7 @@ show_top() {
     add_entry "$i" "$name" "$SELF menu $(quote "$name")" "$CHEVRON_RIGHT"
     i=$((i + 1))
   done < <(top_menus)
-  sketchybar --set apple popup.drawing=off background.color="$BAR_COLOR" icon.color="$TEXT" --set front_app popup.drawing=on --set front_pill background.color=0xf045475a
+  sketchybar --set apple popup.drawing=off background.color="$BAR_COLOR" icon.color="$MAUVE" --set front_app popup.drawing=on --set front_pill background.color=0xf045475a
 }
 
 show_menu() {

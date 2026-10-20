@@ -56,6 +56,7 @@ apple_entry sleep "$SLEEP" "Suspender" "pmset sleepnow"
 apple_entry lock "$LOCK" "Bloquear pantalla" "pmset displaysleepnow"
 apple_entry logout "$LOGOUT" "Cerrar sesión" "osascript -e 'tell application \"System Events\" to log out'"
 apple_entry restart "$RESTART" "Reiniciar" "osascript -e 'tell application \"System Events\" to restart'"
+sketchybar --set apple.restart icon.font="$NERD_FONT:Regular:$ICON_SIZE"
 apple_entry shutdown "$POWER" "Apagar" "osascript -e 'tell application \"System Events\" to shut down'"
 
 # --- Left: the active app; click for its menus (File, Edit, View...) in a popup ---
@@ -99,7 +100,7 @@ media_button() { # name, icon, command, font size
     --subscribe "$1" mouse.entered mouse.exited mouse.clicked
 }
 media_button media_prev "$PREV" "media-control previous-track" "$ARROW_SIZE"
-media_button media_play "$PLAY" "media-control toggle-play-pause; sleep 0.4; $PLUGIN_DIR/media.sh"
+media_button media_play "$PLAY" "$PLUGIN_DIR/media_toggle.sh"
 media_button media_next "$NEXT" "media-control next-track" "$ARROW_SIZE"
 sketchybar --add item media left \
   --set media drawing=off icon.drawing=off label.font="$FONT:Regular:$TEXT_SIZE" label.width=144 label.padding_left=0 label.padding_right=10 \

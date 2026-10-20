@@ -19,8 +19,8 @@ NEXT=':chevron_right:'
 CPU=':cpu:'
 RAM=':ram:'
 BAT_CHARGING=':charging:'
-# The pack has no battery shape, so the battery levels come from the Nerd Font Material set (same weight and size).
-BAT_FONT="JetBrainsMono Nerd Font"
+# The pack has no battery shape, so the battery levels (and RESTART) come from the Nerd Font Material set.
+NERD_FONT="JetBrainsMono Nerd Font"
 BAT_0='󰂎'
 BAT_10='󰁺'
 BAT_20='󰁻'
@@ -41,5 +41,5 @@ ICON_INFO=':system_information:'
 SLEEP=':moon:'
 LOCK=':vpn:'
 LOGOUT=':close:'
-RESTART=':statistics:'
+RESTART='󰜉' # the pack has no restart arrow either: Nerd Font Material glyph
 POWER=':cancel:'
