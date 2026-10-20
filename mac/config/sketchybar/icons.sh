@@ -1,33 +1,23 @@
 # shellcheck shell=bash disable=SC2034
-# Icon glyphs: every one is a Nerd Font Material Design codepoint (U+F0001..U+F1AF0), the only icon set besides
-# sketchybar-app-font (app glyphs, see icon_map.sh). Sourced by sketchybarrc and the plugins.
+# Icon glyphs: every one is a sketchybar-app-font ligature (the same pack as the app glyphs in icon_map.sh),
+# so the whole bar shares one icon font. Sourced by sketchybarrc and the plugins.
 
-MUSIC='󰝚'         # U+F075A
-PLAY='󰐊'          # U+F040A
-PREV='󰒮'          # U+F04AE
-NEXT='󰒭'          # U+F04AD
-PAUSE='󰏤'         # U+F03E4
-BAT_0='󰂎'         # U+F008E
-BAT_10='󰁺'        # U+F007A
-BAT_20='󰁻'        # U+F007B
-BAT_30='󰁼'        # U+F007C
-BAT_40='󰁽'        # U+F007D
-BAT_50='󰁾'        # U+F007E
-BAT_60='󰁿'        # U+F007F
-BAT_70='󰂀'        # U+F0080
-BAT_80='󰂁'        # U+F0081
-BAT_90='󰂂'        # U+F0082
-BAT_100='󰁹'       # U+F0079
-BAT_CHARGING='󰂄'  # U+F0084
-WIFI='󰖩'          # U+F05A9
-WIFI_OFF='󰖪'      # U+F05AA
-CHEVRON_LEFT='󰅁'  # U+F0141
-CHEVRON_RIGHT='󰅂' # U+F0142
-APPLE='󰀵'         # U+F0035
-SETTINGS='󰒓'      # U+F0493
-ICON_INFO='󰋽'     # U+F02FD
-SLEEP='󰒲'         # U+F04B2
-LOCK='󰌾'          # U+F033E
-RESTART='󰜉'       # U+F0709
-POWER='󰐥'         # U+F0425
-LOGOUT='󰍃'        # U+F0343
+APP_ICON_FONT="sketchybar-app-font"
+APPLE=':mactracker:'
+PLAY=':playing:'
+PAUSE=':paused:'
+PREV=':chevron_left:'
+NEXT=':chevron_right:'
+BAT=':coconut_battery:'
+BAT_CHARGING=':charging:'
+WIFI=':wifi:'
+WIFI_OFF=':wifi_off:'
+CHEVRON_LEFT=':chevron_left:'
+CHEVRON_RIGHT=':chevron_right:'
+SETTINGS=':gear:'
+ICON_INFO=':system_information:'
+SLEEP=':moon:'
+LOCK=':vpn:'
+LOGOUT=':close:'
+RESTART=':statistics:'
+POWER=':cancel:'

@@ -13,10 +13,7 @@ if grep -q 'AC Power' <<<"$batt"; then
   color="$GREEN"
 else
   color="$TEXT"
-  step=$(((pct + 5) / 10 * 10))
-  [ "$step" -gt 100 ] && step=100
-  var="BAT_$step"
-  icon="${!var}"
+  icon="$BAT"
   [ "$pct" -le 20 ] && color="$RED"
 fi
 
