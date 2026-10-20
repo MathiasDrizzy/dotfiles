@@ -74,7 +74,7 @@ for sid in $(aerospace list-workspaces --all); do
     --set "space.$sid" \
     icon="$sid" icon.padding_left=9 icon.padding_right=9 icon.font="$FONT:Bold:12.0" \
     label.drawing=off update_freq=1 \
-    click_script="aerospace workspace $sid" \
+    click_script="$PLUGIN_DIR/close_popups.sh; aerospace workspace $sid" \
     script="$PLUGIN_DIR/aerospace.sh $sid"
 done
 sketchybar --add bracket spaces '/space\..*/'
@@ -83,43 +83,40 @@ pill spaces
 # --- Left: now playing (only visible while something plays) ---
 sketchybar --add item media left \
   --set media \
-  icon="$MUSIC" icon.color="$MAUVE" label.max_chars=34 scroll_texts=off \
+  icon="$MUSIC" icon.color="$MAUVE" icon.font="$FONT:Bold:12.0" label.font="$FONT:Regular:11.0" label.max_chars=18 scroll_texts=on \
   drawing=off update_freq=2 \
-  click_script="media-control toggle-play-pause" \
+  click_script="$PLUGIN_DIR/close_popups.sh; media-control toggle-play-pause" \
   script="$PLUGIN_DIR/media.sh"
 pill media
 
 # --- Right (added right to left): chevron, time, date, then the expandable status items ---
-sketchybar --add item chevron right \
+sketchybar --add item pad_r right --set pad_r width=4 icon.drawing=off label.drawing=off \
+  --add item chevron right \
   --set chevron icon="$CHEVRON_LEFT" icon.font="$FONT:Bold:12.0" icon.color="$MAUVE" \
   icon.width=28 icon.align=center icon.padding_left=0 icon.padding_right=0 label.drawing=off \
-  script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/toggle.sh" \
+  script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/close_popups.sh; $PLUGIN_DIR/toggle.sh" \
   --subscribe chevron mouse.entered mouse.exited
 
-# Vorssaint settings (its own menu bar icon is hidden together with the native bar) and the date + time
-sketchybar --add item vorssaint right \
-  --set vorssaint icon="$SETTINGS" icon.color="$MAUVE" icon.font="$FONT:Bold:14.0" icon.width=28 icon.align=center \
-  icon.padding_left=0 icon.padding_right=0 label.drawing=off \
-  script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/vorssaint.sh" \
-  --subscribe vorssaint mouse.entered mouse.exited \
-  --add item clock right \
+# Date and time
+sketchybar --add item clock right \
   --set clock icon.drawing=off label.font="$FONT:Bold:12.0" label.padding_left=12 label.padding_right=6 update_freq=10 \
-  script="$PLUGIN_DIR/clock.sh" click_script="open -a Calendar" \
+  script="$PLUGIN_DIR/clock.sh" click_script="$PLUGIN_DIR/close_popups.sh; open -a Calendar" \
   --subscribe clock mouse.entered mouse.exited \
   --add item battery right \
-  --set battery icon.width=24 icon.align=center icon.y_offset=-1 label.padding_right=6 update_freq=30 script="$PLUGIN_DIR/battery.sh" \
+  --set battery icon.font="$FONT:Bold:12.0" icon.width=20 icon.align=center icon.padding_left=6 icon.padding_right=0 label.padding_right=8 update_freq=30 script="$PLUGIN_DIR/battery.sh" \
   click_script="open x-apple.systempreferences:com.apple.Battery-Settings.extension" \
   --subscribe battery system_woke power_source_change mouse.entered mouse.exited \
   --add item wifi right \
-  --set wifi icon.width=24 icon.align=center icon.padding_left=0 icon.padding_right=0 update_freq=10 script="$PLUGIN_DIR/wifi.sh" \
+  --set wifi icon.font="$FONT:Bold:13.0" icon.width=20 icon.align=center icon.padding_left=6 icon.padding_right=0 update_freq=10 script="$PLUGIN_DIR/wifi.sh" \
   click_script="open x-apple.systempreferences:com.apple.wifi-settings-extension" \
   --subscribe wifi wifi_change mouse.entered mouse.exited \
   --add item sys right \
   --set sys icon.drawing=off label.padding_left=10 label.padding_right=4 update_freq=2 script="$PLUGIN_DIR/sys.sh" \
   click_script="$PLUGIN_DIR/monitor.sh" \
-  --subscribe sys mouse.entered mouse.exited
+  --subscribe sys mouse.entered mouse.exited \
+  --add item pad_l right --set pad_l width=4 icon.drawing=off label.drawing=off
 
-sketchybar --add bracket status chevron vorssaint clock battery wifi sys
+sketchybar --add bracket status pad_r chevron clock battery wifi sys pad_l
 pill status
 
 # Status items start collapsed; the chevron toggles them.

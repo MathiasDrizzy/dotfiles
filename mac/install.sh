@@ -161,7 +161,7 @@ REQUIRED_SOURCES=(
   "config/sketchybar/plugins/hover.sh"
   "config/sketchybar/plugins/appmenu.sh"
   "config/sketchybar/plugins/monitor.sh"
-  "config/sketchybar/plugins/vorssaint.sh"
+  "config/sketchybar/plugins/close_popups.sh"
   "config/sketchybar/plugins/wifi.sh"
   "config/sketchybar/plugins/sys.sh"
   "config/yazi/keymap.toml"
