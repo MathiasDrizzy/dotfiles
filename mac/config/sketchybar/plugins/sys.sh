@@ -2,7 +2,6 @@
 # CPU and memory in use right now, two items in one pill: sys (CPU) and sys_mem (RAM). CPU comes from top, which samples the interval
 # (ps reports a decayed average); memory is app + wired + compressed, like Activity Monitor's "Memory Used".
 # shellcheck disable=SC1091
-case "$SENDER" in mouse.*) exec "$CONFIG_DIR/plugins/hover.sh" 0xf0313244 0xd91e1e2e ;; esac
 source "$CONFIG_DIR/colors.sh"
 
 idle="$(top -l 2 -n 0 -s 1 | awk '/CPU usage/ {v=$7} END {gsub("%", "", v); print v}')"

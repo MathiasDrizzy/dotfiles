@@ -130,13 +130,11 @@ sketchybar --add item chevron right \
   --subscribe wifi wifi_change mouse.entered mouse.exited \
   --add item sys_mem right \
   --set sys_mem icon="$RAM" icon.padding_left=8 icon.padding_right=4 label.padding_right=12 \
-  script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/monitor.sh" \
-  --subscribe sys_mem mouse.entered mouse.exited \
   --add item sys right \
   --set sys icon="$CPU" icon.padding_left=12 icon.padding_right=4 label.padding_right=8 update_freq=2 script="$PLUGIN_DIR/sys.sh" \
-  click_script="$PLUGIN_DIR/monitor.sh" \
-  --subscribe sys mouse.entered mouse.exited \
-  --add bracket sys_pill sys sys_mem
+  --add bracket sys_pill sys sys_mem \
+  --set sys_pill script="$PLUGIN_DIR/hover.sh 0xf0313244 0xd91e1e2e" click_script="$PLUGIN_DIR/monitor.sh" \
+  --subscribe sys_pill mouse.entered mouse.exited
 
 for name in chevron clock battery wifi sys_pill; do pill "$name"; done
 
