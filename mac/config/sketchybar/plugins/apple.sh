@@ -20,7 +20,7 @@ mouse.clicked)
   if [ "$is_open" = on ]; then
     close
   else
-    sketchybar --set front_app popup.drawing=off background.color="$BAR_COLOR" --set apple popup.drawing=on background.color="$open_color" icon.color="$MAUVE"
+    sketchybar --set front_app popup.drawing=off --set front_pill background.color="$BAR_COLOR" --set apple popup.drawing=on background.color="$open_color" icon.color="$MAUVE"
   fi
   ;;
 mouse.entered) [ "$is_open" = on ] || sketchybar --set apple background.color="$hover" ;;

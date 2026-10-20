@@ -4,4 +4,4 @@
 source "$CONFIG_DIR/colors.sh"
 
 sketchybar --set apple popup.drawing=off background.color="$BAR_COLOR" icon.color="$TEXT" \
-  --set front_app popup.drawing=off background.color="$BAR_COLOR"
+  --set front_app popup.drawing=off --set front_pill background.color="$BAR_COLOR"

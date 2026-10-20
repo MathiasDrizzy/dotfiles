@@ -15,7 +15,7 @@ SELF="$CONFIG_DIR/plugins/appmenu.sh"
 quote() { printf "'%s'" "${1//\'/\'\\\'\'}"; }
 
 close() {
-  sketchybar --set front_app popup.drawing=off background.color="$BAR_COLOR" label.color="$TEXT"
+  sketchybar --set front_app popup.drawing=off --set front_pill background.color="$BAR_COLOR"
 }
 
 clear_entries() { sketchybar --remove '/appmenu\.entry\..*/' >/dev/null 2>&1; }
@@ -82,7 +82,7 @@ show_top() {
     add_entry "$i" "$name" "$SELF menu $(quote "$name")" "$CHEVRON_RIGHT"
     i=$((i + 1))
   done < <(top_menus)
-  sketchybar --set apple popup.drawing=off background.color="$BAR_COLOR" icon.color="$TEXT" --set front_app popup.drawing=on background.color=0xf045475a
+  sketchybar --set apple popup.drawing=off background.color="$BAR_COLOR" icon.color="$TEXT" --set front_app popup.drawing=on --set front_pill background.color=0xf045475a
 }
 
 show_menu() {
@@ -114,11 +114,11 @@ esac
 
 is_open="$(sketchybar --query front_app | jq -r '.popup.drawing')"
 case "$SENDER" in
-front_app_switched) sketchybar --set front_app label="$INFO" ;;
+front_app_switched) sketchybar --set front_app background.image="app.$INFO" ;;
 mouse.clicked)
   if [ "$is_open" = on ]; then close; else show_top; fi
   ;;
-mouse.entered) [ "$is_open" = on ] || sketchybar --set front_app background.color=0xf0313244 ;;
-mouse.exited) [ "$is_open" = on ] || sketchybar --set front_app background.color="$BAR_COLOR" ;;
+mouse.entered) [ "$is_open" = on ] || sketchybar --set front_pill background.color=0xf0313244 ;;
+mouse.exited) [ "$is_open" = on ] || sketchybar --set front_pill background.color="$BAR_COLOR" ;;
 mouse.exited.global) close ;;
 esac

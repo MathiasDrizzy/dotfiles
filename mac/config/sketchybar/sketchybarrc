@@ -61,12 +61,14 @@ apple_entry shutdown "$POWER" "Apagar" "osascript -e 'tell application \"System 
 
 # --- Left: the active app; click for its menus (File, Edit, View...) in a popup ---
 sketchybar --add item front_app left \
-  --set front_app icon.drawing=off label.font="$FONT:Bold:12.0" label.padding_left=12 label.padding_right=12 \
+  --set front_app icon.drawing=off label.drawing=off width=32 background.drawing=on background.color=0x00000000 \
+  background.image.scale=0.8 background.image.drawing=on \
   popup.background.color=0xf21e1e2e popup.background.border_color="$BAR_COLOR" \
   popup.background.border_width=1 popup.background.corner_radius=12 popup.align=left \
   script="$PLUGIN_DIR/appmenu.sh" \
   --subscribe front_app front_app_switched mouse.entered mouse.exited mouse.exited.global mouse.clicked
-pill front_app
+sketchybar --add bracket front_pill front_app
+pill front_pill
 
 # --- Left: AeroSpace workspaces ---
 sketchybar --add event aerospace_workspace_change
@@ -93,7 +95,7 @@ media_button() { # name, icon, command
     --subscribe "$1" mouse.entered mouse.exited mouse.clicked
 }
 media_button media_prev "$PREV" "media-control previous-track"
-media_button media_play "$PLAY" "media-control toggle-play-pause"
+media_button media_play "$PLAY" "media-control toggle-play-pause; sleep 0.4; $PLUGIN_DIR/media.sh"
 media_button media_next "$NEXT" "media-control next-track"
 sketchybar --add item media left \
   --set media drawing=off icon.drawing=off label.font="$FONT:Regular:11.0" label.width=136 label.padding_left=0 label.padding_right=10 \
