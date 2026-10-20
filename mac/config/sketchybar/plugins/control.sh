@@ -9,6 +9,8 @@ color="$MAUVE"
 iface="$(networksetup -listallhardwareports | awk '/Wi-Fi/{getline; print $2; exit}')"
 ipconfig getifaddr "${iface:-en0}" >/dev/null 2>&1 || color="$RED"
 
+panel_idle || exit 0
+
 device=""
 if command -v blueutil >/dev/null 2>&1 && [ "$(blueutil --power)" = 1 ]; then
   device="$(blueutil --connected --format json | jq -r '.[0].name // empty')"

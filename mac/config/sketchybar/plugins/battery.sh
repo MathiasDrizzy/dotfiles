@@ -22,4 +22,5 @@ else
   [ "$pct" -le 20 ] && color="$RED"
 fi
 
+panel_idle || exit 0
 sketchybar --set "$NAME" icon="$icon" icon.font="$font" icon.color="$color" label="${pct}%"

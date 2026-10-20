@@ -169,6 +169,7 @@ REQUIRED_SOURCES=(
   "config/sketchybar/plugins/control.sh"
   "config/sketchybar/plugins/about.sh"
   "config/sketchybar/plugins/marquee.sh"
+  "config/sketchybar/plugins/drag.sh"
   "config/sketchybar/plugins/sys.sh"
   "config/yazi/keymap.toml"
   "config/yazi/theme.toml"

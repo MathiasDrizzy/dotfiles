@@ -81,8 +81,10 @@ The keyboard is Latin American, so the punctuation keys are aliased by the symbo
 
 A floating glass bar in the Ghostty palette (Catppuccin Mocha), split into pills so the camera housing stays clear. The native menu bar is set to auto-hide (System Settings → Control Center → *Automatically hide and show the menu bar*: Always).
 
-- Left: Apple menu (click for About, Settings, Sleep, Lock, Log out, Restart, Shut down), the AeroSpace workspaces (focused one highlighted, empty ones dimmed, click to switch) and the track that is playing (click to pause, via [`media-control`](https://github.com/ungive/media-control)).
-- Right: a `<` that expands live CPU, memory, Wi-Fi and battery (click `>` to collapse), the Vorssaint button and the date in Spanish. Every item highlights on hover and opens its settings on click; the Apple menu closes when the mouse leaves it.
+- Left: Apple menu (click for About, Settings, Sleep, Lock, Log out, Restart, Shut down), the active app (click for its menus), the AeroSpace workspaces (only the focused and the occupied ones; click to switch, **drag one onto another to swap their windows**) and the track that is playing (previous, play/pause, next and a scrolling title, via [`media-control`](https://github.com/ungive/media-control)).
+- Right: a `<` that fades in live CPU and memory, a Control Center button, the battery and the date in Spanish. The Control Center button opens the system panel with `fn+C` and closes it again on a second click; while it is open the bar turns into an opaque cover in the color of the desktop so the native bar never shows through.
+
+`ctlcenter` (a small Swift helper in `mac/tools/ctlcenter`, compiled by `install.sh`, needs the Xcode command line tools) presses `fn+C` and watches the pointer so the workspace drag can start the moment you press. The macOS recording indicator (orange dot) is drawn by the system above everything and cannot be moved or hidden.
 
 AeroSpace starts it and notifies it of workspace changes. Reload after editing: `sketchybar --reload`. Installed by `install.sh`.
 

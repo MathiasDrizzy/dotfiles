@@ -8,6 +8,8 @@ source "$CONFIG_DIR/colors.sh"
 
 CTL="$HOME/.local/bin/ctlcenter"
 COVER_CACHE="$HOME/.cache/sketchybar/cover"
+PRESS_PANEL="$HOME/.cache/sketchybar/press_panel"
+PRESS_MAX_SECONDS=2
 POLL=0.1
 MAX_POLLS=1200 # give up after two minutes
 FADE_FRAMES=5  # the bar fades in and out instead of flashing
@@ -39,6 +41,11 @@ fi
 
 if "$CTL" visible; then
   "$CTL" open
+  exit 0
+fi
+# The press that started this click closes the panel before the click arrives (drag.sh noted it was open): do not reopen it.
+if [ "$(cat "$PRESS_PANEL" 2>/dev/null)" = open ] && [ $(($(date +%s) - $(stat -f %m "$PRESS_PANEL"))) -lt "$PRESS_MAX_SECONDS" ]; then
+  rm -f "$PRESS_PANEL"
   exit 0
 fi
 

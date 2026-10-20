@@ -4,6 +4,8 @@
 # shellcheck disable=SC1091
 source "$CONFIG_DIR/colors.sh"
 
+[ "$(cat "$PANEL_STATE" 2>/dev/null)" = on ] || exit 0 # hidden: nothing to paint, and top is not free
+
 idle="$(top -l 2 -n 0 -s 1 | awk '/CPU usage/ {v=$7} END {gsub("%", "", v); print v}')"
 [ -z "$idle" ] && exit 0
 cpu="$(awk -v i="$idle" 'BEGIN {printf "%d", 100 - i}')"
@@ -18,4 +20,5 @@ mem="$(vm_stat | awk -v total="$(sysctl -n hw.memsize)" '
 
 color="$TEXT"
 { [ "$cpu" -ge 80 ] || [ "$mem" -ge 85 ]; } && color="$RED"
+panel_idle || exit 0
 sketchybar --set sys label="${cpu}%" label.color="$color" --set sys_mem label="${mem}%" label.color="$color"

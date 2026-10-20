@@ -107,6 +107,7 @@ CONFIG_PAIRS=(
   "config/sketchybar/plugins/control.sh|$HOME/.config/sketchybar/plugins/control.sh"
   "config/sketchybar/plugins/about.sh|$HOME/.config/sketchybar/plugins/about.sh"
   "config/sketchybar/plugins/marquee.sh|$HOME/.config/sketchybar/plugins/marquee.sh"
+  "config/sketchybar/plugins/drag.sh|$HOME/.config/sketchybar/plugins/drag.sh"
   "config/sketchybar/plugins/sys.sh|$HOME/.config/sketchybar/plugins/sys.sh"
   "config/yazi/keymap.toml|$HOME/.config/yazi/keymap.toml"
   "config/yazi/theme.toml|$HOME/.config/yazi/theme.toml"

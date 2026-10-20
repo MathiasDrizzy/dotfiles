@@ -78,7 +78,7 @@ sketchybar --set front_app icon="$icon_result"
 # --- Left: AeroSpace workspaces ---
 sketchybar --add event aerospace_workspace_change
 # Items start hidden, so the remembered row must start empty too.
-rm -f "$HOME/.cache/sketchybar/spaces"
+rm -f "$HOME/.cache/sketchybar/spaces" "$HOME/.cache/sketchybar/panel" "$HOME/.cache/sketchybar/panel_busy"
 first_space=true
 for sid in $(aerospace list-workspaces --all); do
   # One item drives the whole row (it alone listens to the workspace event and ticks); the others only react to the mouse.
@@ -120,6 +120,13 @@ sketchybar --add item media left \
 sketchybar --add bracket media_pill media_prev media_play media_next media
 pill media_pill
 
+# The pill that follows the pointer while a workspace is dragged (drag.sh); it is the last item on the left, so padding_left
+# moves it freely over everything else.
+sketchybar --add item drag_ghost left \
+  --set drag_ghost drawing=off icon=0 icon.width=26 icon.align=center icon.padding_left=0 icon.padding_right=0 \
+  icon.font="$FONT:Bold:$TEXT_SIZE" icon.color="$BASE" label.drawing=off padding_left=0 padding_right=0 \
+  background.drawing=on background.color="$MAUVE" background.height=24 background.corner_radius=8
+
 # The right padding leaves the macOS recording dot (drawn by the system over the bar) a free spot of its own.
 # --- Right (added right to left): chevron, date and time, then the expandable status items; each in its own pill ---
 sketchybar --add item chevron right \
@@ -156,6 +163,12 @@ sketchybar --set sys drawing=off --set sys_mem drawing=off --set sys_pill drawin
 
 sketchybar --hotload on
 sketchybar --update
+
+# Follows the pointer to drag workspaces (one watcher at a time: a reload replaces the old one).
+pkill -f '^bash .*/plugins/drag\.sh$' 2>/dev/null
+pkill -f '^[^ ]*/ctlcenter watch ' 2>/dev/null
+rm -f "$HOME/.cache/sketchybar/dragging"
+nohup "$PLUGIN_DIR/drag.sh" >/dev/null 2>&1 &
 
 # Samples the desktop color the Control Center cover will use (in the background, the bar is already up).
 "$PLUGIN_DIR/controlcenter.sh" --remember-cover >/dev/null 2>&1 &

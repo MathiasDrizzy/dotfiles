@@ -36,7 +36,7 @@ plugins_exist() {
 symbols_defined() {
   local v
   for v in $(grep -ho '\$[A-Z][A-Z_0-9]*' "$SB"/sketchybarrc "$SB"/plugins/*.sh | tr -d '$' | sort -u); do
-    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | SWAPPING | PARK | STASH | DROP | DROP_FRAMES | HOVER | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS) continue ;; esac
+    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | PRESS_PANEL | PRESS_MAX_SECONDS | DRAG_FLAG_MAX_SECONDS | DRAGGING | STRIP_HEIGHT | DRAG_THRESHOLD | GHOST | GHOST_HALF_WIDTH | SLOT_MARGIN | RELEASE_GRACE | GLIDE_FRAMES | TINT_FRAMES | DIM_ICON | DIM_BACKGROUND | TARGET_BACKGROUND | LEFT_COLUMN_LIMIT | ids | lefts | rights | focused | source_slot | target_slot | down_x | mode | ghost_origin | PANEL_STATE | PANEL_BUSY | STALE_LOCK_SECONDS | SWAPPING | PARK | STASH | DROP | DROP_FRAMES | HOVER | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS) continue ;; esac
     grep -q "^$v=" "$SB/colors.sh" "$SB/icons.sh" || {
       echo "undefined: $v" >&2
       return 1
@@ -84,10 +84,29 @@ no_global_escape() {
   ! grep -qi 'escape' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift"
 }
 workspace_drag_swaps() {
-  grep -q 'move-node-to-workspace' "$SB/plugins/aerospace.sh" && grep -q 'aerospace workspace "$PARK"' "$SB/plugins/aerospace.sh" && grep -q 'aerospace.sh \$sid click' "$SB/sketchybarrc"
+  # Swapping parks the focus first, so no window is re-tiled in view; the drag itself is followed by drag.sh.
+  grep -q 'move-node-to-workspace' "$SB/plugins/aerospace.sh" && grep -q 'aerospace workspace "$PARK"' "$SB/plugins/aerospace.sh" &&
+    grep -q 'aerospace.sh \$sid click' "$SB/sketchybarrc" && grep -q 'aerospace.sh" "$source_id" swap' "$SB/plugins/drag.sh"
+}
+drag_is_followed() {
+  # SketchyBar only reports where a drag ends, so the pointer is followed by ctlcenter, started once by the rc (a reload replaces it).
+  grep -q 'ctlcenter" watch' "$SB/plugins/drag.sh" && grep -q 'add item drag_ghost' "$SB/sketchybarrc" &&
+    grep -q 'PLUGIN_DIR/drag.sh' "$SB/sketchybarrc" && grep -q 'case "watch"' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" &&
+    grep -q 'DRAGGING' "$SB/plugins/aerospace.sh"
+}
+panel_survives_fast_clicks() {
+  # Plugins must not write colors while the right-hand panel is hidden or fading, and a click mid-animation is ignored.
+  local f
+  for f in sys battery control; do grep -q '^panel_idle || exit 0$' "$SB/plugins/$f.sh" || return 1; done
+  grep -q 'touch "$PANEL_BUSY"' "$SB/plugins/toggle.sh" && grep -q 'panel_busy" ] && exit 0' "$SB/plugins/hover.sh"
+}
+control_click_does_not_reopen() {
+  # macOS closes the panel with the press of the button's own click; the script must know it was open at the press.
+  grep -q 'PRESS_PANEL" 2>/dev/null)" = open' "$SB/plugins/controlcenter.sh" && grep -q 'echo "$panel" >"$PRESS_PANEL"' "$SB/plugins/drag.sh" &&
+    grep -q 'panelIsVisible() ? "open"' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift"
 }
 status_items_animate() {
-  # The right-hand items must grow and fade in one animated call, not pop in.
+  # The right-hand items fade in and out in one animated call (squeezing their width piled the labels up).
   grep -q -- '--animate' "$SB/plugins/toggle.sh" && grep -q 'sys_pill' "$SB/plugins/toggle.sh" && ! grep -q 'width=' "$SB/plugins/toggle.sh"
 }
 installer_ok() {
@@ -112,6 +131,9 @@ check "no plugin toggles the bar topmost flag (it blanks the pills)" no_topmost_
 check "AeroSpace workspaces refresh in one animated call from one driver item" workspaces_refresh_once
 check "Control Center closes with fn+C, never a global Escape" no_global_escape
 check "dragging a workspace onto another swaps their windows" workspace_drag_swaps
+check "a drag is followed from the first pixel by a pointer watcher with a ghost pill" drag_is_followed
+check "the right-hand panel survives fast clicks and plugin updates" panel_survives_fast_clicks
+check "clicking the Control Center button while its panel is open closes it" control_click_does_not_reopen
 check "the right-hand panel opens and closes with an animation" status_items_animate
 check "install.sh installs the formulae and check-links.sh links the files" installer_ok
 
