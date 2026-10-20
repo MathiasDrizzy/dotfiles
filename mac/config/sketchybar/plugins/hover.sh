@@ -5,6 +5,12 @@ on="${1:-0x44cba6f7}"
 off="${2:-none}"
 
 case "$SENDER" in
+mouse.clicked)
+  # Pressed: flash a stronger tint, then fall back to the hover tint.
+  sketchybar --set "$NAME" background.drawing=on background.color=0x99cba6f7
+  sleep 0.15
+  sketchybar --set "$NAME" background.color="$on"
+  ;;
 mouse.entered) sketchybar --set "$NAME" background.drawing=on background.color="$on" ;;
 mouse.exited)
   if [ "$off" = none ]; then
