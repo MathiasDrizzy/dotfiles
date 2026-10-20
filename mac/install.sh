@@ -162,6 +162,7 @@ REQUIRED_SOURCES=(
   "config/sketchybar/plugins/appmenu.sh"
   "config/sketchybar/plugins/monitor.sh"
   "config/sketchybar/plugins/close_popups.sh"
+  "config/sketchybar/plugins/about.sh"
   "config/sketchybar/plugins/marquee.sh"
   "config/sketchybar/plugins/wifi.sh"
   "config/sketchybar/plugins/sys.sh"

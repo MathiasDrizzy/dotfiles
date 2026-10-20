@@ -51,7 +51,7 @@ apple_entry() { # name, icon, label, command
     script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/apple.sh close; $4" \
     --subscribe "apple.$1" mouse.entered mouse.exited
 }
-apple_entry about "$ICON_INFO" "Acerca de este Mac" "open x-apple.systempreferences:com.apple.SystemProfiler.AboutExtension"
+apple_entry about "$ICON_INFO" "Acerca de este Mac" "$PLUGIN_DIR/about.sh"
 apple_entry settings "$SETTINGS" "Ajustes del Sistema" "open -a 'System Settings'"
 apple_entry sleep "$SLEEP" "Suspender" "pmset sleepnow"
 apple_entry lock "$LOCK" "Bloquear pantalla" "pmset displaysleepnow"
@@ -60,14 +60,15 @@ apple_entry restart "$RESTART" "Reiniciar" "osascript -e 'tell application \"Sys
 apple_entry shutdown "$POWER" "Apagar" "osascript -e 'tell application \"System Events\" to shut down'"
 
 # --- Left: the active app; click for its menus (File, Edit, View...) in a popup ---
-sketchybar --add item front_app left \
-  --set front_app icon.drawing=off label.drawing=off width=32 background.drawing=on background.color=0x00000000 \
-  background.image.scale=0.8 background.image.drawing=on \
+sketchybar --add item front_pad left --set front_pad width=6 icon.drawing=off label.drawing=off \
+  --add item front_app left \
+  --set front_app icon.drawing=off label.drawing=off width=25 background.drawing=on background.color=0x00000000 \
+  background.image.scale=0.6 background.image.drawing=on \
   popup.background.color=0xf21e1e2e popup.background.border_color="$BAR_COLOR" \
   popup.background.border_width=1 popup.background.corner_radius=12 popup.align=left \
   script="$PLUGIN_DIR/appmenu.sh" \
   --subscribe front_app front_app_switched mouse.entered mouse.exited mouse.exited.global mouse.clicked
-sketchybar --add bracket front_pill front_app
+sketchybar --add bracket front_pill front_pad front_app
 pill front_pill
 
 # --- Left: AeroSpace workspaces ---
