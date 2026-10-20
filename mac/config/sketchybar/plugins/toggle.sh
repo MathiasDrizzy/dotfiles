@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1091
 # Expands or collapses the status items; the chevron points toward where they will go.
-# The items fade in and out at their final size: squeezing their width made the labels pile up on each other.
+# The items slide out of the date pill and back into it like a drawer: their width animates while their text fades, so the
+# labels never show piled up. A hidden item stays transparent: SketchyBar keeps painting an animating item for a few frames
+# after drawing=off, and the visible colors given back at that moment left icons and numbers floating.
 # Clicks that arrive while it animates are ignored, and the colors it fades to are fixed (never read back from an item that
-# is mid-fade), so repeated clicks cannot leave half-transparent icons or numbers behind.
+# is mid-fade).
 source "$CONFIG_DIR/colors.sh"
 source "$CONFIG_DIR/icons.sh"
 
 ITEMS=(sys sys_mem control battery) # the content
 PILLS=(sys_pill control battery)    # what has the glass background (the bracket is shown and hidden with its items)
 ANIMATION_CURVE=sin
-ANIMATION_FRAMES=22
-ANIMATION_SECONDS=0.45
+SLIDE_FRAMES=24
+TEXT_FRAMES=9
+SLIDE_SECONDS=0.45
+TEXT_DELAY_SECONDS=0.22 # the text fades in once the drawer is half open
+WIDTHS="$HOME/.cache/sketchybar/panel_widths"
 STALE_LOCK_SECONDS=3
 
 # One toggle at a time. mkdir is atomic, so two clicks can never both get in (a lock older than STALE_LOCK_SECONDS is a
@@ -34,32 +39,58 @@ release_lock() {
 }
 trap release_lock EXIT
 
-faded=()
-shown=()
-for item in "${ITEMS[@]}"; do
-  faded+=(--set "$item" icon.color="$TRANSPARENT" label.color="$TRANSPARENT")
-  shown+=(--set "$item" icon.color="$MAUVE" label.color="$TEXT")
-done
-for pill in "${PILLS[@]}"; do
-  faded+=(--set "$pill" background.color="$TRANSPARENT" background.border_color="$TRANSPARENT")
-  shown+=(--set "$pill" background.color="$BAR_COLOR" background.border_color="$BAR_BORDER")
-done
+# The width of each item, measured while it is open (a hidden item reports a stale size); read back on the next opening.
+natural_width() {
+  sketchybar --query "$1" | jq -r '.bounding_rects | to_entries[0].value.size[0] | floor'
+}
 
-if [ "$(cat "$PANEL_STATE" 2>/dev/null)" = on ]; then
-  # Collapse: fade out, then hide and give every color its real value back for the next expansion.
-  sketchybar --animate "$ANIMATION_CURVE" "$ANIMATION_FRAMES" "${faded[@]}" --set chevron icon="$CHEVRON_LEFT"
-  sleep "$ANIMATION_SECONDS"
+collapse() {
+  local item args=() fade_out=() slide=()
+  for item in "${ITEMS[@]}"; do
+    echo "$item $(natural_width "$item")"
+  done >"$WIDTHS"
+  for item in "${ITEMS[@]}"; do
+    args+=(--set "$item" width="$(awk -v i="$item" '$1 == i {print $2}' "$WIDTHS")")
+    fade_out+=(--set "$item" icon.color="$TRANSPARENT" label.color="$TRANSPARENT")
+    slide+=(--set "$item" width=0)
+  done
+  for item in "${PILLS[@]}"; do
+    slide+=(--set "$item" background.color="$TRANSPARENT" background.border_color="$TRANSPARENT")
+  done
+  # The fixed widths first (no visible change), then the text fades quickly while the drawer closes.
+  sketchybar "${args[@]}" --animate "$ANIMATION_CURVE" "$TEXT_FRAMES" "${fade_out[@]}" \
+    --animate "$ANIMATION_CURVE" "$SLIDE_FRAMES" "${slide[@]}" --set chevron icon="$CHEVRON_LEFT"
+  sleep "$SLIDE_SECONDS"
   args=()
   for item in "${ITEMS[@]}" sys_pill; do args+=(--set "$item" drawing=off); done
-  sketchybar "${args[@]}" "${shown[@]}"
+  for item in "${ITEMS[@]}"; do args+=(--set "$item" width=dynamic); done
+  sketchybar "${args[@]}"
   echo off >"$PANEL_STATE"
-else
-  # Expand: show the items already transparent in the same call, then fade them to their real look.
-  args=()
-  for item in "${ITEMS[@]}" sys_pill; do args+=(--set "$item" drawing=on); done
-  sketchybar "${args[@]}" "${faded[@]}" --animate "$ANIMATION_CURVE" "$ANIMATION_FRAMES" "${shown[@]}" --set chevron icon="$CHEVRON_RIGHT"
-  sleep "$ANIMATION_SECONDS"
+}
+
+expand() {
+  local item width args=() slide=() fade_in=() dynamic=()
+  for item in "${ITEMS[@]}"; do
+    width="$(awk -v i="$item" '$1 == i {print $2}' "$WIDTHS" 2>/dev/null)"
+    args+=(--set "$item" drawing=on width=0 icon.color="$TRANSPARENT" label.color="$TRANSPARENT")
+    slide+=(--set "$item" width="${width:-$(natural_width "$item")}")
+    fade_in+=(--set "$item" icon.color="$MAUVE" label.color="$TEXT")
+    dynamic+=(--set "$item" width=dynamic)
+  done
+  args+=(--set sys_pill drawing=on)
+  for item in "${PILLS[@]}"; do
+    args+=(--set "$item" background.color="$TRANSPARENT" background.border_color="$TRANSPARENT")
+    slide+=(--set "$item" background.color="$BAR_COLOR" background.border_color="$BAR_BORDER")
+  done
+  sketchybar "${args[@]}" --animate "$ANIMATION_CURVE" "$SLIDE_FRAMES" "${slide[@]}" --set chevron icon="$CHEVRON_RIGHT"
+  sleep "$TEXT_DELAY_SECONDS"
+  sketchybar --animate "$ANIMATION_CURVE" "$TEXT_FRAMES" "${fade_in[@]}"
+  sleep "$TEXT_DELAY_SECONDS"
+  # Back to measuring themselves, so a longer label (a Bluetooth device name) gets its room.
+  sketchybar "${dynamic[@]}"
   echo on >"$PANEL_STATE"
   release_lock
   sketchybar --update # the plugins skipped their updates while the panel was hidden
-fi
+}
+
+if [ "$(cat "$PANEL_STATE" 2>/dev/null)" = on ]; then collapse; else expand; fi

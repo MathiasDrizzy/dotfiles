@@ -39,13 +39,14 @@ fi
   exit 0
 }
 
-if "$CTL" visible; then
-  "$CTL" open
-  exit 0
-fi
-# The press that started this click closes the panel before the click arrives (drag.sh noted it was open): do not reopen it.
+# The press that started this click already closed the panel (drag.sh noted it was open): do not reopen it. This comes before
+# looking at the window, which is still fading out on screen when the click arrives.
 if [ "$(cat "$PRESS_PANEL" 2>/dev/null)" = open ] && [ $(($(date +%s) - $(stat -f %m "$PRESS_PANEL"))) -lt "$PRESS_MAX_SECONDS" ]; then
   rm -f "$PRESS_PANEL"
+  exit 0
+fi
+if "$CTL" visible; then
+  "$CTL" open
   exit 0
 fi
 

@@ -46,6 +46,9 @@ func watchPointer(maxY: CGFloat) -> Never {
     var tracking = false
     var ignoring = false
     var last = CGPoint(x: -1, y: -1)
+    // Sampled before every press near the top: macOS starts closing the panel on the press itself, which this loop may see a
+    // poll late.
+    var panelWasOpen = false
     while true {
         let pressed = CGEventSource.buttonState(.combinedSessionState, button: .left)
         let location = pointerLocation()
@@ -53,11 +56,12 @@ func watchPointer(maxY: CGFloat) -> Never {
             if tracking { print("up \(Int(location.x)) \(Int(location.y))") }
             tracking = false
             ignoring = false
+            panelWasOpen = location.y < maxY && panelIsVisible()
         } else if !tracking && !ignoring {
             if location.y < maxY {
                 tracking = true
                 last = location
-                print("down \(Int(location.x)) \(Int(location.y)) \(panelIsVisible() ? "open" : "closed")")
+                print("down \(Int(location.x)) \(Int(location.y)) \(panelWasOpen || panelIsVisible() ? "open" : "closed")")
             } else {
                 ignoring = true
             }
@@ -70,10 +74,12 @@ func watchPointer(maxY: CGFloat) -> Never {
 }
 
 func panelIsVisible() -> Bool {
+    // The owner is matched by pid (looked up once per call): the watcher runs this every poll near the top of the screen.
+    let owners = Set(NSRunningApplication.runningApplications(withBundleIdentifier: controlCenterBundleID).map(\.processIdentifier))
+    guard !owners.isEmpty else { return false }
     let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
     return windows.contains { window in
-        guard let pid = window[kCGWindowOwnerPID as String] as? pid_t,
-            NSRunningApplication(processIdentifier: pid)?.bundleIdentifier == controlCenterBundleID,
+        guard let pid = window[kCGWindowOwnerPID as String] as? pid_t, owners.contains(pid),
             let bounds = window[kCGWindowBounds as String] as? [String: CGFloat]
         else { return false }
         return (bounds["Height"] ?? 0) > panelMinHeight
