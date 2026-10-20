@@ -78,7 +78,8 @@ sketchybar --set front_app icon="$icon_result"
 # --- Left: AeroSpace workspaces ---
 sketchybar --add event aerospace_workspace_change
 # Items start hidden, so the remembered row must start empty too.
-rm -f "$HOME/.cache/sketchybar/spaces" "$HOME/.cache/sketchybar/panel" "$HOME/.cache/sketchybar/panel_busy"
+rm -f "$HOME/.cache/sketchybar/spaces" "$HOME/.cache/sketchybar/panel"
+rmdir "$HOME/.cache/sketchybar/panel_busy" 2>/dev/null
 first_space=true
 for sid in $(aerospace list-workspaces --all); do
   # One item drives the whole row (it alone listens to the workspace event and ticks); the others only react to the mouse.

@@ -16,7 +16,7 @@ let controlCenterBundleID = "com.apple.controlcenter"
 let panelMinHeight: CGFloat = 100
 let menuBarStripHeight: CGFloat = 40
 let idlePollMicroseconds: UInt32 = 25000
-let dragPollMicroseconds: UInt32 = 12000
+let dragPollMicroseconds: UInt32 = 8000
 
 func post(_ key: CGKeyCode, down: Bool, flags: CGEventFlags) {
     let source = CGEventSource(stateID: .hidSystemState)

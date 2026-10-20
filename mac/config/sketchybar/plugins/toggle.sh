@@ -14,13 +14,25 @@ ANIMATION_FRAMES=22
 ANIMATION_SECONDS=0.45
 STALE_LOCK_SECONDS=3
 
-# One toggle at a time (a lock older than STALE_LOCK_SECONDS is a crashed run, not a busy one).
-if [ -e "$PANEL_BUSY" ] && [ $(($(date +%s) - $(stat -f %m "$PANEL_BUSY"))) -lt "$STALE_LOCK_SECONDS" ]; then
-  exit 0
-fi
+# One toggle at a time. mkdir is atomic, so two clicks can never both get in (a lock older than STALE_LOCK_SECONDS is a
+# crashed run, not a busy one; a lock that vanishes while it is being read was just released, so that click is dropped).
+acquire_lock() {
+  local locked_at
+  mkdir "$PANEL_BUSY" 2>/dev/null && return 0
+  locked_at="$(stat -f %m "$PANEL_BUSY" 2>/dev/null)" || return 1
+  [ $(($(date +%s) - locked_at)) -ge "$STALE_LOCK_SECONDS" ] || return 1
+  rmdir "$PANEL_BUSY" 2>/dev/null
+  mkdir "$PANEL_BUSY" 2>/dev/null
+}
 mkdir -p "$(dirname "$PANEL_STATE")"
-touch "$PANEL_BUSY"
-trap 'rm -f "$PANEL_BUSY"' EXIT
+acquire_lock || exit 0
+# The one place the lock is released; it also clears the exit trap, so a run that already let go can never delete the lock of
+# the click that took over after it.
+release_lock() {
+  trap - EXIT
+  rmdir "$PANEL_BUSY" 2>/dev/null
+}
+trap release_lock EXIT
 
 faded=()
 shown=()
@@ -48,6 +60,6 @@ else
   sketchybar "${args[@]}" "${faded[@]}" --animate "$ANIMATION_CURVE" "$ANIMATION_FRAMES" "${shown[@]}" --set chevron icon="$CHEVRON_RIGHT"
   sleep "$ANIMATION_SECONDS"
   echo on >"$PANEL_STATE"
-  rm -f "$PANEL_BUSY"
+  release_lock
   sketchybar --update # the plugins skipped their updates while the panel was hidden
 fi
