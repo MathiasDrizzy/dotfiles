@@ -36,7 +36,7 @@ plugins_exist() {
 symbols_defined() {
   local v
   for v in $(grep -ho '\$[A-Z][A-Z_0-9]*' "$SB"/sketchybarrc "$SB"/plugins/*.sh | tr -d '$' | sort -u); do
-    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE) continue ;; esac
+    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE) continue ;; esac
     grep -q "^$v=" "$SB/colors.sh" "$SB/icons.sh" || {
       echo "undefined: $v" >&2
       return 1
@@ -45,6 +45,20 @@ symbols_defined() {
 }
 no_event_var_shadowing() { # colors.sh and icons.sh are sourced by scripts that also read SketchyBar's event variables
   ! grep -qE '^(INFO|SENDER|NAME|BUTTON|MODIFIER|SCROLL_DELTA|FOCUSED_WORKSPACE)=' "$SB/colors.sh" "$SB/icons.sh"
+}
+one_icon_pack_and_sizes() { # every glyph is Material Design, no duplicates, and font sizes come from ICON_SIZE / TEXT_SIZE
+  python3 -I - "$SB/icons.sh" <<'PY' || return 1
+import re, sys
+names = set()
+for line in open(sys.argv[1]):
+    m = re.match(r"^([A-Z_0-9]+)='(.)'", line)
+    if not m:
+        continue
+    if m.group(1) in names or not 0xF0001 <= ord(m.group(2)) <= 0xF1AF0:
+        sys.exit(1)
+    names.add(m.group(1))
+PY
+  ! grep -qE '(Bold|Regular):[0-9]' "$SB/sketchybarrc" "$SB"/plugins/*.sh
 }
 transparent_bar() {
   grep -q 'color=\$TRANSPARENT' "$SB/sketchybarrc" && grep -q 'notch_width=' "$SB/sketchybarrc"
@@ -67,6 +81,7 @@ check "the rc and the plugins are executable" executable_ok
 check "every plugin the rc points to exists" plugins_exist
 check "every icon and color used is defined" symbols_defined
 check "colors.sh and icons.sh do not shadow SketchyBar event variables" no_event_var_shadowing
+check "icons are one pack (Material Design) and every font size comes from ICON_SIZE or TEXT_SIZE" one_icon_pack_and_sizes
 check "the bar is transparent and keeps the notch gap" transparent_bar
 check "AeroSpace starts SketchyBar and triggers workspace changes" aerospace_hooks
 check "install.sh installs the formulae and check-links.sh links the files" installer_ok

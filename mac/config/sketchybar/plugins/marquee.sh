@@ -4,8 +4,8 @@
 # so the pill never changes size. It bounces (pausing at both ends) at about 25 px per second. Started by media.sh;
 # it exits on its own when there is no track or SketchyBar is gone.
 CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/sketchybar"
-LABEL_WIDTH=136
-CHAR_PX_X10=66 # width of one character at 11 pt, times 10
+LABEL_WIDTH=144
+CHAR_PX_X10=72 # width of one character at 12 pt, times 10
 BASE_PAD_RIGHT=10
 HOLD=40   # frames to pause at each end
 STEP=0.04 # seconds per frame (1 px per frame)

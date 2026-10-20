@@ -9,7 +9,6 @@ source "$CONFIG_DIR/colors.sh"
 source "$CONFIG_DIR/icons.sh"
 source "$CONFIG_DIR/icon_map.sh"
 
-FONT="JetBrainsMono Nerd Font"
 MAX_ENTRIES=30
 SELF="$CONFIG_DIR/plugins/appmenu.sh"
 
@@ -24,7 +23,7 @@ clear_entries() { sketchybar --remove '/appmenu\.entry\..*/' >/dev/null 2>&1; }
 add_entry() { # index, label, click command, icon
   sketchybar --add item "appmenu.entry.$1" popup.front_app \
     --set "appmenu.entry.$1" icon="${4:-}" icon.color="$MAUVE" icon.width=26 icon.align=center \
-    label="$2" label.padding_right=14 label.font="$FONT:Regular:12.0" \
+    label="$2" label.padding_right=14 \
     script="$CONFIG_DIR/plugins/hover.sh" click_script="$3" \
     --subscribe "appmenu.entry.$1" mouse.entered mouse.exited
 }

@@ -6,7 +6,9 @@ CONFIG_DIR="${CONFIG_DIR:-$HOME/.config/sketchybar}"
 PLUGIN_DIR="$CONFIG_DIR/plugins"
 # the same family as the Ghostty terminal
 FONT="JetBrainsMono Nerd Font"
-ICON_SIZE=15.0 # every bar icon uses the same size
+# One size per kind for the whole bar: icons 15, text 12 (workspace numbers and the clock are bold, the rest regular).
+ICON_SIZE=15.0
+TEXT_SIZE=12.0
 
 # shellcheck source=colors.sh
 source "$CONFIG_DIR/colors.sh"
@@ -23,7 +25,7 @@ sketchybar --bar \
 
 sketchybar --default \
   updates=on \
-  icon.font="$FONT:Bold:$ICON_SIZE" label.font="$FONT:Regular:12.0" \
+  icon.font="$FONT:Regular:$ICON_SIZE" label.font="$FONT:Regular:$TEXT_SIZE" \
   icon.color="$TEXT" label.color="$TEXT" \
   icon.padding_left=8 icon.padding_right=4 label.padding_left=0 label.padding_right=8 \
   padding_left=1 padding_right=1 \
@@ -38,7 +40,7 @@ pill() { # item or bracket name: the glass look shared by every pill
 # --- Left: Apple menu (a popup with the system actions) ---
 sketchybar --add item apple left \
   --set apple \
-  icon="$APPLE" icon.font="$FONT:Bold:$ICON_SIZE" icon.width=36 icon.align=center icon.padding_left=0 icon.padding_right=0 label.drawing=off \
+  icon="$APPLE" icon.font="$FONT:Regular:$ICON_SIZE" icon.width=34 icon.align=center icon.padding_left=0 icon.padding_right=0 label.drawing=off \
   popup.background.color=0xf21e1e2e popup.background.border_color="$BAR_BORDER" \
   popup.background.border_width=1 popup.background.corner_radius=12 popup.align=left \
   script="$PLUGIN_DIR/apple.sh" \
@@ -61,7 +63,7 @@ apple_entry shutdown "$POWER" "Apagar" "osascript -e 'tell application \"System 
 
 # --- Left: the active app; click for its menus (File, Edit, View...) in a popup ---
 sketchybar --add item front_app left \
-  --set front_app icon.font="sketchybar-app-font:Regular:$ICON_SIZE" icon.color="$MAUVE" icon.width=30 icon.align=center \
+  --set front_app icon.font="sketchybar-app-font:Regular:$ICON_SIZE" icon.color="$MAUVE" icon.width=34 icon.align=center \
   icon.padding_left=0 icon.padding_right=0 label.drawing=off \
   popup.background.color=0xf21e1e2e popup.background.border_color="$BAR_COLOR" \
   popup.background.border_width=1 popup.background.corner_radius=12 popup.align=left \
@@ -81,7 +83,7 @@ for sid in $(aerospace list-workspaces --all); do
   sketchybar --add item "space.$sid" left \
     --subscribe "space.$sid" aerospace_workspace_change mouse.entered mouse.exited \
     --set "space.$sid" \
-    icon="$sid" icon.padding_left=9 icon.padding_right=9 icon.font="$FONT:Bold:12.0" \
+    icon="$sid" icon.padding_left=9 icon.padding_right=9 icon.font="$FONT:Bold:$TEXT_SIZE" \
     label.drawing=off update_freq=1 \
     click_script="$PLUGIN_DIR/close_popups.sh; aerospace workspace $sid" \
     script="$PLUGIN_DIR/aerospace.sh $sid"
@@ -94,7 +96,7 @@ pill spaces
 # nothing is loaded.
 media_button() { # name, icon, command
   sketchybar --add item "$1" left \
-    --set "$1" drawing=off icon="$2" icon.color="$MAUVE" icon.font="$FONT:Bold:$ICON_SIZE" icon.width=26 icon.align=center \
+    --set "$1" drawing=off icon="$2" icon.color="$MAUVE" icon.font="$FONT:Regular:$ICON_SIZE" icon.width=30 icon.align=center \
     icon.padding_left=0 icon.padding_right=0 label.drawing=off background.height=24 background.corner_radius=8 \
     script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/close_popups.sh; $3" \
     --subscribe "$1" mouse.entered mouse.exited mouse.clicked
@@ -103,7 +105,7 @@ media_button media_prev "$PREV" "media-control previous-track"
 media_button media_play "$PLAY" "media-control toggle-play-pause; sleep 0.4; $PLUGIN_DIR/media.sh"
 media_button media_next "$NEXT" "media-control next-track"
 sketchybar --add item media left \
-  --set media drawing=off icon.drawing=off label.font="$FONT:Regular:11.0" label.width=136 label.padding_left=0 label.padding_right=10 \
+  --set media drawing=off icon.drawing=off label.font="$FONT:Regular:$TEXT_SIZE" label.width=144 label.padding_left=0 label.padding_right=10 \
   update_freq=2 script="$PLUGIN_DIR/media.sh" \
   click_script="$PLUGIN_DIR/close_popups.sh; media-control toggle-play-pause"
 sketchybar --add bracket media_pill media_prev media_play media_next media
@@ -111,21 +113,21 @@ pill media_pill
 
 # --- Right (added right to left): chevron, date and time, then the expandable status items; each in its own pill ---
 sketchybar --add item chevron right \
-  --set chevron icon="$CHEVRON_LEFT" icon.font="$FONT:Bold:$ICON_SIZE" icon.color="$MAUVE" \
-  icon.width=30 icon.align=center icon.padding_left=0 icon.padding_right=0 label.drawing=off \
+  --set chevron icon="$CHEVRON_LEFT" icon.font="$FONT:Regular:$ICON_SIZE" icon.color="$MAUVE" \
+  icon.width=34 icon.align=center icon.padding_left=0 icon.padding_right=0 label.drawing=off \
   script="$PLUGIN_DIR/hover.sh 0xf0313244 0xd91e1e2e" click_script="$PLUGIN_DIR/close_popups.sh; $PLUGIN_DIR/toggle.sh" \
   --subscribe chevron mouse.entered mouse.exited \
   --add item clock right \
-  --set clock icon.drawing=off label.font="$FONT:Bold:12.0" label.padding_left=12 label.padding_right=12 update_freq=10 \
+  --set clock icon.drawing=off label.font="$FONT:Bold:$TEXT_SIZE" label.padding_left=12 label.padding_right=12 update_freq=10 \
   script="$PLUGIN_DIR/clock.sh" click_script="$PLUGIN_DIR/close_popups.sh; open -a Calendar" \
   --subscribe clock mouse.entered mouse.exited \
   --add item battery right \
-  --set battery icon.font="$FONT:Bold:$ICON_SIZE" icon.width=22 icon.align=center icon.padding_left=10 icon.padding_right=0 \
+  --set battery icon.font="$FONT:Regular:$ICON_SIZE" icon.width=22 icon.align=center icon.padding_left=10 icon.padding_right=0 \
   label.padding_left=2 label.padding_right=12 update_freq=30 script="$PLUGIN_DIR/battery.sh" \
   click_script="open x-apple.systempreferences:com.apple.Battery-Settings.extension" \
   --subscribe battery system_woke power_source_change mouse.entered mouse.exited \
   --add item wifi right \
-  --set wifi icon.font="$FONT:Bold:$ICON_SIZE" icon.width=32 icon.align=center icon.padding_left=0 icon.padding_right=0 \
+  --set wifi icon.font="$FONT:Regular:$ICON_SIZE" icon.width=34 icon.align=center icon.padding_left=0 icon.padding_right=0 \
   label.drawing=off update_freq=10 script="$PLUGIN_DIR/wifi.sh" \
   click_script="open x-apple.systempreferences:com.apple.wifi-settings-extension" \
   --subscribe wifi wifi_change mouse.entered mouse.exited \

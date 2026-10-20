@@ -1,15 +1,12 @@
 # shellcheck shell=bash disable=SC2034
-# Icon glyphs (Nerd Font Material Design codepoints), sourced by sketchybarrc and the plugins.
+# Icon glyphs: every one is a Nerd Font Material Design codepoint (U+F0001..U+F1AF0), the only icon set besides
+# sketchybar-app-font (app glyphs, see icon_map.sh). Sourced by sketchybarrc and the plugins.
 
 MUSIC='󰝚'         # U+F075A
 PLAY='󰐊'          # U+F040A
 PREV='󰒮'          # U+F04AE
 NEXT='󰒭'          # U+F04AD
 PAUSE='󰏤'         # U+F03E4
-PLAY='󰐊'          # U+F040A
-PAUSE='󰏤'         # U+F03E4
-NEXT='󰒭'          # U+F04AD
-PREV='󰒮'          # U+F04AE
 BAT_0='󰂎'         # U+F008E
 BAT_10='󰁺'        # U+F007A
 BAT_20='󰁻'        # U+F007B
@@ -24,17 +21,9 @@ BAT_100='󰁹'       # U+F0079
 BAT_CHARGING='󰂄'  # U+F0084
 WIFI='󰖩'          # U+F05A9
 WIFI_OFF='󰖪'      # U+F05AA
-VOL_HIGH='󰕾'      # U+F057E
-VOL_MED='󰖀'       # U+F0580
-VOL_LOW='󰕿'       # U+F057F
-VOL_MUTE='󰖁'      # U+F0581
-CPU='󰻠'           # U+F0EE0
-MEM='󰍛'           # U+F035B
-CLOCK='󰥔'         # U+F0954
-CALENDAR='󰃭'      # U+F00ED
-CHEVRON_LEFT=''  # U+F053
-CHEVRON_RIGHT='' # U+F054
-APPLE=''         # U+F179
+CHEVRON_LEFT='󰅁'  # U+F0141
+CHEVRON_RIGHT='󰅂' # U+F0142
+APPLE='󰀵'         # U+F0035
 SETTINGS='󰒓'      # U+F0493
 ICON_INFO='󰋽'     # U+F02FD
 SLEEP='󰒲'         # U+F04B2
