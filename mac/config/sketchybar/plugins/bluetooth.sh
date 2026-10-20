@@ -9,7 +9,7 @@ if [ "$(blueutil --power)" != 1 ]; then
   exit 0
 fi
 
-name="$(blueutil --connected --format json | jq -r '.[0].name // empty')"
+device="$(blueutil --connected --format json | jq -r '.[0].name // empty')"
 if [ -n "$device" ]; then
   sketchybar --set "$NAME" icon.color="$MAUVE" label="$(cut -d" " -f1-2 <<<"$device")" label.drawing=on
 else
