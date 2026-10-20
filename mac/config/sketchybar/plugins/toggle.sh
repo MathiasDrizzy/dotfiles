@@ -3,8 +3,8 @@
 # Expands or collapses the status items; the chevron points toward where they will go.
 source "$CONFIG_DIR/icons.sh"
 
-ITEMS=(cpu mem wifi battery)
-state="$(sketchybar --query cpu | jq -r '.geometry.drawing')"
+ITEMS=(sys wifi battery)
+state="$(sketchybar --query sys | jq -r '.geometry.drawing')"
 
 if [ "$state" = "on" ]; then
   drawing=off

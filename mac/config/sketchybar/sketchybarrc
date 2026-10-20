@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# SketchyBar: left = Apple menu, AeroSpace workspaces and now playing; right = a "<" that expands the status items,
-# Vorssaint and the clock. Docs: https://felixkratz.github.io/SketchyBar/  ·  reload: sketchybar --reload
+# SketchyBar: left = Apple menu, active app menus, AeroSpace workspaces and now playing; right = a "<" that expands the
+# status items, the date and the time. Docs: https://felixkratz.github.io/SketchyBar/  ·  reload: sketchybar --reload
 
 CONFIG_DIR="${CONFIG_DIR:-$HOME/.config/sketchybar}"
 PLUGIN_DIR="$CONFIG_DIR/plugins"
@@ -49,13 +49,22 @@ apple_entry() { # name, icon, label, command
     script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/apple.sh close; $4" \
     --subscribe "apple.$1" mouse.entered mouse.exited
 }
-apple_entry about "$INFO" "Acerca de este Mac" "open -a 'System Information'"
+apple_entry about "$ICON_INFO" "Acerca de este Mac" "open x-apple.systempreferences:com.apple.SystemProfiler.AboutExtension"
 apple_entry settings "$SETTINGS" "Ajustes del Sistema" "open -a 'System Settings'"
 apple_entry sleep "$SLEEP" "Suspender" "pmset sleepnow"
 apple_entry lock "$LOCK" "Bloquear pantalla" "pmset displaysleepnow"
 apple_entry logout "$LOGOUT" "Cerrar sesión" "osascript -e 'tell application \"System Events\" to log out'"
 apple_entry restart "$RESTART" "Reiniciar" "osascript -e 'tell application \"System Events\" to restart'"
 apple_entry shutdown "$POWER" "Apagar" "osascript -e 'tell application \"System Events\" to shut down'"
+
+# --- Left: the active app; click for its menus (File, Edit, View...) in a popup ---
+sketchybar --add item front_app left \
+  --set front_app icon.drawing=off label.font="$FONT:Bold:12.0" label.padding_left=12 label.padding_right=12 \
+  popup.background.color=0xf21e1e2e popup.background.border_color="$BAR_COLOR" \
+  popup.background.border_width=1 popup.background.corner_radius=12 popup.align=left \
+  script="$PLUGIN_DIR/appmenu.sh" \
+  --subscribe front_app front_app_switched mouse.entered mouse.exited mouse.exited.global mouse.clicked
+pill front_app
 
 # --- Left: AeroSpace workspaces ---
 sketchybar --add event aerospace_workspace_change
@@ -80,21 +89,24 @@ sketchybar --add item media left \
   script="$PLUGIN_DIR/media.sh"
 pill media
 
-# --- Right (added right to left): chevron, Vorssaint, clock, then the expandable status items ---
+# --- Right (added right to left): chevron, time, date, then the expandable status items ---
 sketchybar --add item chevron right \
   --set chevron icon="$CHEVRON_LEFT" icon.font="$FONT:Bold:12.0" icon.color="$MAUVE" \
   icon.padding_left=8 icon.padding_right=8 label.drawing=off \
   script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/toggle.sh" \
   --subscribe chevron mouse.entered mouse.exited
 
-sketchybar --add item vorssaint right \
-  --set vorssaint icon="$SETTINGS" icon.color="$MAUVE" label.drawing=off \
-  script="$PLUGIN_DIR/hover.sh" click_script="open -a Vorssaint" \
-  --subscribe vorssaint mouse.entered mouse.exited \
-  --add item clock right \
-  --set clock icon="$CLOCK" icon.color="$MAUVE" update_freq=10 \
+# Date and time stacked in one slot: the time (bold) on top and the date (small, dim) below. The date item has
+# padding_right=-78 (the label width) so it overlaps the clock; both labels share one fixed width and are centered.
+sketchybar --add item clock right \
+  --set clock icon.drawing=off label.font="$FONT:Bold:13.0" label.width=78 label.align=center \
+  label.padding_left=0 label.padding_right=0 label.y_offset=5 update_freq=10 \
   script="$PLUGIN_DIR/clock.sh" click_script="open -a Calendar" \
   --subscribe clock mouse.entered mouse.exited \
+  --add item date right \
+  --set date icon.drawing=off padding_right=-78 label.font="$FONT:Regular:10.0" label.color="$SUBTEXT" \
+  label.width=78 label.align=center label.padding_left=0 label.padding_right=0 label.y_offset=-7 update_freq=60 \
+  script="$PLUGIN_DIR/clock.sh" \
   --add item battery right \
   --set battery update_freq=30 script="$PLUGIN_DIR/battery.sh" \
   click_script="open x-apple.systempreferences:com.apple.Battery-Settings.extension" \
@@ -103,20 +115,16 @@ sketchybar --add item vorssaint right \
   --set wifi update_freq=10 script="$PLUGIN_DIR/wifi.sh" \
   click_script="open x-apple.systempreferences:com.apple.wifi-settings-extension" \
   --subscribe wifi wifi_change mouse.entered mouse.exited \
-  --add item mem right \
-  --set mem icon.drawing=off label.padding_left=8 update_freq=2 script="$PLUGIN_DIR/mem.sh" \
-  click_script="open -a 'Activity Monitor'" \
-  --subscribe mem mouse.entered mouse.exited \
-  --add item cpu right \
-  --set cpu icon.drawing=off label.padding_left=8 update_freq=2 script="$PLUGIN_DIR/cpu.sh" \
-  click_script="open -a 'Activity Monitor'" \
-  --subscribe cpu mouse.entered mouse.exited
+  --add item sys right \
+  --set sys icon.drawing=off label.padding_left=8 update_freq=2 script="$PLUGIN_DIR/sys.sh" \
+  click_script="$PLUGIN_DIR/monitor.sh" \
+  --subscribe sys mouse.entered mouse.exited
 
-sketchybar --add bracket status chevron vorssaint clock battery wifi mem cpu
+sketchybar --add bracket status chevron clock date battery wifi sys
 pill status
 
 # Status items start collapsed; the chevron toggles them.
-sketchybar --set cpu drawing=off --set mem drawing=off --set wifi drawing=off --set battery drawing=off
+sketchybar --set sys drawing=off --set wifi drawing=off --set battery drawing=off
 
 sketchybar --hotload on
 sketchybar --update
