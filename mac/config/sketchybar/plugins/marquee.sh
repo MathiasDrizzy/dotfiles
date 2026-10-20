@@ -1,24 +1,28 @@
 #!/usr/bin/env bash
-# Smooth title marquee for the media item: shows a fixed 20-character window over "Title - Artist" and bounces it
-# back and forth (about 3 characters per second, pausing at both ends). Started by media.sh; it exits on its own
-# when there is no track or SketchyBar is gone.
-export LC_ALL=en_US.UTF-8
+# Pixel-smooth title marquee for the media item. The label has a fixed width (set in the rc) and clips the text; this
+# script slides the text left and right by changing label.padding_left, and grows label.padding_right by the same amount
+# so the pill never changes size. It bounces (pausing at both ends) at about 25 px per second. Started by media.sh;
+# it exits on its own when there is no track or SketchyBar is gone.
 CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/sketchybar"
-WIDTH=20
-HOLD=8
-STEP=0.33
+LABEL_WIDTH=136
+CHAR_PX_X10=66 # width of one character at 11 pt, times 10
+BASE_PAD_RIGHT=10
+HOLD=40   # frames to pause at each end
+STEP=0.04 # seconds per frame (1 px per frame)
+REREAD=25 # frames between reads of the title
 
-tick=0
-last=""
+frame=0
+span=0
+last=-1
 while pgrep -xq sketchybar; do
-  text="$(cat "$CACHE/media-text" 2>/dev/null)"
-  [ -z "$text" ] && exit 0
-  len=${#text}
-  if [ "$len" -le "$WIDTH" ]; then
-    shown="$(printf '%-*s' "$WIDTH" "$text")"
-  else
-    span=$((len - WIDTH))
-    t=$((tick % (2 * (span + HOLD))))
+  if [ $((frame % REREAD)) -eq 0 ]; then
+    length="$(wc -m <"$CACHE/media-text" 2>/dev/null | tr -d ' ')"
+    [ "${length:-0}" -eq 0 ] && exit 0
+    span=$((length * CHAR_PX_X10 / 10 - LABEL_WIDTH + 8))
+  fi
+  offset=0
+  if [ "$span" -gt 0 ]; then
+    t=$((frame % (2 * (span + HOLD))))
     if [ "$t" -lt "$HOLD" ]; then
       offset=0
     elif [ "$t" -lt $((HOLD + span)) ]; then
@@ -28,12 +32,11 @@ while pgrep -xq sketchybar; do
     else
       offset=$((span - (t - 2 * HOLD - span)))
     fi
-    shown="${text:offset:WIDTH}"
   fi
-  if [ "$shown" != "$last" ]; then
-    sketchybar --set media label="$shown"
-    last="$shown"
+  if [ "$offset" -ne "$last" ]; then
+    sketchybar --set media label.padding_left="-$offset" label.padding_right="$((BASE_PAD_RIGHT + offset))"
+    last=$offset
   fi
-  tick=$((tick + 1))
+  frame=$((frame + 1))
   sleep "$STEP"
 done

@@ -24,6 +24,9 @@ fi
 text="$title"
 [ -n "$artist" ] && text="$title - $artist"
 printf '%s' "$text" >"$CACHE/media-text"
+if [ "$(sketchybar --query media | jq -r '.label.value')" != "$text" ]; then
+  sketchybar --set media label="$text" label.padding_left=0 label.padding_right=10
+fi
 
 if [ "$playing" = "true" ]; then
   play_icon="$PAUSE"
