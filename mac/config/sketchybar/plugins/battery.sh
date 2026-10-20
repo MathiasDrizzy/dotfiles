@@ -11,9 +11,9 @@ pct="$(grep -Eo '[0-9]+%' <<<"$batt" | head -1 | tr -d '%')"
 if grep -q 'AC Power' <<<"$batt"; then
   icon="$BAT_CHARGING"
   font="$APP_ICON_FONT:Regular:$ICON_SIZE"
-  color="$GREEN"
+  color="$MAUVE"
 else
-  color="$TEXT"
+  color="$MAUVE"
   font="$BAT_FONT:Regular:$ICON_SIZE"
   step=$(((pct + 5) / 10 * 10))
   [ "$step" -gt 100 ] && step=100
