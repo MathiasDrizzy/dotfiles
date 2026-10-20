@@ -1,18 +1,13 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC1091
-# Now playing. Shows "Title - Artist" in a fixed 18-character window that bounces back and forth when the text is
-# longer (one character per second, pausing at both ends); dimmed with a pause icon while paused. The three media
-# items are hidden when no track is loaded. Mouse events go to hover.sh.
-export LC_ALL=en_US.UTF-8
-case "$SENDER" in mouse.*)
-  exec "$CONFIG_DIR/plugins/hover.sh"
-  ;;
-esac
+# shellcheck disable=SC1091,SC2153
+# Now playing, polled every 2 s: updates the buttons and the title and hides everything when no track is loaded. The
+# title itself is animated by marquee.sh, which this script starts when needed. The play/pause button shows the action
+# the click will do.
 source "$CONFIG_DIR/colors.sh"
 source "$CONFIG_DIR/icons.sh"
 
-WIDTH=18
-HOLD=2
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/sketchybar"
+mkdir -p "$CACHE"
 
 info="$(media-control get 2>/dev/null)"
 playing="$(jq -r '.playing // false' <<<"$info" 2>/dev/null)"
@@ -20,39 +15,28 @@ title="$(jq -r '.title // empty' <<<"$info" 2>/dev/null)"
 artist="$(jq -r '.artist // empty' <<<"$info" 2>/dev/null)"
 
 if [ -z "$title" ]; then
-  sketchybar --set media drawing=off --set media_prev drawing=off --set media_next drawing=off
+  : >"$CACHE/media-text"
+  sketchybar --set media drawing=off --set media_prev drawing=off --set media_play drawing=off \
+    --set media_next drawing=off
   exit 0
 fi
 
 text="$title"
 [ -n "$artist" ] && text="$title - $artist"
-
-len=${#text}
-if [ "$len" -le "$WIDTH" ]; then
-  shown="$(printf '%-*s' "$WIDTH" "$text")"
-else
-  span=$((len - WIDTH))
-  t=$(($(date +%s) % (2 * (span + HOLD))))
-  if [ "$t" -lt "$HOLD" ]; then
-    offset=0
-  elif [ "$t" -lt $((HOLD + span)) ]; then
-    offset=$((t - HOLD))
-  elif [ "$t" -lt $((2 * HOLD + span)) ]; then
-    offset=$span
-  else
-    offset=$((span - (t - 2 * HOLD - span)))
-  fi
-  shown="${text:offset:WIDTH}"
-fi
+printf '%s' "$text" >"$CACHE/media-text"
 
 if [ "$playing" = "true" ]; then
-  icon="$MUSIC"
-  icon_color="$MAUVE"
+  play_icon="$PAUSE"
   label_color="$TEXT"
 else
-  icon="$PAUSE"
-  icon_color="$OVERLAY0"
+  play_icon="$PLAY"
   label_color="$OVERLAY0"
 fi
-sketchybar --set media drawing=on icon="$icon" icon.color="$icon_color" label="$shown" label.color="$label_color" \
-  --set media_prev drawing=on --set media_next drawing=on
+sketchybar --set media drawing=on label.color="$label_color" \
+  --set media_play drawing=on icon="$play_icon" --set media_prev drawing=on --set media_next drawing=on
+
+pidfile="$CACHE/marquee.pid"
+if ! { [ -s "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; }; then
+  nohup "$CONFIG_DIR/plugins/marquee.sh" >/dev/null 2>&1 &
+  echo $! >"$pidfile"
+fi

@@ -81,7 +81,7 @@ sketchybar --add bracket spaces '/space\..*/'
 pill spaces
 
 # --- Left: now playing (only visible while something plays) ---
-# Now playing: previous / title (click = play-pause) / next. media.sh scrolls long titles and hides all three when
+# Now playing: previous / play-pause / next, then the title (marquee.sh bounces it smoothly). media.sh hides all of them when
 # nothing is loaded.
 media_button() { # name, icon, command
   sketchybar --add item "$1" left \
@@ -91,13 +91,13 @@ media_button() { # name, icon, command
     --subscribe "$1" mouse.entered mouse.exited mouse.clicked
 }
 media_button media_prev "$PREV" "media-control previous-track"
-sketchybar --add item media left \
-  --set media drawing=off icon="$MUSIC" icon.color="$MAUVE" icon.font="$FONT:Bold:12.0" icon.padding_left=6 icon.padding_right=4 \
-  label.font="$FONT:Regular:11.0" label.padding_right=6 update_freq=1 background.height=24 background.corner_radius=8 \
-  click_script="$PLUGIN_DIR/close_popups.sh; media-control toggle-play-pause" script="$PLUGIN_DIR/media.sh" \
-  --subscribe media mouse.entered mouse.exited mouse.clicked
+media_button media_play "$PLAY" "media-control toggle-play-pause"
 media_button media_next "$NEXT" "media-control next-track"
-sketchybar --add bracket media_pill media_prev media media_next
+sketchybar --add item media left \
+  --set media drawing=off icon.drawing=off label.font="$FONT:Regular:11.0" label.padding_left=6 label.padding_right=10 \
+  update_freq=2 script="$PLUGIN_DIR/media.sh" \
+  click_script="$PLUGIN_DIR/close_popups.sh; media-control toggle-play-pause"
+sketchybar --add bracket media_pill media_prev media_play media_next media
 pill media_pill
 
 # --- Right (added right to left): chevron, date and time, then the expandable status items; each in its own pill ---
