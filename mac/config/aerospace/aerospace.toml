@@ -3,7 +3,11 @@
 
 config-version = 2
 
-after-startup-command = []
+# JankyBorders: a thin purple round border on the focused window only (inactive windows get none).
+# It detects an already running instance, so an AeroSpace restart does not start it twice.
+after-startup-command = [
+    'exec-and-forget borders style=round width=2.0 hidpi=on active_color=0xccb48efa inactive_color=0x00000000'
+]
 start-at-login = true
 auto-reload-config = true
 

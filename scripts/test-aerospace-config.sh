@@ -55,6 +55,12 @@ check "no binding uses the vim keys h, j, k or l" not no_vim_keys
 check "no binding uses US punctuation keys (Latin American keyboard)" not no_us_punctuation
 check "each workspace binding has a move-node-to-workspace twin" twins
 check "on-window-detected callbacks have the documented shape" callbacks
+has_borders() {
+  grep -q "^after-startup-command = \\[" "$CFG" && grep -q "exec-and-forget borders .*style=round" "$CFG" &&
+    grep -q "inactive_color=0x00000000" "$CFG" &&
+    grep -q 'brew install felixkratz/formulae/borders' "$ROOT/mac/install.sh"
+}
+check "only the focused window gets a subtle round border (borders, installed by install.sh)" has_borders
 check "install.sh and check-links.sh link the config and install the cask" installer_links
 
 if [ "$fails" -eq 0 ]; then echo "test-aerospace-config: PASS"; else

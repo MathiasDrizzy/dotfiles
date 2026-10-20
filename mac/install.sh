@@ -99,6 +99,7 @@ if [ "$LINKS_ONLY" = false ]; then
     brew install "${BREW_PACKAGES[@]}"
     brew install --cask font-jetbrains-mono-nerd-font || true
     brew install --cask nikitabobko/tap/aerospace || true
+    brew install felixkratz/formulae/borders || true
   fi
 
   # 4. Activar toolchain de Rust

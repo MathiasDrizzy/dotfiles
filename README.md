@@ -73,6 +73,8 @@ An i3-like tiling window manager that needs no SIP changes. It replaces the nati
 | `alt+enter` | New Ghostty window |
 | `alt+shift+ñ` | Service mode (`esc` reloads the config, `r` resets the layout, `backspace` closes all windows but the current one, `alt+shift+arrows` joins with a neighbor) |
 
+The focused window gets a thin purple round border from [JankyBorders](https://github.com/FelixKratz/JankyBorders) (`borders`, started by AeroSpace; installed by `install.sh`); inactive windows get none.
+
 The keyboard is Latin American, so the punctuation keys are aliased by the symbol printed on them (`key-mapping` in the config). Only numbered workspaces are bound, so the shell's `alt+b/f/d` word motions keep working. It needs the Accessibility permission and `defaults write com.apple.dock expose-group-apps -bool true` so Mission Control shows hidden windows properly.
 
 ## herdr-ctl (Go, `mac/tools/herdr-ctl`)
