@@ -81,7 +81,7 @@ if [ "$LINKS_ONLY" = false ]; then
   BREW_PACKAGES=(
     herdr ghostty micro glow bat git-delta go rustup
     yazi ffmpeg poppler fd ripgrep fzf zoxide atuin starship mise
-    lazygit lazydocker termscp sshs btop chafa
+    lazygit lazydocker termscp sshs btop chafa blueutil
     fzf-tab zsh-autosuggestions zsh-syntax-highlighting
   )
 
@@ -165,6 +165,7 @@ REQUIRED_SOURCES=(
   "config/sketchybar/plugins/monitor.sh"
   "config/sketchybar/plugins/close_popups.sh"
   "config/sketchybar/plugins/media_toggle.sh"
+  "config/sketchybar/plugins/bluetooth.sh"
   "config/sketchybar/plugins/about.sh"
   "config/sketchybar/plugins/marquee.sh"
   "config/sketchybar/plugins/wifi.sh"

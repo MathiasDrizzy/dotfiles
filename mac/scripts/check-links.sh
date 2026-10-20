@@ -103,6 +103,7 @@ CONFIG_PAIRS=(
   "config/sketchybar/plugins/monitor.sh|$HOME/.config/sketchybar/plugins/monitor.sh"
   "config/sketchybar/plugins/close_popups.sh|$HOME/.config/sketchybar/plugins/close_popups.sh"
   "config/sketchybar/plugins/media_toggle.sh|$HOME/.config/sketchybar/plugins/media_toggle.sh"
+  "config/sketchybar/plugins/bluetooth.sh|$HOME/.config/sketchybar/plugins/bluetooth.sh"
   "config/sketchybar/plugins/about.sh|$HOME/.config/sketchybar/plugins/about.sh"
   "config/sketchybar/plugins/marquee.sh|$HOME/.config/sketchybar/plugins/marquee.sh"
   "config/sketchybar/plugins/wifi.sh|$HOME/.config/sketchybar/plugins/wifi.sh"
