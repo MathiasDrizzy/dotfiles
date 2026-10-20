@@ -2,6 +2,7 @@
 //   ctlcenter open     presses fn+C, the system shortcut that opens Control Center
 //   ctlcenter close    presses Escape, which closes the panel
 //   ctlcenter top      exits 0 while the pointer is in the top strip where the system menu bar reveals itself
+//   ctlcenter indicator exits 0 while macOS shows its orange (microphone), green or purple privacy dot
 //   ctlcenter visible  exits 0 while a Control Center window is on screen, 1 otherwise
 import AppKit
 import CoreGraphics
@@ -39,6 +40,11 @@ func pointerIsAtTop() -> Bool {
     (CGEvent(source: nil)?.location.y ?? .infinity) < menuBarStripHeight
 }
 
+func privacyIndicatorIsShown() -> Bool {
+    let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+    return windows.contains { ($0[kCGWindowName as String] as? String) == "StatusIndicator" }
+}
+
 func panelIsVisible() -> Bool {
     let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
     return windows.contains { window in
@@ -57,9 +63,11 @@ case "close":
     closeControlCenter()
 case "top":
     exit(pointerIsAtTop() ? 0 : 1)
+case "indicator":
+    exit(privacyIndicatorIsShown() ? 0 : 1)
 case "visible":
     exit(panelIsVisible() ? 0 : 1)
 default:
-    FileHandle.standardError.write(Data("usage: ctlcenter open|close|top|visible\n".utf8))
+    FileHandle.standardError.write(Data("usage: ctlcenter open|close|top|indicator|visible\n".utf8))
     exit(2)
 }

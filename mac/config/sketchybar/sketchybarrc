@@ -17,7 +17,7 @@ source "$CONFIG_DIR/icons.sh"
 sketchybar --bar \
   position=top height=32 margin=10 y_offset=4 corner_radius=12 \
   color=$TRANSPARENT border_width=0 \
-  padding_left=8 padding_right=24 notch_width=210 \
+  padding_left=8 padding_right=0 notch_width=210 \
   topmost=on sticky=on shadow=off
 
 sketchybar --default \
@@ -92,7 +92,7 @@ for sid in $(aerospace list-workspaces --all); do
   fi
   sketchybar --subscribe "space.$sid" mouse.entered mouse.exited \
     --set "space.$sid" \
-    icon="$sid" icon.padding_left=9 icon.padding_right=9 icon.font="$FONT:Bold:$TEXT_SIZE" \
+    icon="$sid" icon.width=26 icon.align=center icon.padding_left=0 icon.padding_right=0 icon.font="$FONT:Bold:$TEXT_SIZE" \
     label.drawing=off drawing=off background.drawing=on background.color="$TRANSPARENT" \
     click_script="$PLUGIN_DIR/close_popups.sh; aerospace workspace $sid" \
     "${driver[@]}"
@@ -121,7 +121,12 @@ sketchybar --add bracket media_pill media_prev media_play media_next media
 pill media_pill
 
 # --- Right (added right to left): chevron, date and time, then the expandable status items; each in its own pill ---
-sketchybar --add item chevron right \
+# macOS draws its microphone dot over the right end of the bar, so that spot gets its own pill: the icon lights up
+# while the dot is on and the dot sits inside the pill instead of over the chevron.
+sketchybar --add item privacy right \
+  --set privacy icon="$MIC" icon.font="$APP_ICON_FONT:Regular:$ICON_SIZE" icon.color="$OVERLAY0" icon.width=34 icon.align=left \
+  icon.padding_left=10 icon.padding_right=0 label.drawing=off update_freq=2 script="$PLUGIN_DIR/privacy.sh" \
+  --add item chevron right \
   --set chevron icon="$CHEVRON_LEFT" icon.font="$APP_ICON_FONT:Regular:$ARROW_SIZE" icon.color="$MAUVE" \
   icon.width=34 icon.align=center icon.padding_left=0 icon.padding_right=0 label.drawing=off \
   script="$PLUGIN_DIR/hover.sh 0xf0313244 0xd91e1e2e" click_script="$PLUGIN_DIR/close_popups.sh; $PLUGIN_DIR/toggle.sh" \
@@ -148,7 +153,7 @@ sketchybar --add item chevron right \
   --set sys_pill script="$PLUGIN_DIR/hover.sh 0xf0313244 0xd91e1e2e" click_script="$PLUGIN_DIR/monitor.sh" \
   --subscribe sys_pill mouse.entered mouse.exited
 
-for name in chevron clock battery control sys_pill; do pill "$name"; done
+for name in privacy chevron clock battery control sys_pill; do pill "$name"; done
 
 # Status items start collapsed; the chevron toggles them.
 sketchybar --set sys drawing=off --set sys_mem drawing=off --set sys_pill drawing=off --set control drawing=off --set battery drawing=off

@@ -7,7 +7,7 @@
 source "$CONFIG_DIR/colors.sh"
 
 STATE="$HOME/.cache/sketchybar/spaces"
-PAD=9
+SLOT_WIDTH=26 # keep in step with icon.width in the rc: a fixed icon width ignores the paddings
 HIDDEN_ICON=0x00000000
 ANIMATION_CURVE=tanh
 ANIMATION_FRAMES=14
@@ -53,12 +53,12 @@ printf '%s\n' "$shown" >"$STATE"
 squeeze=()
 grow=()
 for sid in "${appear[@]}"; do
-  squeeze+=(--set "space.$sid" drawing=on icon.padding_left=0 icon.padding_right=0 icon.color="$HIDDEN_ICON")
-  grow+=(--set "space.$sid" icon.padding_left="$PAD" icon.padding_right="$PAD")
+  squeeze+=(--set "space.$sid" drawing=on icon.width=0 icon.color="$HIDDEN_ICON")
+  grow+=(--set "space.$sid" icon.width="$SLOT_WIDTH")
 done
 shrink=()
 for sid in "${vanish[@]}"; do
-  shrink+=(--set "space.$sid" icon.padding_left=0 icon.padding_right=0 icon.color="$HIDDEN_ICON" background.color="$TRANSPARENT")
+  shrink+=(--set "space.$sid" icon.width=0 icon.color="$HIDDEN_ICON" background.color="$TRANSPARENT")
 done
 
 # One call: the squeeze is instant, the colors and sizes animate together so the old and the new focus cross-fade.
@@ -69,7 +69,7 @@ if [ "${#shrink[@]}" -gt 0 ]; then
   current=" $(cat "$STATE" 2>/dev/null) "
   drop=()
   for sid in "${vanish[@]}"; do
-    case "$current" in *" $sid "*) ;; *) drop+=(--set "space.$sid" drawing=off icon.padding_left="$PAD" icon.padding_right="$PAD") ;; esac
+    case "$current" in *" $sid "*) ;; *) drop+=(--set "space.$sid" drawing=off icon.width="$SLOT_WIDTH") ;; esac
   done
   [ "${#drop[@]}" -gt 0 ] && sketchybar "${drop[@]}"
 fi

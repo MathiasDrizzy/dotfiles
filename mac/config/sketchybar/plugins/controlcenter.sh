@@ -8,6 +8,7 @@ source "$CONFIG_DIR/colors.sh"
 CTL="$HOME/.local/bin/ctlcenter"
 POLL=0.1
 MAX_POLLS=1200 # give up after two minutes
+FADE_FRAMES=8  # the bar fades in and out instead of flashing
 SETTLE_POLLS=5 # the panel takes a moment to appear
 GRACE_POLLS=6  # the native bar needs a moment to slide away once the pointer leaves
 
@@ -24,7 +25,7 @@ fi
 "$CONFIG_DIR/plugins/close_popups.sh"
 # The native bar stays up while the pointer is in the top strip, so the cover is kept until the pointer leaves it.
 # The pills keep their screen position: the bar loses its 10 px side margin and gains it back as padding.
-sketchybar --bar color=0xff11111b margin=0 y_offset=0 height=38 corner_radius=0 padding_left=18 padding_right=34
+sketchybar --animate tanh "$FADE_FRAMES" --bar color=0xff11111b margin=0 y_offset=0 height=40 corner_radius=0 padding_left=18 padding_right=10
 "$CTL" open
 
 polls=0
@@ -39,4 +40,4 @@ while [ "$polls" -lt "$MAX_POLLS" ]; do
     away=0
   fi
 done
-sketchybar --bar color="$TRANSPARENT" margin=10 y_offset=4 height=32 corner_radius=12 padding_left=8 padding_right=24
+sketchybar --animate tanh "$FADE_FRAMES" --bar color="$TRANSPARENT" margin=10 y_offset=4 height=32 corner_radius=12 padding_left=8 padding_right=0

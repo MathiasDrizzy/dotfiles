@@ -105,6 +105,7 @@ CONFIG_PAIRS=(
   "config/sketchybar/plugins/media_toggle.sh|$HOME/.config/sketchybar/plugins/media_toggle.sh"
   "config/sketchybar/plugins/controlcenter.sh|$HOME/.config/sketchybar/plugins/controlcenter.sh"
   "config/sketchybar/plugins/control.sh|$HOME/.config/sketchybar/plugins/control.sh"
+  "config/sketchybar/plugins/privacy.sh|$HOME/.config/sketchybar/plugins/privacy.sh"
   "config/sketchybar/plugins/about.sh|$HOME/.config/sketchybar/plugins/about.sh"
   "config/sketchybar/plugins/marquee.sh|$HOME/.config/sketchybar/plugins/marquee.sh"
   "config/sketchybar/plugins/sys.sh|$HOME/.config/sketchybar/plugins/sys.sh"
