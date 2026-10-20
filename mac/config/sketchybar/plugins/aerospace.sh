@@ -10,8 +10,8 @@ STATE="$HOME/.cache/sketchybar/spaces"
 SLOT_WIDTH=26 # keep in step with icon.width in the rc: a fixed icon width ignores the paddings
 HIDDEN_ICON=0x00000000
 ANIMATION_CURVE=tanh
-ANIMATION_FRAMES=14
-ANIMATION_SECONDS=0.4
+ANIMATION_FRAMES=6
+ANIMATION_SECONDS=0.15
 
 focused="${FOCUSED_WORKSPACE:-$(aerospace list-workspaces --focused)}"
 
@@ -34,8 +34,9 @@ shown=""
 now=()
 appear=()
 vanish=()
+occupied=" $(aerospace list-windows --all --format '%{workspace}' 2>/dev/null | sort -u | tr '\n' ' ') "
 for sid in $(aerospace list-workspaces --all); do
-  count="$(aerospace list-windows --workspace "$sid" --count 2>/dev/null || echo 0)"
+  case "$occupied" in *" $sid "*) count=1 ;; *) count=0 ;; esac
   if [ "$sid" = "$focused" ]; then
     now+=(--set "space.$sid" background.color="$MAUVE" icon.color="$BASE")
   elif [ "${count:-0}" -gt 0 ]; then
