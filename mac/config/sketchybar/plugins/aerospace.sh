@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # AeroSpace workspaces. $1 = workspace id, $2 = "refresh" on the one item that drives the whole row.
-# Mouse events tint the item under the pointer. Every other event refreshes all workspaces in a single SketchyBar call
-# (a call per item showed the old and the new focused workspace highlighted at once), showing only the focused and the
-# occupied ones, and animating the ones that appear or disappear so the pills next to them glide instead of jumping.
+# Mouse events tint the item under the pointer; dragging one workspace onto another swaps their windows.
+# Every other event refreshes all workspaces in a single SketchyBar call (a call per item showed the old and the new
+# focused workspace highlighted at once), showing only the focused and the occupied ones, and animating the ones that
+# appear or disappear so the pills next to them glide instead of jumping.
 # shellcheck disable=SC1091
 source "$CONFIG_DIR/colors.sh"
 
 STATE="$HOME/.cache/sketchybar/spaces"
+HOVER="$HOME/.cache/sketchybar/space_hover"
 SLOT_WIDTH=26 # keep in step with icon.width in the rc: a fixed icon width ignores the paddings
 HIDDEN_ICON=0x00000000
 ANIMATION_CURVE=tanh
@@ -15,14 +17,41 @@ ANIMATION_SECONDS=0.15
 
 focused="${FOCUSED_WORKSPACE:-$(aerospace list-workspaces --focused)}"
 
-case "$SENDER" in
-mouse.entered | mouse.exited)
-  [ "$1" = "$focused" ] && exit 0
-  if [ "$SENDER" = mouse.entered ]; then
-    sketchybar --set "$NAME" background.color=0x44cba6f7 icon.color="$TEXT"
+# Swaps the windows of two workspaces and keeps the focus on the same content.
+swap_workspaces() {
+  local from="$1" to="$2" id
+  local from_ids to_ids
+  from_ids="$(aerospace list-windows --workspace "$from" --format '%{window-id}')"
+  to_ids="$(aerospace list-windows --workspace "$to" --format '%{window-id}')"
+  for id in $from_ids; do aerospace move-node-to-workspace --window-id "$id" "$to"; done
+  for id in $to_ids; do aerospace move-node-to-workspace --window-id "$id" "$from"; done
+  case "$focused" in
+  "$from") aerospace workspace "$to" ;;
+  "$to") aerospace workspace "$from" ;;
+  esac
+}
+
+# The click script also runs when a drag is released: if the pointer sits on another workspace, that is the swap target.
+if [ "$2" = click ]; then
+  target="$(cat "$HOVER" 2>/dev/null)"
+  if [ -n "$target" ] && [ "$target" != "$1" ]; then
+    swap_workspaces "$1" "$target"
   else
-    sketchybar --set "$NAME" background.color="$TRANSPARENT" icon.color="$TEXT"
+    "$CONFIG_DIR/plugins/close_popups.sh"
+    aerospace workspace "$1"
   fi
+  exit 0
+fi
+
+case "$SENDER" in
+mouse.entered)
+  echo "$1" >"$HOVER"
+  [ "$1" = "$focused" ] || sketchybar --set "$NAME" background.color=0x44cba6f7 icon.color="$TEXT"
+  exit 0
+  ;;
+mouse.exited)
+  [ "$(cat "$HOVER" 2>/dev/null)" = "$1" ] && : >"$HOVER"
+  [ "$1" = "$focused" ] || sketchybar --set "$NAME" background.color="$TRANSPARENT" icon.color="$TEXT"
   exit 0
   ;;
 esac

@@ -32,7 +32,6 @@ BAT_70='󰂀'
 BAT_80='󰂁'
 BAT_90='󰂂'
 BAT_100='󰁹'
-MIC=':mic_on:'
 CONTROL=':widget:' # opens Control Center
 CHEVRON_LEFT=':chevron_left:'
 CHEVRON_RIGHT=':chevron_right:'
