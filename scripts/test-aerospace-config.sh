@@ -35,6 +35,7 @@ twins() {
     bindings | grep -q "^main alt-shift-${key#alt-} move-node-to-workspace $n\$" || return 1
   done < <(bindings)
 }
+has_snail() { bindings | grep -q "^main alt-shift-s .*flatten-workspace-tree.*focus --dfs-index 1.*join-with right"; }
 no_readline_keys() { bindings | awk '$1=="main" && $2 ~ /^(alt-b|alt-f|alt-d|alt-shift-b|alt-shift-f|alt-shift-d)$/ {found=1} END{exit found?0:1}'; }
 callbacks() { python3 -I -c 'import sys,tomllib
 d=tomllib.load(open(sys.argv[1],"rb")); c=d.get("on-window-detected", [])
@@ -49,6 +50,7 @@ installer_links() {
 
 check "the config parses as TOML (config-version 2)" parses
 check "no binding steals alt-b, alt-f or alt-d from the shell" not no_readline_keys
+check "alt-shift-s arranges the workspace as a snail (big left, two stacked right)" has_snail
 check "no binding uses the vim keys h, j, k or l" not no_vim_keys
 check "no binding uses US punctuation keys (Latin American keyboard)" not no_us_punctuation
 check "each workspace binding has a move-node-to-workspace twin" twins

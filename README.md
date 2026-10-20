@@ -67,6 +67,7 @@ An i3-like tiling window manager that needs no SIP changes. It replaces the nati
 | `alt+tab` | Back to the previous workspace |
 | `alt+-` / `alt++` (the keys labelled - and +) | Shrink / grow the window |
 | `alt+.` · `alt+,` | Tiles layout · accordion layout |
+| `alt+shift+s` | Snail layout for 3 windows: one big on the left, two stacked on the right |
 | `alt+shift+space` | Toggle floating / tiling |
 | `alt+shift+enter` | Fullscreen |
 | `alt+enter` | New Ghostty window |

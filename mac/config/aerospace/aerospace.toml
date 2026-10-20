@@ -47,6 +47,9 @@ on-window-detected = [
     alt-period = 'layout tiles horizontal vertical'
     alt-comma = 'layout accordion horizontal vertical'
     alt-shift-space = 'layout floating tiling'    # toggle floating / tiling for the focused window
+    # Snail layout for 3 windows: first one big on the left, the other two stacked on the right.
+    # AeroSpace has no automatic dwindle layout, so this rebuilds it on demand.
+    alt-shift-s = ['flatten-workspace-tree', 'layout tiles horizontal', 'focus --dfs-index 1', 'join-with right']
     alt-shift-enter = 'fullscreen'
 
     alt-left = 'focus left'
