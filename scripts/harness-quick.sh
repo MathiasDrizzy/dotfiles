@@ -65,6 +65,9 @@ scripts/test-zshenv.sh || bad "test-zshenv falla"
 step "L: integración de lazyfinder en mac/zshrc (HOME temporal, lazyfinder falso)"
 scripts/test-lazyfinder-init.sh || bad "test-lazyfinder-init falla"
 
+step "A: config de aerospace (TOML, teclas del shell libres, enlaces)"
+scripts/test-aerospace-config.sh || bad "test-aerospace-config falla"
+
 step "C4: conflictos de atajos contra los defaults de herdr"
 if command -v herdr >/dev/null; then
   (cd mac/tools/herdr-ctl && HERDR_CONFIG_PATH="$PWD/../../config/herdr/config.toml" go run . keys-check) || bad "keys-check con conflictos sin resolver"

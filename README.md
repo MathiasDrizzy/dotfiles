@@ -9,7 +9,7 @@ dotfiles/
 ├── mac/
 │   ├── install.sh              # idempotent installer (--dry-run, --links-only)
 │   ├── zshrc / zshenv          # interactive shell and global PATH
-│   ├── config/                 # ghostty, herdr, yazi, micro, starship, termscp, lazygit, lazydocker, btop, bat
+│   ├── config/                 # ghostty, herdr, aerospace, yazi, micro, starship, termscp, lazygit, lazydocker, btop, bat
 │   ├── scripts/                # check-links.sh, herdr-reload.sh, terminal-popup.sh
 │   └── tools/herdr-ctl/        # Go tool: cheatsheet, adapt, agent bus, keys-check
 ├── scripts/
@@ -52,6 +52,10 @@ What this repo adds on top of herdr's defaults:
 | `ctrl+b → Shift+R` / `Shift+Q` | Refresh agent quotas / their settings (replaces `reload_config`; reload the config with `herdr server reload-config`) |
 
 `herdr-ctl keys-check` compares every shortcut in the repo with herdr's defaults and reports collisions.
+
+## AeroSpace (tiling windows, `mac/config/aerospace/aerospace.toml`)
+
+An i3-like tiling window manager that needs no SIP changes. Shortcuts use `alt`: `alt+h/j/k/l` focus, `alt+shift+h/j/k/l` move, `alt+1…9` workspaces, `alt+shift+1…9` send the window to a workspace, `alt+enter` new Ghostty, `alt+shift+;` service mode (`esc` reloads the config). Only numbered workspaces are bound, so the shell's `alt+b/f/d` word motions keep working. It needs the Accessibility permission, one macOS Space (no native desktops), and `defaults write com.apple.dock expose-group-apps -bool true` so Mission Control shows hidden windows properly.
 
 ## herdr-ctl (Go, `mac/tools/herdr-ctl`)
 

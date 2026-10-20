@@ -8,6 +8,8 @@ follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) once it 
 ## [Unreleased]
 
 ### Added
+- AeroSpace tiling window manager (no SIP changes): config in `mac/config/aerospace/` (numbered workspaces only, so the
+  shell's Alt+b/f/d word motions keep working), linked by `install.sh` and covered by `scripts/test-aerospace-config.sh`.
 - `mac/zshrc` loads lazyfinder's shell integration (cached, skipped when lazyfinder is not installed) so the shell
   stays in the folder you leave the TUI in; covered by `scripts/test-lazyfinder-init.sh`.
 - macOS terminal setup: Ghostty, herdr, zsh and the everyday TUIs (yazi, micro, starship, termscp, lazygit,

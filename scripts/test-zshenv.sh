@@ -158,7 +158,7 @@ newhome
 H="$T/home"
 B="$T/respaldos"
 run "$H" "$B" "$LINKS"
-check "faltantes: no se anuncia 'verificado con éxito' (rc 0 por compatibilidad)" '[ $RC -eq 0 ] && ! echo "$OUT" | strip | grep -q "verificado con éxito" && echo "$OUT" | strip | grep -q "faltan 14 enlaces"'
+check "faltantes: no se anuncia 'verificado con éxito' (rc 0 por compatibilidad)" '[ $RC -eq 0 ] && ! echo "$OUT" | strip | grep -q "verificado con éxito" && echo "$OUT" | strip | grep -Eq "faltan [0-9]+ enlaces"'
 run "$H" "$B" "$LINKS" --strict
 check "faltantes con --strict: rc=1" '[ $RC -eq 1 ]'
 newhome

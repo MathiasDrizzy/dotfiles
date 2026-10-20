@@ -195,6 +195,8 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
   check "brew install registrado con TODOS los paquetes de BREW_PACKAGES" \
     'got="$(grep "^brew install " "$B/logs/brew.log" | grep -v -- "--cask" | head -1 | sed "s/^brew install //" | tr -s " " "\n" | sort | tr "\n" " ")"; [ "$got" = "$(expected_pkgs)" ]'
   check "brew install --cask de la fuente registrado" 'grep -q "^brew install --cask font-jetbrains-mono-nerd-font" "$B/logs/brew.log"'
+  check "brew install --cask de aerospace registrado" 'grep -q "^brew install --cask nikitabobko/tap/aerospace" "$B/logs/brew.log"'
+  check "la config de aerospace quedó enlazada al repo" '[ -L "$H/.config/aerospace/aerospace.toml" ] && [ -e "$H/.config/aerospace/aerospace.toml" ]'
   check "rustup default stable registrado" 'grep -q "^rustup default stable" "$B/logs/rustup.log"'
   check "se descargaron los 2 temas (curl stub)" '[ "$(grep -c "^curl " "$B/logs/curl.log")" = 2 ] && [ -f "$H/.config/micro/colorschemes/catppuccin-mocha.micro" ]'
   check "herdr-ctl compilado en ~/.local/bin" '[ -x "$H/.local/bin/herdr-ctl" ]'

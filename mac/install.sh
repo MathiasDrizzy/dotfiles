@@ -98,6 +98,7 @@ if [ "$LINKS_ONLY" = false ]; then
     echo "==> Instalando fórmulas y casks de Homebrew..."
     brew install "${BREW_PACKAGES[@]}"
     brew install --cask font-jetbrains-mono-nerd-font || true
+    brew install --cask nikitabobko/tap/aerospace || true
   fi
 
   # 4. Activar toolchain de Rust
@@ -115,6 +116,7 @@ fi
 CONFIG_DIRS=(
   "$HOME/.config/ghostty"
   "$HOME/.config/herdr"
+  "$HOME/.config/aerospace"
   "$HOME/.config/yazi"
   "$HOME/.config/micro/colorschemes"
   "$HOME/.config/btop/themes"
@@ -142,6 +144,7 @@ echo "==> Verificando fuentes de configuración en $DOTFILES_DIR..."
 REQUIRED_SOURCES=(
   "config/ghostty/config"
   "config/herdr/config.toml"
+  "config/aerospace/aerospace.toml"
   "config/yazi/keymap.toml"
   "config/yazi/theme.toml"
   "config/micro/settings.json"
