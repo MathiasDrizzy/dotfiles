@@ -18,7 +18,7 @@ sketchybar --bar \
   position=top height=32 margin=10 y_offset=4 corner_radius=12 \
   color=$TRANSPARENT border_width=0 \
   padding_left=8 padding_right=24 notch_width=210 \
-  topmost=off sticky=on shadow=off
+  topmost=on sticky=on shadow=off
 
 sketchybar --default \
   updates=on \
@@ -77,14 +77,25 @@ sketchybar --set front_app icon="$icon_result"
 
 # --- Left: AeroSpace workspaces ---
 sketchybar --add event aerospace_workspace_change
+# Items start hidden, so the remembered row must start empty too.
+rm -f "$HOME/.cache/sketchybar/spaces"
+first_space=true
 for sid in $(aerospace list-workspaces --all); do
-  sketchybar --add item "space.$sid" left \
-    --subscribe "space.$sid" aerospace_workspace_change mouse.entered mouse.exited \
+  # One item drives the whole row (it alone listens to the workspace event and ticks); the others only react to the mouse.
+  if $first_space; then
+    driver=(update_freq=1 script="$PLUGIN_DIR/aerospace.sh $sid refresh")
+    sketchybar --add item "space.$sid" left --subscribe "space.$sid" aerospace_workspace_change
+    first_space=false
+  else
+    driver=(script="$PLUGIN_DIR/aerospace.sh $sid")
+    sketchybar --add item "space.$sid" left
+  fi
+  sketchybar --subscribe "space.$sid" mouse.entered mouse.exited \
     --set "space.$sid" \
     icon="$sid" icon.padding_left=9 icon.padding_right=9 icon.font="$FONT:Bold:$TEXT_SIZE" \
-    label.drawing=off update_freq=1 \
+    label.drawing=off drawing=off background.drawing=on background.color="$TRANSPARENT" \
     click_script="$PLUGIN_DIR/close_popups.sh; aerospace workspace $sid" \
-    script="$PLUGIN_DIR/aerospace.sh $sid"
+    "${driver[@]}"
 done
 sketchybar --add bracket spaces '/space\..*/'
 pill spaces
@@ -124,15 +135,11 @@ sketchybar --add item chevron right \
   label.padding_left=2 label.padding_right=12 update_freq=30 script="$PLUGIN_DIR/battery.sh" \
   click_script="open x-apple.systempreferences:com.apple.Battery-Settings.extension" \
   --subscribe battery system_woke power_source_change mouse.entered mouse.exited \
-  --add item bluetooth right \
-  --set bluetooth icon="$BLUETOOTH" icon.color="$MAUVE" icon.width=34 icon.align=center icon.padding_left=0 icon.padding_right=0 \
-  label.drawing=off label.padding_left=0 label.padding_right=10 update_freq=5 script="$PLUGIN_DIR/bluetooth.sh" \
-  --add item wifi right \
-  --set wifi icon.font="$APP_ICON_FONT:Regular:$ICON_SIZE" icon.width=34 icon.align=center icon.padding_left=0 icon.padding_right=0 \
-  label.drawing=off update_freq=10 script="$PLUGIN_DIR/wifi.sh" \
-  --subscribe wifi wifi_change \
-  --add bracket net_pill wifi bluetooth \
-  --set net_pill script="$PLUGIN_DIR/hover.sh 0xf0313244 0xd91e1e2e" click_script="$PLUGIN_DIR/controlcenter.sh" --subscribe net_pill mouse.entered mouse.exited \
+  --add item control right \
+  --set control icon="$CONTROL" icon.color="$MAUVE" icon.width=34 icon.align=center icon.padding_left=0 icon.padding_right=0 \
+  label.drawing=off label.padding_left=0 label.padding_right=10 update_freq=5 script="$PLUGIN_DIR/control.sh" \
+  click_script="$PLUGIN_DIR/controlcenter.sh" \
+  --subscribe control wifi_change mouse.entered mouse.exited \
   --add item sys_mem right \
   --set sys_mem icon="$RAM" icon.color="$MAUVE" icon.padding_left=8 icon.padding_right=4 label.padding_right=12 \
   --add item sys right \
@@ -141,10 +148,10 @@ sketchybar --add item chevron right \
   --set sys_pill script="$PLUGIN_DIR/hover.sh 0xf0313244 0xd91e1e2e" click_script="$PLUGIN_DIR/monitor.sh" \
   --subscribe sys_pill mouse.entered mouse.exited
 
-for name in chevron clock battery net_pill sys_pill; do pill "$name"; done
+for name in chevron clock battery control sys_pill; do pill "$name"; done
 
 # Status items start collapsed; the chevron toggles them.
-sketchybar --set sys drawing=off --set sys_mem drawing=off --set sys_pill drawing=off --set net_pill drawing=off --set bluetooth drawing=off --set wifi drawing=off --set battery drawing=off
+sketchybar --set sys drawing=off --set sys_mem drawing=off --set sys_pill drawing=off --set control drawing=off --set battery drawing=off
 
 sketchybar --hotload on
 sketchybar --update

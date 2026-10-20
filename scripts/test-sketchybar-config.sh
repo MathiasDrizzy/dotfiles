@@ -36,7 +36,7 @@ plugins_exist() {
 symbols_defined() {
   local v
   for v in $(grep -ho '\$[A-Z][A-Z_0-9]*' "$SB"/sketchybarrc "$SB"/plugins/*.sh | tr -d '$' | sort -u); do
-    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS) continue ;; esac
+    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | PAD | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS) continue ;; esac
     grep -q "^$v=" "$SB/colors.sh" "$SB/icons.sh" || {
       echo "undefined: $v" >&2
       return 1
@@ -69,6 +69,15 @@ aerospace_hooks() {
   local c="$ROOT/mac/config/aerospace/aerospace.toml"
   grep -q "exec-and-forget sketchybar'" "$c" && grep -q 'sketchybar --trigger aerospace_workspace_change' "$c"
 }
+no_topmost_toggle() {
+  # Changing topmost recreates the bar window and blanks every pill for ~170 ms: it is set once, in the rc.
+  ! grep -q 'topmost=' "$SB"/plugins/*.sh
+}
+workspaces_refresh_once() {
+  # One driver item refreshes the whole row in one call; per-item refreshes showed two workspaces focused at once.
+  [ "$(grep -c 'subscribe .space.*aerospace_workspace_change' "$SB/sketchybarrc")" -eq 1 ] &&
+    grep -q 'animate' "$SB/plugins/aerospace.sh"
+}
 installer_ok() {
   local f
   grep -q 'brew install felixkratz/formulae/sketchybar' "$ROOT/mac/install.sh" &&
@@ -87,6 +96,8 @@ check "colors.sh and icons.sh do not shadow SketchyBar event variables" no_event
 check "icons are one pack (sketchybar-app-font) and every font size comes from ICON_SIZE or TEXT_SIZE" one_icon_pack_and_sizes
 check "the bar is transparent and keeps the notch gap" transparent_bar
 check "AeroSpace starts SketchyBar and triggers workspace changes" aerospace_hooks
+check "no plugin toggles the bar topmost flag (it blanks the pills)" no_topmost_toggle
+check "AeroSpace workspaces refresh in one animated call from one driver item" workspaces_refresh_once
 check "install.sh installs the formulae and check-links.sh links the files" installer_ok
 
 if [ "$fails" -eq 0 ]; then echo "test-sketchybar-config: PASS"; else
