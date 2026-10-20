@@ -166,6 +166,7 @@ REQUIRED_SOURCES=(
   "config/sketchybar/plugins/close_popups.sh"
   "config/sketchybar/plugins/media_toggle.sh"
   "config/sketchybar/plugins/bluetooth.sh"
+  "config/sketchybar/plugins/controlcenter.sh"
   "config/sketchybar/plugins/about.sh"
   "config/sketchybar/plugins/marquee.sh"
   "config/sketchybar/plugins/wifi.sh"
@@ -248,6 +249,13 @@ if [ "$LINKS_ONLY" = false ]; then
       cd "$DOTFILES_DIR/tools/herdr-ctl"
       go build -ldflags="-s -w" -o "$HOME/.local/bin/herdr-ctl"
     )
+  fi
+
+  # 10. Compile ctlcenter (opens Control Center for the SketchyBar status button; needs the Xcode command line tools)
+  if [ "$DRY_RUN" != true ]; then
+    echo "==> Compilando ctlcenter..."
+    swiftc -O "$DOTFILES_DIR/tools/ctlcenter/ctlcenter.swift" -o "$HOME/.local/bin/ctlcenter" ||
+      echo "  [AVISO] ctlcenter no compiló (¿faltan las Command Line Tools?); el botón de estado abre Ajustes en su lugar."
   fi
 
 fi

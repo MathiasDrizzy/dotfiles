@@ -17,7 +17,7 @@ source "$CONFIG_DIR/icons.sh"
 sketchybar --bar \
   position=top height=32 margin=10 y_offset=4 corner_radius=12 \
   color=$TRANSPARENT border_width=0 \
-  padding_left=8 padding_right=8 notch_width=210 \
+  padding_left=8 padding_right=24 notch_width=210 \
   topmost=off sticky=on shadow=off
 
 sketchybar --default \
@@ -127,14 +127,12 @@ sketchybar --add item chevron right \
   --add item bluetooth right \
   --set bluetooth icon="$BLUETOOTH" icon.color="$MAUVE" icon.width=34 icon.align=center icon.padding_left=0 icon.padding_right=0 \
   label.drawing=off label.padding_left=0 label.padding_right=10 update_freq=5 script="$PLUGIN_DIR/bluetooth.sh" \
-  click_script="open x-apple.systempreferences:com.apple.BluetoothSettings" \
   --add item wifi right \
   --set wifi icon.font="$APP_ICON_FONT:Regular:$ICON_SIZE" icon.width=34 icon.align=center icon.padding_left=0 icon.padding_right=0 \
   label.drawing=off update_freq=10 script="$PLUGIN_DIR/wifi.sh" \
-  click_script="open x-apple.systempreferences:com.apple.wifi-settings-extension" \
   --subscribe wifi wifi_change \
   --add bracket net_pill wifi bluetooth \
-  --set net_pill script="$PLUGIN_DIR/hover.sh 0xf0313244 0xd91e1e2e" --subscribe net_pill mouse.entered mouse.exited \
+  --set net_pill script="$PLUGIN_DIR/hover.sh 0xf0313244 0xd91e1e2e" click_script="$PLUGIN_DIR/controlcenter.sh" --subscribe net_pill mouse.entered mouse.exited \
   --add item sys_mem right \
   --set sys_mem icon="$RAM" icon.color="$MAUVE" icon.padding_left=8 icon.padding_right=4 label.padding_right=12 \
   --add item sys right \
