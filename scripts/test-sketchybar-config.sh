@@ -36,7 +36,7 @@ plugins_exist() {
 symbols_defined() {
   local v
   for v in $(grep -ho '\$[A-Z][A-Z_0-9]*' "$SB"/sketchybarrc "$SB"/plugins/*.sh | tr -d '$' | sort -u); do
-    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | APP_ICON_FONT) continue ;; esac
+    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT) continue ;; esac
     grep -q "^$v=" "$SB/colors.sh" "$SB/icons.sh" || {
       echo "undefined: $v" >&2
       return 1
@@ -52,7 +52,7 @@ import re, sys
 names = set()
 for line in open(sys.argv[1]):
     m = re.match(r"^([A-Z_0-9]+)='(.*)'", line)
-    if not m or m.group(1) == "APP_ICON_FONT":
+    if not m or m.group(1) in ("APP_ICON_FONT", "APPLE_FONT", "APPLE"):
         continue
     if m.group(1) in names or not re.fullmatch(r":[a-z_0-9]+:", m.group(2)):
         sys.exit(1)

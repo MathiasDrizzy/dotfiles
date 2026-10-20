@@ -9,6 +9,8 @@ FONT="JetBrainsMono Nerd Font"
 # One size per kind for the whole bar: icons 15, text 12 (workspace numbers and the clock are bold, the rest regular).
 ICON_SIZE=15.0
 TEXT_SIZE=12.0
+APPLE_SIZE=18.0 # the logo has more padding inside its glyph box than the pack glyphs
+ARROW_SIZE=11.0 # chevron glyphs are drawn larger than the rest of the pack, so they get a smaller size to look equal
 
 # shellcheck source=colors.sh
 source "$CONFIG_DIR/colors.sh"
@@ -40,7 +42,7 @@ pill() { # item or bracket name: the glass look shared by every pill
 # --- Left: Apple menu (a popup with the system actions) ---
 sketchybar --add item apple left \
   --set apple \
-  icon="$APPLE" icon.color="$MAUVE" icon.font="$APP_ICON_FONT:Regular:$ICON_SIZE" icon.width=34 icon.align=center icon.padding_left=0 icon.padding_right=0 label.drawing=off \
+  icon="$APPLE" icon.color="$MAUVE" icon.font="$APPLE_FONT:Regular:$APPLE_SIZE" icon.width=34 icon.align=center icon.padding_left=0 icon.padding_right=0 label.drawing=off \
   popup.background.color=0xf21e1e2e popup.background.border_color="$BAR_BORDER" \
   popup.background.border_width=1 popup.background.corner_radius=12 popup.align=left \
   script="$PLUGIN_DIR/apple.sh" \
@@ -94,16 +96,16 @@ pill spaces
 # --- Left: now playing (only visible while something plays) ---
 # Now playing: previous / play-pause / next, then the title (marquee.sh bounces it smoothly). media.sh hides all of them when
 # nothing is loaded.
-media_button() { # name, icon, command
+media_button() { # name, icon, command, font size
   sketchybar --add item "$1" left \
-    --set "$1" drawing=off icon="$2" icon.color="$MAUVE" icon.font="$APP_ICON_FONT:Regular:$ICON_SIZE" icon.width=30 icon.align=center \
+    --set "$1" drawing=off icon="$2" icon.color="$MAUVE" icon.font="$APP_ICON_FONT:Regular:${4:-$ICON_SIZE}" icon.width=30 icon.align=center \
     icon.padding_left=0 icon.padding_right=0 label.drawing=off background.height=24 background.corner_radius=8 \
     script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/close_popups.sh; $3" \
     --subscribe "$1" mouse.entered mouse.exited mouse.clicked
 }
-media_button media_prev "$PREV" "media-control previous-track"
+media_button media_prev "$PREV" "media-control previous-track" "$ARROW_SIZE"
 media_button media_play "$PLAY" "media-control toggle-play-pause; sleep 0.4; $PLUGIN_DIR/media.sh"
-media_button media_next "$NEXT" "media-control next-track"
+media_button media_next "$NEXT" "media-control next-track" "$ARROW_SIZE"
 sketchybar --add item media left \
   --set media drawing=off icon.drawing=off label.font="$FONT:Regular:$TEXT_SIZE" label.width=144 label.padding_left=0 label.padding_right=10 \
   update_freq=2 script="$PLUGIN_DIR/media.sh" \
@@ -113,7 +115,7 @@ pill media_pill
 
 # --- Right (added right to left): chevron, date and time, then the expandable status items; each in its own pill ---
 sketchybar --add item chevron right \
-  --set chevron icon="$CHEVRON_LEFT" icon.font="$APP_ICON_FONT:Regular:$ICON_SIZE" icon.color="$MAUVE" \
+  --set chevron icon="$CHEVRON_LEFT" icon.font="$APP_ICON_FONT:Regular:$ARROW_SIZE" icon.color="$MAUVE" \
   icon.width=34 icon.align=center icon.padding_left=0 icon.padding_right=0 label.drawing=off \
   script="$PLUGIN_DIR/hover.sh 0xf0313244 0xd91e1e2e" click_script="$PLUGIN_DIR/close_popups.sh; $PLUGIN_DIR/toggle.sh" \
   --subscribe chevron mouse.entered mouse.exited \

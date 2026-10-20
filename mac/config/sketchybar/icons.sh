@@ -3,7 +3,9 @@
 # so the whole bar shares one icon font. Sourced by sketchybarrc and the plugins.
 
 APP_ICON_FONT="sketchybar-app-font"
-APPLE=':mactracker:'
+# The pack has no Apple logo; this one is U+F8FF from the macOS system font, drawn at the same size and color.
+APPLE_FONT="System Font"
+APPLE=$'\xef\xa3\xbf'
 PLAY=':playing:'
 PAUSE=':paused:'
 PREV=':chevron_left:'

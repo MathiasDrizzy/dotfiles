@@ -7,7 +7,7 @@ source "$CONFIG_DIR/colors.sh"
 hover=0xf0313244
 open_color=0xf045475a
 
-close() { sketchybar --set apple popup.drawing=off background.color="$BAR_COLOR" icon.color="$TEXT"; }
+close() { sketchybar --set apple popup.drawing=off background.color="$BAR_COLOR" icon.color="$MAUVE"; }
 
 [ "${1:-}" = close ] && {
   close
