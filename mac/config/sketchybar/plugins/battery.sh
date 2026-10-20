@@ -10,11 +10,16 @@ pct="$(grep -Eo '[0-9]+%' <<<"$batt" | head -1 | tr -d '%')"
 
 if grep -q 'AC Power' <<<"$batt"; then
   icon="$BAT_CHARGING"
+  font="$APP_ICON_FONT:Regular:$ICON_SIZE"
   color="$GREEN"
 else
   color="$TEXT"
-  icon="$BAT"
+  font="$BAT_FONT:Regular:$ICON_SIZE"
+  step=$(((pct + 5) / 10 * 10))
+  [ "$step" -gt 100 ] && step=100
+  var="BAT_$step"
+  icon="${!var}"
   [ "$pct" -le 20 ] && color="$RED"
 fi
 
-sketchybar --set "$NAME" icon="$icon" icon.color="$color" label="${pct}%"
+sketchybar --set "$NAME" icon="$icon" icon.font="$font" icon.color="$color" label="${pct}%"

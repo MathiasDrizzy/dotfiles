@@ -6,11 +6,6 @@ CONFIG_DIR="${CONFIG_DIR:-$HOME/.config/sketchybar}"
 PLUGIN_DIR="$CONFIG_DIR/plugins"
 # the same family as the Ghostty terminal
 FONT="JetBrainsMono Nerd Font"
-# One size per kind for the whole bar: icons 15, text 12 (workspace numbers and the clock are bold, the rest regular).
-ICON_SIZE=15.0
-TEXT_SIZE=12.0
-APPLE_SIZE=18.0 # the logo has more padding inside its glyph box than the pack glyphs
-ARROW_SIZE=11.0 # chevron glyphs are drawn larger than the rest of the pack, so they get a smaller size to look equal
 
 # shellcheck source=colors.sh
 source "$CONFIG_DIR/colors.sh"
@@ -98,7 +93,7 @@ pill spaces
 # nothing is loaded.
 media_button() { # name, icon, command, font size
   sketchybar --add item "$1" left \
-    --set "$1" drawing=off icon="$2" icon.color="$MAUVE" icon.font="$APP_ICON_FONT:Regular:${4:-$ICON_SIZE}" icon.width=30 icon.align=center \
+    --set "$1" drawing=off icon="$2" icon.color="$MAUVE" icon.font="$APP_ICON_FONT:Regular:${4:-$ICON_SIZE}" icon.width=22 icon.align=center \
     icon.padding_left=0 icon.padding_right=0 label.drawing=off background.height=24 background.corner_radius=8 \
     script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/close_popups.sh; $3" \
     --subscribe "$1" mouse.entered mouse.exited mouse.clicked
@@ -133,15 +128,20 @@ sketchybar --add item chevron right \
   label.drawing=off update_freq=10 script="$PLUGIN_DIR/wifi.sh" \
   click_script="open x-apple.systempreferences:com.apple.wifi-settings-extension" \
   --subscribe wifi wifi_change mouse.entered mouse.exited \
+  --add item sys_mem right \
+  --set sys_mem icon="$RAM" icon.padding_left=8 icon.padding_right=4 label.padding_right=12 \
+  script="$PLUGIN_DIR/hover.sh" click_script="$PLUGIN_DIR/monitor.sh" \
+  --subscribe sys_mem mouse.entered mouse.exited \
   --add item sys right \
-  --set sys icon.drawing=off label.padding_left=12 label.padding_right=12 update_freq=2 script="$PLUGIN_DIR/sys.sh" \
+  --set sys icon="$CPU" icon.padding_left=12 icon.padding_right=4 label.padding_right=8 update_freq=2 script="$PLUGIN_DIR/sys.sh" \
   click_script="$PLUGIN_DIR/monitor.sh" \
-  --subscribe sys mouse.entered mouse.exited
+  --subscribe sys mouse.entered mouse.exited \
+  --add bracket sys_pill sys sys_mem
 
-for name in chevron clock battery wifi sys; do pill "$name"; done
+for name in chevron clock battery wifi sys_pill; do pill "$name"; done
 
 # Status items start collapsed; the chevron toggles them.
-sketchybar --set sys drawing=off --set wifi drawing=off --set battery drawing=off
+sketchybar --set sys drawing=off --set sys_mem drawing=off --set sys_pill drawing=off --set wifi drawing=off --set battery drawing=off
 
 sketchybar --hotload on
 sketchybar --update

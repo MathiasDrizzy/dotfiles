@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CPU and memory in use right now, one item: "CPU 12%  RAM 64%". CPU comes from top, which samples the interval
+# CPU and memory in use right now, two items in one pill: sys (CPU) and sys_mem (RAM). CPU comes from top, which samples the interval
 # (ps reports a decayed average); memory is app + wired + compressed, like Activity Monitor's "Memory Used".
 # shellcheck disable=SC1091
 case "$SENDER" in mouse.*) exec "$CONFIG_DIR/plugins/hover.sh" 0xf0313244 0xd91e1e2e ;; esac
@@ -19,4 +19,4 @@ mem="$(vm_stat | awk -v total="$(sysctl -n hw.memsize)" '
 
 color="$TEXT"
 { [ "$cpu" -ge 80 ] || [ "$mem" -ge 85 ]; } && color="$RED"
-sketchybar --set "$NAME" label="CPU ${cpu}%  RAM ${mem}%" label.color="$color"
+sketchybar --set sys label="${cpu}%" label.color="$color" --set sys_mem label="${mem}%" label.color="$color"
