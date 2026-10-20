@@ -6,6 +6,8 @@ config-version = 2
 # JankyBorders: a thin purple round border on the focused window only (inactive windows get none).
 # It detects an already running instance, so an AeroSpace restart does not start it twice.
 after-startup-command = [
+    # SketchyBar detects an already running instance, so an AeroSpace restart does not start it twice.
+    'exec-and-forget sketchybar',
     'exec-and-forget borders style=round width=2.0 hidpi=on active_color=0xccb48efa inactive_color=0x00000000'
 ]
 start-at-login = true
@@ -42,6 +44,11 @@ gaps.outer.right = 6
 # System Settings is not meant to be tiled.
 on-window-detected = [
     { if = 'test %{app-bundle-id} = com.apple.systempreferences', run = 'layout floating' },
+]
+
+# Tell SketchyBar which workspace is focused.
+exec-on-workspace-change = ['/bin/bash', '-c',
+    'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE'
 ]
 
 [mode.main.binding]

@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# SketchyBar: left = AeroSpace workspaces + now playing, right = clock and a ">" that expands the status items.
+# Docs: https://felixkratz.github.io/SketchyBar/  ·  reload: sketchybar --reload
+
+CONFIG_DIR="${CONFIG_DIR:-$HOME/.config/sketchybar}"
+PLUGIN_DIR="$CONFIG_DIR/plugins"
+FONT="JetBrainsMono Nerd Font"
+
+# shellcheck source=colors.sh
+source "$CONFIG_DIR/colors.sh"
+# shellcheck source=icons.sh
+source "$CONFIG_DIR/icons.sh"
+
+# The bar itself is transparent: the glass lives in the pills (brackets) below, so there is a clear gap around the
+# camera housing. notch_width keeps the left pills and the right pill apart on the built-in display.
+sketchybar --bar \
+  position=top height=32 margin=10 y_offset=4 corner_radius=12 \
+  color=$TRANSPARENT border_width=0 \
+  padding_left=8 padding_right=8 notch_width=210 \
+  topmost=off sticky=on shadow=off
+
+sketchybar --default \
+  updates=when_shown \
+  icon.font="$FONT:Bold:15.0" label.font="$FONT:Medium:13.0" \
+  icon.color=$TEXT label.color=$TEXT \
+  icon.padding_left=6 icon.padding_right=4 label.padding_left=0 label.padding_right=6 \
+  padding_left=2 padding_right=2 \
+  background.height=22 background.corner_radius=8
+
+# --- Left: Apple menu (a popup with the system actions) ---
+sketchybar --add item apple left \
+  --set apple \
+  icon="$APPLE" icon.font="$FONT:Bold:16.0" icon.padding_left=10 icon.padding_right=10 label.drawing=off \
+  background.color=$BAR_COLOR background.border_color=$BAR_BORDER background.border_width=1 \
+  background.height=30 background.corner_radius=12 background.drawing=on \
+  popup.background.color=0xf21e1e2e popup.background.border_color=$BAR_BORDER \
+  popup.background.border_width=1 popup.background.corner_radius=12 popup.align=left \
+  click_script="sketchybar --set apple popup.drawing=toggle"
+
+apple_entry() { # name, icon, label, command
+  sketchybar --add item "apple.$1" popup.apple \
+    --set "apple.$1" icon="$2" label="$3" icon.color=$MAUVE label.padding_right=12 \
+    click_script="sketchybar --set apple popup.drawing=off; $4"
+}
+apple_entry about "$INFO" "Acerca de este Mac" "open -a 'System Information'"
+apple_entry settings "$SETTINGS" "Ajustes del Sistema" "open -a 'System Settings'"
+apple_entry sleep "$SLEEP" "Suspender" "pmset sleepnow"
+apple_entry lock "$LOCK" "Bloquear pantalla" "pmset displaysleepnow"
+apple_entry logout "$LOGOUT" "Cerrar sesión" "osascript -e 'tell application \"System Events\" to log out'"
+apple_entry restart "$RESTART" "Reiniciar" "osascript -e 'tell application \"System Events\" to restart'"
+apple_entry shutdown "$POWER" "Apagar" "osascript -e 'tell application \"System Events\" to shut down'"
+
+# --- Left: AeroSpace workspaces ---
+sketchybar --add event aerospace_workspace_change
+for sid in $(aerospace list-workspaces --all); do
+  sketchybar --add item "space.$sid" left \
+    --subscribe "space.$sid" aerospace_workspace_change \
+    --set "space.$sid" \
+    icon="$sid" icon.padding_left=8 icon.padding_right=8 icon.font="$FONT:Bold:13.0" \
+    label.drawing=off background.drawing=off \
+    click_script="aerospace workspace $sid" \
+    script="$PLUGIN_DIR/aerospace.sh $sid"
+done
+
+sketchybar --add bracket spaces '/space\..*/' \
+  --set spaces background.color=$BAR_COLOR background.border_color=$BAR_BORDER background.border_width=1 \
+  background.height=30 background.corner_radius=12 background.drawing=on
+
+# --- Left: now playing (only visible while something plays) ---
+sketchybar --add item media left \
+  --set media \
+  icon="$MUSIC" icon.color=$MAUVE label.max_chars=34 scroll_texts=off \
+  drawing=off update_freq=3 updates=on \
+  background.color=$BAR_COLOR background.border_color=$BAR_BORDER background.border_width=1 \
+  background.height=30 background.corner_radius=12 background.drawing=on \
+  click_script="media-control toggle-play-pause" \
+  script="$PLUGIN_DIR/media.sh"
+
+# --- Right (added right to left): chevron, clock, then the expandable status items ---
+sketchybar --add item chevron right \
+  --set chevron icon="$CHEVRON_LEFT" icon.font="$FONT:Bold:12.0" icon.color=$MAUVE \
+  label.drawing=off click_script="$PLUGIN_DIR/toggle.sh"
+
+sketchybar --add item clock right \
+  --set clock icon="$CLOCK" icon.color=$MAUVE update_freq=10 \
+  script="$PLUGIN_DIR/clock.sh" \
+  --add item battery right \
+  --set battery update_freq=120 script="$PLUGIN_DIR/battery.sh" \
+  --subscribe battery system_woke power_source_change \
+  --add item volume right \
+  --set volume script="$PLUGIN_DIR/volume.sh" \
+  --subscribe volume volume_change \
+  --add item wifi right \
+  --set wifi update_freq=15 script="$PLUGIN_DIR/wifi.sh" \
+  --subscribe wifi wifi_change \
+  --add item mem right \
+  --set mem icon="$MEM" update_freq=10 script="$PLUGIN_DIR/mem.sh" \
+  --add item cpu right \
+  --set cpu icon="$CPU" update_freq=5 script="$PLUGIN_DIR/cpu.sh"
+
+sketchybar --add bracket status chevron clock battery volume wifi mem cpu \
+  --set status background.color=$BAR_COLOR background.border_color=$BAR_BORDER background.border_width=1 \
+  background.height=30 background.corner_radius=12 background.drawing=on
+
+# Status items start collapsed; the chevron toggles them.
+sketchybar --set cpu drawing=off --set mem drawing=off --set wifi drawing=off \
+  --set volume drawing=off --set battery drawing=off
+
+sketchybar --hotload on
+sketchybar --update

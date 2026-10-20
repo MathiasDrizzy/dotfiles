@@ -67,6 +67,8 @@ scripts/test-lazyfinder-init.sh || bad "test-lazyfinder-init falla"
 
 step "A: config de aerospace (TOML, teclas del shell libres, enlaces)"
 scripts/test-aerospace-config.sh || bad "test-aerospace-config falla"
+step "S: config de sketchybar (sintaxis, plugins, íconos, enlaces)"
+scripts/test-sketchybar-config.sh || bad "test-sketchybar-config falla"
 
 step "C4: conflictos de atajos contra los defaults de herdr"
 if command -v herdr >/dev/null; then

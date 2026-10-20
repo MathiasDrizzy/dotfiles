@@ -77,6 +77,15 @@ The focused window gets a thin purple round border from [JankyBorders](https://g
 
 The keyboard is Latin American, so the punctuation keys are aliased by the symbol printed on them (`key-mapping` in the config). Only numbered workspaces are bound, so the shell's `alt+b/f/d` word motions keep working. It needs the Accessibility permission and `defaults write com.apple.dock expose-group-apps -bool true` so Mission Control shows hidden windows properly.
 
+## SketchyBar (menu bar replacement, `mac/config/sketchybar/`)
+
+A floating glass bar in the Ghostty palette (Catppuccin Mocha), split into pills so the camera housing stays clear. The native menu bar is set to auto-hide (System Settings → Control Center → *Automatically hide and show the menu bar*: Always).
+
+- Left: Apple menu (click for About, Settings, Sleep, Lock, Log out, Restart, Shut down), the AeroSpace workspaces (focused one highlighted, empty ones dimmed, click to switch) and the track that is playing (click to pause, via [`media-control`](https://github.com/ungive/media-control)).
+- Right: the clock and a `<` that expands CPU, memory, Wi-Fi, volume and battery; click `>` to collapse them again.
+
+AeroSpace starts it and notifies it of workspace changes. Reload after editing: `sketchybar --reload`. Installed by `install.sh`.
+
 ## herdr-ctl (Go, `mac/tools/herdr-ctl`)
 
 ```bash

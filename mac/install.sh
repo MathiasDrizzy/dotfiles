@@ -100,6 +100,8 @@ if [ "$LINKS_ONLY" = false ]; then
     brew install --cask font-jetbrains-mono-nerd-font || true
     brew install --cask nikitabobko/tap/aerospace || true
     brew install felixkratz/formulae/borders || true
+    brew install felixkratz/formulae/sketchybar || true
+    brew install ungive/media-control/media-control || true
   fi
 
   # 4. Activar toolchain de Rust
@@ -118,6 +120,7 @@ CONFIG_DIRS=(
   "$HOME/.config/ghostty"
   "$HOME/.config/herdr"
   "$HOME/.config/aerospace"
+  "$HOME/.config/sketchybar/plugins"
   "$HOME/.config/yazi"
   "$HOME/.config/micro/colorschemes"
   "$HOME/.config/btop/themes"
@@ -146,6 +149,18 @@ REQUIRED_SOURCES=(
   "config/ghostty/config"
   "config/herdr/config.toml"
   "config/aerospace/aerospace.toml"
+  "config/sketchybar/sketchybarrc"
+  "config/sketchybar/colors.sh"
+  "config/sketchybar/icons.sh"
+  "config/sketchybar/plugins/aerospace.sh"
+  "config/sketchybar/plugins/media.sh"
+  "config/sketchybar/plugins/toggle.sh"
+  "config/sketchybar/plugins/clock.sh"
+  "config/sketchybar/plugins/battery.sh"
+  "config/sketchybar/plugins/volume.sh"
+  "config/sketchybar/plugins/wifi.sh"
+  "config/sketchybar/plugins/mem.sh"
+  "config/sketchybar/plugins/cpu.sh"
   "config/yazi/keymap.toml"
   "config/yazi/theme.toml"
   "config/micro/settings.json"

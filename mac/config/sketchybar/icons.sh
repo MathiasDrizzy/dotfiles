@@ -1,0 +1,40 @@
+# shellcheck shell=bash disable=SC2034
+# Icon glyphs (Nerd Font Material Design codepoints), sourced by sketchybarrc and the plugins.
+
+MUSIC='󰝚'         # U+F075A
+PLAY='󰐊'          # U+F040A
+PAUSE='󰏤'         # U+F03E4
+NEXT='󰒭'          # U+F04AD
+PREV='󰒮'          # U+F04AE
+BAT_0='󰂎'         # U+F008E
+BAT_10='󰁺'        # U+F007A
+BAT_20='󰁻'        # U+F007B
+BAT_30='󰁼'        # U+F007C
+BAT_40='󰁽'        # U+F007D
+BAT_50='󰁾'        # U+F007E
+BAT_60='󰁿'        # U+F007F
+BAT_70='󰂀'        # U+F0080
+BAT_80='󰂁'        # U+F0081
+BAT_90='󰂂'        # U+F0082
+BAT_100='󰁹'       # U+F0079
+BAT_CHARGING='󰂄'  # U+F0084
+WIFI='󰖩'          # U+F05A9
+WIFI_OFF='󰖪'      # U+F05AA
+VOL_HIGH='󰕾'      # U+F057E
+VOL_MED='󰖀'       # U+F0580
+VOL_LOW='󰕿'       # U+F057F
+VOL_MUTE='󰖁'      # U+F0581
+CPU='󰻠'           # U+F0EE0
+MEM='󰍛'           # U+F035B
+CLOCK='󰥔'         # U+F0954
+CALENDAR='󰃭'      # U+F00ED
+CHEVRON_LEFT=''  # U+F053
+CHEVRON_RIGHT='' # U+F054
+APPLE=''         # U+F179
+SETTINGS='󰒓'      # U+F0493
+INFO='󰋽'          # U+F02FD
+SLEEP='󰒲'         # U+F04B2
+LOCK='󰌾'          # U+F033E
+RESTART='󰜉'       # U+F0709
+POWER='󰐥'         # U+F0425
+LOGOUT='󰍃'        # U+F0343
