@@ -179,6 +179,12 @@ workspace_stays() {
     grep -q "pkill -f '^bash .\*/plugins/stay\\\\.sh\$'" "$SB/sketchybarrc" &&
     grep -q 'touch "$PICK"' "$SB/plugins/aerospace.sh" &&
     grep -q 'config/sketchybar/plugins/stay.sh|' "$ROOT/mac/scripts/check-links.sh" || return 1
+  # Going back flickered through the other workspace: `ctlcenter stay` keeps Finder right behind an app alone on screen in
+  # macOS's order of apps, so its quit hands the focus to Finder, with no window for AeroSpace to follow.
+  local c="$ROOT/mac/tools/ctlcenter/ctlcenter.swift"
+  grep -q '^case "stay":' "$c" && grep -q 'func putFinderBehind(' "$c" && grep -q 'finder.activate(options: \[\])' "$c" &&
+    grep -q '^let aloneCheckDelays = ' "$c" &&
+    grep -q "pkill -f '^\[^ \]\*/ctlcenter stay\$'" "$SB/sketchybarrc" && grep -q 'nohup "$HOME/.local/bin/ctlcenter" stay ' "$SB/sketchybarrc" || return 1
   [ "$(stay_moves 0 "$emptied" "$jump")" = 3 ] || return 1            # the window closed: back to 3
   [ -z "$(stay_moves 0 "$emptied" "$key" "$jump")" ] || return 1      # alt-2: stays on 2
   [ -z "$(stay_moves 1 "$emptied" "$jump")" ] || return 1             # 3 still has a window

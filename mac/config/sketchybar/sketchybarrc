@@ -193,6 +193,9 @@ nohup "$PLUGIN_DIR/drag.sh" >/dev/null 2>&1 &
 pkill -f '^bash .*/plugins/stay\.sh$' 2>/dev/null
 pkill -f '^aerospace subscribe --no-send-initial binding-triggered ' 2>/dev/null
 nohup "$PLUGIN_DIR/stay.sh" >/dev/null 2>&1 &
+# ...and keeps AeroSpace from going elsewhere at all when the app in front quits there (stay.sh is then left nothing to undo).
+pkill -f '^[^ ]*/ctlcenter stay$' 2>/dev/null
+nohup "$HOME/.local/bin/ctlcenter" stay >/dev/null 2>&1 &
 
 # Tells the now playing pill the moment the player changes (one watcher at a time, with its stream).
 pkill -f '^bash .*/plugins/media_watch\.sh$' 2>/dev/null

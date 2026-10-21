@@ -14,6 +14,10 @@
 //   ctlcenter backdrop OUT HEIGHT  saves to OUT (PNG) the top HEIGHT points of the main display as they look without
 //                      SketchyBar and JankyBorders (wallpaper, the system's own dimming and anything else behind the bar) and
 //                      prints the scale to show it at (points per pixel); needs the Screen Recording permission
+//   ctlcenter stay     runs for the session: whenever an app comes to the front with no other app's window on screen, puts
+//                      Finder right behind it in macOS's order of apps, so that app quitting hands the focus to Finder and
+//                      AeroSpace stays on the emptied workspace instead of flickering through another one; needs
+//                      Accessibility
 import AppKit
 import CoreGraphics
 import Foundation
@@ -28,7 +32,9 @@ let panelMinHeight: CGFloat = 100
 let menuBarStripHeight: CGFloat = 40
 let idlePollMicroseconds: UInt32 = 25000
 let dragPollMicroseconds: UInt32 = 8000
-var dismissHoldMicroseconds: UInt32 = 25000 // a popover reads the pointer when it handles the click, not the click's own spot
+let dismissHoldMicroseconds: UInt32 = 25000 // a popover reads the pointer when it handles the click, not the click's own spot
+let shownMinSide: CGFloat = 40 // AeroSpace parks the windows of other workspaces in a corner, a pixel or so on screen
+let aloneCheckDelays = [0.0, 0.15, 0.4] // a workspace switch activates its app before the old workspace's windows are parked
 
 func post(_ key: CGKeyCode, down: Bool, flags: CGEventFlags) {
     let source = CGEventSource(stateID: .hidSystemState)
@@ -184,6 +190,89 @@ func printBackdrop(arguments: [String]) -> Never {
     exit(status)
 }
 
+// When the app in front quits, macOS hands the focus to the app used before it, often one whose windows are on another
+// workspace, and AeroSpace follows it there before it comes back (AeroSpace issues 325 and 509): the screen flickers through
+// that workspace. So whenever an app comes to the front with no other app's window on screen, Finder (with no window of its
+// own) is put right behind it in macOS's order of apps: that app quitting then hands the focus to Finder, and AeroSpace,
+// with no window to follow, stays. The app is back in front a few milliseconds later, with its keys and its menus.
+enum Stay {
+    static let finderBundleID = "com.apple.finder"
+    static let ownPID = getpid()
+    static var returning: pid_t = 0
+    static var activation = 0 // which activation the checks still pending are for
+
+    static func shows(_ frame: CGRect) -> Bool {
+        let mainHeight = NSScreen.screens.first?.frame.height ?? 0
+        return NSScreen.screens.contains { screen in
+            let flipped = CGRect(x: screen.frame.minX, y: mainHeight - screen.frame.maxY, width: screen.frame.width, height: screen.frame.height)
+            let visible = frame.intersection(flipped)
+            return visible.width >= shownMinSide && visible.height >= shownMinSide
+        }
+    }
+
+    static func otherAppShows(besides pid: pid_t) -> Bool {
+        let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+        return windows.contains { window in
+            guard (window[kCGWindowLayer as String] as? Int) == 0, let owner = window[kCGWindowOwnerPID as String] as? pid_t,
+                owner != pid, owner != ownPID, NSRunningApplication(processIdentifier: owner)?.activationPolicy == .regular,
+                let bounds = window[kCGWindowBounds as String] as? NSDictionary, let frame = CGRect(dictionaryRepresentation: bounds)
+            else { return false }
+            return shows(frame)
+        }
+    }
+
+    // A Finder window, even on another workspace, would be followed there in turn. The desktop is a window with no subrole.
+    static func hasWindow(_ app: NSRunningApplication) -> Bool {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(AXUIElementCreateApplication(app.processIdentifier), kAXWindowsAttribute as CFString, &value) == .success
+        else { return false }
+        return (value as? [AXUIElement] ?? []).contains { window in
+            var subrole: CFTypeRef?
+            AXUIElementCopyAttributeValue(window, kAXSubroleAttribute as CFString, &subrole)
+            return subrole as? String == kAXStandardWindowSubrole as String
+        }
+    }
+
+    static func putFinderBehind(_ app: NSRunningApplication) -> Bool {
+        guard !otherAppShows(besides: app.processIdentifier),
+            let finder = NSRunningApplication.runningApplications(withBundleIdentifier: finderBundleID).first, !hasWindow(finder)
+        else { return false }
+        returning = app.processIdentifier
+        finder.activate(options: [])
+        DispatchQueue.main.async { app.activate(options: []) }
+        return true
+    }
+
+    static func checkAlone(_ app: NSRunningApplication, delays: ArraySlice<Double>, for current: Int) {
+        guard let delay = delays.first else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            guard activation == current, NSWorkspace.shared.frontmostApplication == app, !putFinderBehind(app) else { return }
+            checkAlone(app, delays: delays.dropFirst(), for: current)
+        }
+    }
+
+    static func run() -> Never {
+        let application = NSApplication.shared
+        application.setActivationPolicy(.accessory)
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { notification in
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                app.activationPolicy == .regular, app.bundleIdentifier != finderBundleID
+            else { return }
+            guard app.processIdentifier != returning else {
+                returning = 0
+                return
+            }
+            returning = 0
+            activation += 1
+            checkAlone(app, delays: aloneCheckDelays[...], for: activation)
+        }
+        application.run()
+        exit(0)
+    }
+}
+
 switch CommandLine.arguments.dropFirst().first {
 case "open":
     openControlCenter()
@@ -209,7 +298,9 @@ case "dismiss":
     exit(dismiss(at: CGPoint(x: numbers[0], y: numbers[1])) ? 0 : 1)
 case "backdrop":
     printBackdrop(arguments: Array(CommandLine.arguments.dropFirst(2)))
+case "stay":
+    Stay.run()
 default:
-    FileHandle.standardError.write(Data("usage: ctlcenter open|top|watch|visible|menu|shown|dismiss|backdrop\n".utf8))
+    FileHandle.standardError.write(Data("usage: ctlcenter open|top|watch|visible|menu|shown|dismiss|backdrop|stay\n".utf8))
     exit(2)
 }
