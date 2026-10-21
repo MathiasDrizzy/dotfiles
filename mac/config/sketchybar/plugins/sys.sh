@@ -20,5 +20,4 @@ mem="$(vm_stat | awk -v total="$(sysctl -n hw.memsize)" '
 
 color="$TEXT"
 { [ "$cpu" -ge 80 ] || [ "$mem" -ge 85 ]; } && color="$RED"
-panel_idle || exit 0
-sketchybar --set sys label="${cpu}%" label.color="$color" --set sys_mem label="${mem}%" label.color="$color"
+panel_set --set sys label="${cpu}%" label.color="$color" --set sys_mem label="${mem}%" label.color="$color"

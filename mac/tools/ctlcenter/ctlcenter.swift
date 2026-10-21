@@ -5,9 +5,14 @@
 //                      "up X Y" lines (points, origin top-left) for every left-button press that starts within maxY points of
 //                      the top of the screen, until the output is closed; it needs no permissions
 //   ctlcenter visible  exits 0 while a Control Center window is on screen, 1 otherwise
+//   ctlcenter backdrop OUT HEIGHT  saves to OUT (PNG) the top HEIGHT points of the main display as they look without
+//                      SketchyBar and JankyBorders (wallpaper, the system's own dimming and anything else behind the bar) and
+//                      prints the scale to show it at (points per pixel); needs the Screen Recording permission
 import AppKit
 import CoreGraphics
 import Foundation
+import ScreenCaptureKit
+import UniformTypeIdentifiers
 
 let fnKey: CGKeyCode = 63
 let cKey: CGKeyCode = 8
@@ -86,6 +91,50 @@ func panelIsVisible() -> Bool {
     }
 }
 
+let hiddenFromBackdrop: Set<String> = ["sketchybar", "borders"]
+
+// What the screen shows behind the bar: the bar's own windows (and the focus border) are left out of the capture.
+func saveBackdrop(to path: String, height: CGFloat) async throws -> CGFloat {
+    let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+    guard let display = content.displays.first(where: { $0.displayID == CGMainDisplayID() }) else {
+        throw CocoaError(.fileNoSuchFile)
+    }
+    let hidden = content.windows.filter { hiddenFromBackdrop.contains($0.owningApplication?.applicationName ?? "") }
+    let filter = SCContentFilter(display: display, excludingWindows: hidden)
+    let scale = CGFloat(filter.pointPixelScale)
+    let configuration = SCStreamConfiguration()
+    configuration.sourceRect = CGRect(x: 0, y: 0, width: CGFloat(display.width), height: height)
+    configuration.width = Int(CGFloat(display.width) * scale)
+    configuration.height = Int(height * scale)
+    configuration.showsCursor = false
+    let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
+    guard let destination = CGImageDestinationCreateWithURL(URL(fileURLWithPath: path) as CFURL, UTType.png.identifier as CFString, 1, nil)
+    else { throw CocoaError(.fileWriteUnknown) }
+    CGImageDestinationAddImage(destination, image, nil)
+    guard CGImageDestinationFinalize(destination) else { throw CocoaError(.fileWriteUnknown) }
+    return 1 / scale
+}
+
+func printBackdrop(arguments: [String]) -> Never {
+    guard arguments.count == 2, let height = Double(arguments[1]) else {
+        FileHandle.standardError.write(Data("usage: ctlcenter backdrop OUT HEIGHT\n".utf8))
+        exit(2)
+    }
+    let done = DispatchSemaphore(value: 0)
+    var status: Int32 = 1
+    Task {
+        do {
+            print(try await saveBackdrop(to: arguments[0], height: CGFloat(height)))
+            status = 0
+        } catch {
+            FileHandle.standardError.write(Data("ctlcenter backdrop: \(error.localizedDescription)\n".utf8))
+        }
+        done.signal()
+    }
+    done.wait()
+    exit(status)
+}
+
 switch CommandLine.arguments.dropFirst().first {
 case "open":
     openControlCenter()
@@ -95,7 +144,9 @@ case "watch":
     watchPointer(maxY: CommandLine.arguments.dropFirst(2).first.flatMap { Double($0) }.map { CGFloat($0) } ?? menuBarStripHeight)
 case "visible":
     exit(panelIsVisible() ? 0 : 1)
+case "backdrop":
+    printBackdrop(arguments: Array(CommandLine.arguments.dropFirst(2)))
 default:
-    FileHandle.standardError.write(Data("usage: ctlcenter open|top|watch|visible\n".utf8))
+    FileHandle.standardError.write(Data("usage: ctlcenter open|top|watch|visible|backdrop\n".utf8))
     exit(2)
 }

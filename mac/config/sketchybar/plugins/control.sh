@@ -9,7 +9,7 @@ color="$MAUVE"
 iface="$(networksetup -listallhardwareports | awk '/Wi-Fi/{getline; print $2; exit}')"
 ipconfig getifaddr "${iface:-en0}" >/dev/null 2>&1 || color="$RED"
 
-panel_idle || exit 0
+panel_idle || exit 0 # hidden: no need to ask Bluetooth
 
 device=""
 if command -v blueutil >/dev/null 2>&1 && [ "$(blueutil --power)" = 1 ]; then
@@ -17,7 +17,7 @@ if command -v blueutil >/dev/null 2>&1 && [ "$(blueutil --power)" = 1 ]; then
 fi
 
 if [ -n "$device" ]; then
-  sketchybar --set "$NAME" icon.color="$color" label="$(cut -d" " -f1-2 <<<"$device")" label.drawing=on
+  panel_set --set "$NAME" icon.color="$color" label="$(cut -d" " -f1-2 <<<"$device")" label.drawing=on
 else
-  sketchybar --set "$NAME" icon.color="$color" label.drawing=off
+  panel_set --set "$NAME" icon.color="$color" label.drawing=off
 fi

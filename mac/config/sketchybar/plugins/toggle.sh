@@ -18,12 +18,17 @@ SLIDE_SECONDS=0.45
 TEXT_DELAY_SECONDS=0.22 # the text fades in once the drawer is half open
 WIDTHS="$HOME/.cache/sketchybar/panel_widths"
 STALE_LOCK_SECONDS=3
+LOCK_RETRY_SECONDS=0.02
 
 # One toggle at a time. mkdir is atomic, so two clicks can never both get in (a lock older than STALE_LOCK_SECONDS is a
 # crashed run, not a busy one; a lock that vanishes while it is being read was just released, so that click is dropped).
 acquire_lock() {
   local locked_at
-  mkdir "$PANEL_BUSY" 2>/dev/null && return 0
+  # A plugin painting the panel holds the lock for one call: wait those few milliseconds instead of dropping the click.
+  for _ in 1 2 3 4 5; do
+    mkdir "$PANEL_BUSY" 2>/dev/null && return 0
+    sleep "$LOCK_RETRY_SECONDS"
+  done
   locked_at="$(stat -f %m "$PANEL_BUSY" 2>/dev/null)" || return 1
   [ $(($(date +%s) - locked_at)) -ge "$STALE_LOCK_SECONDS" ] || return 1
   rmdir "$PANEL_BUSY" 2>/dev/null

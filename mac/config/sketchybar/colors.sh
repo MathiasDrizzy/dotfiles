@@ -23,3 +23,11 @@ BAR_BORDER=0x26ffffff
 PANEL_STATE="$HOME/.cache/sketchybar/panel"
 PANEL_BUSY="$HOME/.cache/sketchybar/panel_busy"
 panel_idle() { [ "$(cat "$PANEL_STATE" 2>/dev/null)" = on ] && [ ! -e "$PANEL_BUSY" ]; }
+# Runs one sketchybar call on the panel's items while holding the toggle's lock, and only while the panel is open: a check
+# made earlier than the paint let an icon land in the middle of a slide. A busy panel skips the call (the next update repaints).
+panel_set() {
+  mkdir "$PANEL_BUSY" 2>/dev/null || return 0
+  [ "$(cat "$PANEL_STATE" 2>/dev/null)" = on ] && sketchybar "$@"
+  rmdir "$PANEL_BUSY" 2>/dev/null
+  return 0
+}

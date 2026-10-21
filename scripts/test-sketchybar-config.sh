@@ -36,7 +36,7 @@ plugins_exist() {
 symbols_defined() {
   local v
   for v in $(grep -ho '\$[A-Z][A-Z_0-9]*' "$SB"/sketchybarrc "$SB"/plugins/*.sh | tr -d '$' | sort -u); do
-    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | PRESS_PANEL | PRESS_MAX_SECONDS | DRAG_FLAG_MAX_SECONDS | DRAGGING | STRIP_HEIGHT | DRAG_THRESHOLD | GHOST | GHOST_HALF_WIDTH | SLOT_MARGIN | RELEASE_GRACE | GLIDE_FRAMES | TINT_FRAMES | DIM_ICON | DIM_BACKGROUND | TARGET_BACKGROUND | LEFT_COLUMN_LIMIT | ids | slot | lefts | rights | focused | source_slot | target_slot | down_x | mode | ghost_origin | PANEL_STATE | PANEL_BUSY | STALE_LOCK_SECONDS | SWAPPING | PARK | STASH | DROP | DROP_FRAMES | HOVER | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS | SLIDE_FRAMES | TEXT_FRAMES | SLIDE_SECONDS | TEXT_DELAY_SECONDS | WIDTHS) continue ;; esac
+    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | PRESS_PANEL | PRESS_MAX_SECONDS | DRAG_FLAG_MAX_SECONDS | DRAGGING | STRIP_HEIGHT | DRAG_THRESHOLD | GHOST | GHOST_HALF_WIDTH | SLOT_MARGIN | RELEASE_GRACE | GLIDE_FRAMES | TINT_FRAMES | DIM_ICON | DIM_BACKGROUND | TARGET_BACKGROUND | LEFT_COLUMN_LIMIT | ids | slot | lefts | rights | focused | source_slot | target_slot | down_x | mode | ghost_origin | PANEL_STATE | PANEL_BUSY | STALE_LOCK_SECONDS | SWAPPING | PARK | STASH | DROP | DROP_FRAMES | HOVER | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS | SLIDE_FRAMES | TEXT_FRAMES | SLIDE_SECONDS | TEXT_DELAY_SECONDS | WIDTHS | LOCK_RETRY_SECONDS | BACKDROP | BACKDROP_SCALE | COVER_HEIGHT | QUIET_POLLS | STEADY_POLLS | KEY_WAIT_POLLS | MAX_KEYS | INTENT | DRIVER | handled | since | seen | pressed_at | intent | serial | visible | away | polls | changed_at | keys | was | wanted) continue ;; esac
     grep -q "^$v=" "$SB/colors.sh" "$SB/icons.sh" || {
       echo "undefined: $v" >&2
       return 1
@@ -97,7 +97,12 @@ drag_is_followed() {
 panel_survives_fast_clicks() {
   # Plugins must not write colors while the right-hand panel is hidden or fading, and a click mid-animation is ignored.
   local f
-  for f in sys battery control; do grep -q '^panel_idle || exit 0$' "$SB/plugins/$f.sh" || return 1; done
+  # They paint through panel_set, which holds the toggle's own lock for the call: checking first and painting later (control.sh
+  # asks Bluetooth in between) let an icon land mid-slide and stay floating.
+  for f in sys battery control; do
+    grep -q '^ *panel_set ' "$SB/plugins/$f.sh" && ! grep -q '^ *sketchybar --set' "$SB/plugins/$f.sh" || return 1
+  done
+  grep -q '^panel_set() {' "$SB/colors.sh" && grep -q 'mkdir "$PANEL_BUSY"' "$SB/colors.sh" || return 1
   grep -q 'mkdir "$PANEL_BUSY"' "$SB/plugins/toggle.sh" && grep -q 'panel_busy" ] && exit 0' "$SB/plugins/hover.sh" || return 1
   # Releasing clears the exit trap: otherwise the trap deletes, at exit, the lock of the click that took over after the
   # early release (two toggles then run at once and leave the panel "open" with every item hidden). Only the stale-lock
@@ -114,7 +119,11 @@ control_click_does_not_reopen() {
   press="$(grep -n 'PRESS_PANEL" 2>/dev/null)" = open' "$cc" | cut -d: -f1)"
   visible="$(grep -n '"$CTL" visible; then' "$cc" | cut -d: -f1)"
   [ -n "$press" ] && [ -n "$visible" ] && [ "$press" -lt "$visible" ] || return 1
-  grep -q 'echo "$panel" >"$PRESS_PANEL"' "$SB/plugins/drag.sh" && grep -q 'panelWasOpen' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift"
+  grep -q 'echo "$panel" >"$PRESS_PANEL"' "$SB/plugins/drag.sh" && grep -q 'panelWasOpen' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" || return 1
+  # Fast clicks: one script drives the panel and the cover, the others only change what is wanted.
+  grep -q 'mkdir "$DRIVER"' "$cc" && grep -q 'set_intent closed' "$cc" && grep -q 'set_intent open' "$cc" || return 1
+  # fn+C only once the clicks stopped and the panel stood still: a key sent mid-animation left an empty panel on screen.
+  grep -q 'polls - changed_at)) -ge "$STEADY_POLLS"' "$cc" && grep -q '"$keys" -lt "$MAX_KEYS"' "$cc"
 }
 status_items_animate() {
   # The right-hand items slide out of the date pill and back into it (their width animates) while their text fades, and a
@@ -123,6 +132,15 @@ status_items_animate() {
   local t="$SB/plugins/toggle.sh"
   grep -q -- '--animate' "$t" && grep -q 'width=0' "$t" && grep -q 'width=dynamic' "$t" && grep -q 'sys_pill' "$t" || return 1
   awk '/^collapse\(\) \{/,/^\}/' "$t" | grep -q 'drawing=off' && ! awk '/^collapse\(\) \{/,/^\}/' "$t" | grep -q 'MAUVE\|shown'
+}
+control_cover_is_wallpaper() {
+  # A solid cover hid the wallpaper behind a black bar. The picture (the screen behind the bar, captured without it) lives in the first bracket, so every pill paints over it.
+  local rc="$SB/sketchybarrc" cover first
+  cover="$(grep -n 'add bracket cover ' "$rc" | cut -d: -f1)"
+  first="$(grep -n 'add bracket' "$rc" | grep -v 'add bracket cover ' | head -1 | cut -d: -f1)"
+  [ -n "$cover" ] && [ -n "$first" ] && [ "$cover" -lt "$first" ] || return 1
+  grep -q '"$CTL" backdrop' "$SB/plugins/controlcenter.sh" && grep -q -- '--set cover drawing=on' "$SB/plugins/controlcenter.sh" &&
+    grep -q 'case "backdrop"' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift"
 }
 installer_ok() {
   local f
@@ -150,6 +168,7 @@ check "a drag is followed from the first pixel by a pointer watcher with a ghost
 check "the right-hand panel survives fast clicks and plugin updates" panel_survives_fast_clicks
 check "clicking the Control Center button while its panel is open closes it" control_click_does_not_reopen
 check "the right-hand panel opens and closes with an animation" status_items_animate
+check "the Control Center cover is a picture of the wallpaper, painted under every pill" control_cover_is_wallpaper
 check "install.sh installs the formulae and check-links.sh links the files" installer_ok
 
 if [ "$fails" -eq 0 ]; then echo "test-sketchybar-config: PASS"; else

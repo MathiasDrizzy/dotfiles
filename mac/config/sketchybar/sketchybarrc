@@ -28,6 +28,16 @@ sketchybar --default \
   padding_left=1 padding_right=1 \
   background.height=24 background.corner_radius=8 background.drawing=off
 
+# The Control Center cover (controlcenter.sh): a picture of the wallpaper strip behind the bar, so the native menu bar the
+# system shows with the panel stays hidden and the bar still looks like the desktop. It is the first bracket, so every pill
+# paints over it, and it spans two empty edge items: while it shows, the bar drops its margin and side padding and the edges
+# take them as width (an empty item ignores its padding), so the pills keep their place.
+sketchybar --add item cover_left left --add item cover_right right \
+  --set cover_left width=0 padding_left=0 padding_right=0 icon.drawing=off label.drawing=off \
+  --set cover_right width=0 padding_left=0 padding_right=0 icon.drawing=off label.drawing=off \
+  --add bracket cover cover_left cover_right \
+  --set cover drawing=off background.drawing=on background.color="$TRANSPARENT" background.height=40 background.corner_radius=0
+
 pill() { # item or bracket name: the glass look shared by every pill
   sketchybar --set "$1" \
     background.color="$BAR_COLOR" background.border_color="$BAR_BORDER" background.border_width=1 \
