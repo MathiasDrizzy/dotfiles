@@ -6,6 +6,8 @@
 //                      every left-button press that starts within maxY points of the top of the screen, and "top" / "away"
 //                      when the pointer enters or leaves that strip, until the output is closed; it needs no permissions
 //   ctlcenter visible  exits 0 while a Control Center window is on screen, 1 otherwise
+//   ctlcenter center X moves the open Control Center panel so its controls are centered at X (points), kept on screen;
+//                      needs Accessibility
 //   ctlcenter menu BUNDLE   opens (or closes) the menu bar extra of the app BUNDLE, as a click on it would; needs Accessibility
 //   ctlcenter shown BUNDLE  exits 0 while the app BUNDLE has a menu or popover on screen, 1 otherwise
 //   ctlcenter dismiss X Y   clicks at X Y (points, origin top-left) and puts the pointer back 25 ms later, which closes a
@@ -29,6 +31,7 @@ let cKey: CGKeyCode = 8
 let keyDelayMicroseconds: UInt32 = 8000
 let controlCenterBundleID = "com.apple.controlcenter"
 let panelMinHeight: CGFloat = 100
+let panelScreenMargin: CGFloat = 14 // how far from the screen's edge macOS itself leaves the panel
 let menuBarStripHeight: CGFloat = 40
 let idlePollMicroseconds: UInt32 = 25000
 let dragPollMicroseconds: UInt32 = 8000
@@ -133,6 +136,42 @@ func panelIsVisible() -> Bool {
     openPopups(of: [controlCenterBundleID])[0]
 }
 
+func axElements(_ element: AXUIElement, _ attribute: String) -> [AXUIElement] {
+    var value: CFTypeRef?
+    guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else { return [] }
+    return value as? [AXUIElement] ?? []
+}
+
+func axFrame(_ element: AXUIElement) -> CGRect {
+    var position: CFTypeRef?
+    var size: CFTypeRef?
+    var origin = CGPoint.zero
+    var extent = CGSize.zero
+    guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &position) == .success,
+        AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &size) == .success,
+        AXValueGetValue(position as! AXValue, .cgPoint, &origin), AXValueGetValue(size as! AXValue, .cgSize, &extent)
+    else { return .null }
+    return CGRect(origin: origin, size: extent)
+}
+
+// macOS puts the Control Center panel at the right edge of the screen. Its window is wider than what it shows (and runs off
+// the screen), so what is centered at x is its content: the controls inside the window's one view.
+func centerPanel(at x: CGFloat) -> Bool {
+    guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: controlCenterBundleID).first,
+        let window = axElements(AXUIElementCreateApplication(app.processIdentifier), kAXWindowsAttribute)
+            .first(where: { axFrame($0).height > panelMinHeight })
+    else { return false }
+    let frame = axFrame(window)
+    let content = axElements(window, kAXChildrenAttribute).flatMap { axElements($0, kAXChildrenAttribute) }
+        .map(axFrame).reduce(CGRect.null) { $0.union($1) }
+    let shown = content.isNull ? frame : content
+    let screenWidth = NSScreen.screens.first?.frame.width ?? 0
+    let shift = min(max(x - shown.midX, panelScreenMargin - shown.minX), screenWidth - panelScreenMargin - shown.maxX)
+    var origin = CGPoint(x: frame.minX + shift, y: frame.minY)
+    guard let value = AXValueCreate(.cgPoint, &origin) else { return false }
+    return AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, value) == .success
+}
+
 // Presses the app's menu bar extra through Accessibility, which works while the system menu bar is hidden.
 func pressMenuExtra(of bundleID: String) -> Bool {
     guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else { return false }
@@ -223,10 +262,7 @@ enum Stay {
 
     // A Finder window, even on another workspace, would be followed there in turn. The desktop is a window with no subrole.
     static func hasWindow(_ app: NSRunningApplication) -> Bool {
-        var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(AXUIElementCreateApplication(app.processIdentifier), kAXWindowsAttribute as CFString, &value) == .success
-        else { return false }
-        return (value as? [AXUIElement] ?? []).contains { window in
+        axElements(AXUIElementCreateApplication(app.processIdentifier), kAXWindowsAttribute).contains { window in
             var subrole: CFTypeRef?
             AXUIElementCopyAttributeValue(window, kAXSubroleAttribute as CFString, &subrole)
             return subrole as? String == kAXStandardWindowSubrole as String
@@ -289,6 +325,12 @@ case "menu", "shown":
         exit(2)
     }
     exit((CommandLine.arguments[1] == "menu" ? pressMenuExtra(of: bundleID) : openPopups(of: [bundleID])[0]) ? 0 : 1)
+case "center":
+    guard let x = CommandLine.arguments.dropFirst(2).first.flatMap({ Double($0) }) else {
+        FileHandle.standardError.write(Data("usage: ctlcenter center X\n".utf8))
+        exit(2)
+    }
+    exit(centerPanel(at: CGFloat(x)) ? 0 : 1)
 case "dismiss":
     let numbers = CommandLine.arguments.dropFirst(2).compactMap { Double($0) }
     guard numbers.count == 2 else {
@@ -301,6 +343,6 @@ case "backdrop":
 case "stay":
     Stay.run()
 default:
-    FileHandle.standardError.write(Data("usage: ctlcenter open|top|watch|visible|menu|shown|dismiss|backdrop|stay\n".utf8))
+    FileHandle.standardError.write(Data("usage: ctlcenter open|top|watch|visible|center|menu|shown|dismiss|backdrop|stay\n".utf8))
     exit(2)
 }

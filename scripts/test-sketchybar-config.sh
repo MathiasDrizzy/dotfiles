@@ -258,6 +258,13 @@ vorssaint_pill() {
   grep -q 'echo "$menu" >"$PRESS_MENU"' "$SB/plugins/drag.sh" && grep -q 'watch "$STRIP_HEIGHT" "$MENU_EXTRA_BUNDLE"' "$SB/plugins/drag.sh" &&
     grep -q 'ITEMS=(sys sys_mem vorssaint control)' "$SB/plugins/toggle.sh"
 }
+# macOS puts the Control Center panel at the right edge of the screen; the driver moves it under the button that opened it
+# (the panel's content, not its window, which is wider and runs off the screen), kept on screen.
+control_center_centered() {
+  local c="$ROOT/mac/tools/ctlcenter/ctlcenter.swift" d="$SB/plugins/controlcenter.sh"
+  grep -q '^case "center":' "$c" && grep -q 'func centerPanel(' "$c" && grep -q 'kAXChildrenAttribute' "$c" &&
+    grep -q '"$CTL" center "$x"' "$d" && grep -q 'sketchybar --query control' "$d"
+}
 battery_always_shown() {
   # The battery stays on the bar: the chevron folds only the items left of it, and battery.sh paints without the panel.
   local rc="$SB/sketchybarrc" b="$SB/plugins/battery.sh"
@@ -298,6 +305,7 @@ check "a Vorssaint pill next to Control Center opens its menu" vorssaint_pill
 check "closing the last window of a workspace keeps the focus on it" workspace_stays
 check "the now playing pill follows the player as it changes" media_follows_stream
 check "the battery pill is always on the bar" battery_always_shown
+check "the Control Center panel opens under its button" control_center_centered
 check "install.sh installs the formulae and check-links.sh links the files" installer_ok
 
 if [ "$fails" -eq 0 ]; then echo "test-sketchybar-config: PASS"; else
