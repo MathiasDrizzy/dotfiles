@@ -19,7 +19,7 @@ STEADY_POLLS=3   # the menu has not changed for this long: its animation is over
 KEY_WAIT_POLLS=5 # a press shows within this long
 MAX_KEYS=2
 FIRST_WAIT=0.35 # a click this soon after the first is part of the same burst
-DISMISS_X=8 # an empty spot of the bar, left of the Apple logo
+DISMISS_X=8     # an empty spot of the bar, left of the Apple logo
 DISMISS_Y=20
 GRACE_POLLS=3
 
