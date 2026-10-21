@@ -41,9 +41,10 @@ gaps.outer.bottom = 6
 gaps.outer.top = 6
 gaps.outer.right = 6
 
-# System Settings is not meant to be tiled.
+# System Settings is not meant to be tiled, nor are the windows of Vorssaint (it lives in its menu, SketchyBar's planet).
 on-window-detected = [
     { if = 'test %{app-bundle-id} = com.apple.systempreferences', run = 'layout floating' },
+    { if = 'test %{app-bundle-id} = com.vorssaint.utils', run = 'layout floating' },
 ]
 
 # Tell SketchyBar which workspace is focused.

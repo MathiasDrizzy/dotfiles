@@ -1,69 +1,22 @@
 #!/usr/bin/env bash
 # Opens macOS Control Center, or closes it when it is already open (fn+C toggles it). The system draws its own menu bar
-# while the panel is open, so until the panel closes the bar shows a full-width picture of the wallpaper strip behind it
-# (the "cover" bracket of the rc) and the native bar never shows through. The pills keep their place.
-# The bar is always topmost: toggling topmost recreates its window and blanks the pills.
+# while the panel is open, so until the panel closes the cover (cover.sh) keeps it hidden under the bar.
 # shellcheck disable=SC1091
 source "$CONFIG_DIR/colors.sh"
 
 CTL="$HOME/.local/bin/ctlcenter"
-COVER_CACHE="$HOME/.cache/sketchybar/cover"
-BACKDROP="$HOME/.cache/sketchybar/cover.png"
-BACKDROP_SCALE="$HOME/.cache/sketchybar/cover_scale"
-COVER_HEIGHT=40 # points: the cover bar is this tall and starts at the top of the screen
 PRESS_PANEL="$HOME/.cache/sketchybar/press_panel"
 PRESS_MAX_SECONDS=2
 POLL=0.1
 MAX_POLLS=1200   # give up after two minutes
-FADE_FRAMES=5    # the bar fades in and out instead of flashing
-QUIET_POLLS=2    # no click for this long: the clicking is over
+QUIET_POLLS=3    # no click for this long: the clicking is over
 STEADY_POLLS=4   # the panel has not changed for this long: its animation is over
 KEY_WAIT_POLLS=8 # a key's effect shows within this long
 MAX_KEYS=2
+FIRST_WAIT=0.35 # a click this soon after the first is part of the same burst
 INTENT="$HOME/.cache/sketchybar/cc_intent"
 DRIVER="$HOME/.cache/sketchybar/cc_driver"
 GRACE_POLLS=6 # the native bar needs a moment to slide away once the pointer leaves
-
-# Keeps a picture of the top of the screen as it looks behind the bar (the bar itself left out), so the next cover looks like
-# the desktop; and the average color of the screen's top strip, for the plain cover used without a picture.
-remember_cover() {
-  local tmp bgra scale
-  tmp="$(mktemp -d)" || return
-  mkdir -p "$(dirname "$COVER_CACHE")"
-  if scale="$("$CTL" backdrop "$tmp/backdrop.png" "$COVER_HEIGHT" 2>/dev/null)"; then
-    mv "$tmp/backdrop.png" "$BACKDROP"
-    echo "$scale" >"$BACKDROP_SCALE"
-  fi
-  if screencapture -x -R0,0,800,3 "$tmp/edge.png" 2>/dev/null &&
-    sips -s format bmp -z 1 1 "$tmp/edge.png" --out "$tmp/pixel.bmp" >/dev/null 2>&1; then
-    bgra="$(tail -c 4 "$tmp/pixel.bmp" | xxd -p)"
-    printf '0xff%s%s%s\n' "${bgra:4:2}" "${bgra:2:2}" "${bgra:0:2}" >"$COVER_CACHE"
-  fi
-  rm -rf "$tmp"
-}
-
-# Cover on: the picture when there is one (set again each time, so a new picture is read), else a plain bar in its color.
-show_cover() {
-  if [ -s "$BACKDROP" ]; then
-    sketchybar --bar margin=0 y_offset=0 height="$COVER_HEIGHT" corner_radius=0 padding_left=0 padding_right=0 \
-      --set cover_left width=18 --set cover_right width=34 \
-      --set cover drawing=on background.image="$BACKDROP" background.image.scale="$(cat "$BACKDROP_SCALE" 2>/dev/null || echo 0.5)"
-  else
-    sketchybar --animate tanh "$FADE_FRAMES" --bar color="$1" margin=0 y_offset=0 height="$COVER_HEIGHT" corner_radius=0 \
-      padding_left=18 padding_right=34
-  fi
-}
-
-# Back to the floating glass bar of the rc.
-hide_cover() {
-  sketchybar --bar color="$TRANSPARENT" margin=10 y_offset=4 height=32 corner_radius=12 padding_left=8 padding_right=24 \
-    --set cover_left width=0 --set cover_right width=0 --set cover drawing=off
-}
-
-if [ "$1" = --remember-cover ]; then
-  remember_cover
-  exit 0
-fi
 
 [ -x "$CTL" ] || {
   open "x-apple.systempreferences:com.apple.ControlCenter-Settings.extension"
@@ -99,23 +52,24 @@ if "$CTL" visible; then # opened some other way (fn+C): this click closes it
   exit 0
 fi
 
-cover="$(cat "$COVER_CACHE" 2>/dev/null)"
-cover="${cover:-0xff11111b}"
 set_intent open
+read -r _ handled <"$INTENT"
 "$CONFIG_DIR/plugins/close_popups.sh" &
 # The native bar stays up while the pointer is in the top strip, so the cover is kept until the pointer leaves it.
-show_cover "$cover"
+"$CONFIG_DIR/plugins/cover.sh" on
 
 # Makes the panel match the intent with as few fn+C as possible, and never while Control Center is changing: a key that
 # landed mid-animation, or among fast clicks, left an empty panel window on screen that no key or click would close.
 # A key goes out once the clicks have stopped for QUIET_POLLS and the panel has looked the same for STEADY_POLLS, and gets
-# KEY_WAIT_POLLS to take effect (MAX_KEYS per change). A panel the user closes elsewhere ends it.
+# KEY_WAIT_POLLS to take effect (MAX_KEYS per change). A panel the user closes elsewhere ends it. The first key waits only for
+# the clicks (FIRST_WAIT): the panel starts closed and still. Sent at once, the clicks after it landed on a panel still
+# opening (a click on the bar closes it) and left it empty.
+sleep "$FIRST_WAIT"
 polls=0
 away=0
-handled=""
-since=0
-changed_at=0
-pressed_at=-100
+since=-"$QUIET_POLLS"
+changed_at=-"$STEADY_POLLS"
+pressed_at=-"$KEY_WAIT_POLLS"
 keys=0
 seen=false
 was=false
@@ -134,6 +88,9 @@ while [ "$polls" -lt "$MAX_POLLS" ]; do
     seen=false
   fi
   [ "$intent" = open ] && $visible && seen=true
+  # Open and settled: the panel is the user's now. A click inside it can redraw its window, and a driver still watching
+  # took the blink for a close elsewhere and shut the panel under the pointer. The cover waits for it on its own.
+  $seen && [ $((polls - since)) -ge "$QUIET_POLLS" ] && [ $((polls - changed_at)) -ge "$STEADY_POLLS" ] && break
   wanted=false
   [ "$intent" = open ] && wanted=true
   if [ "$wanted" != "$visible" ]; then
@@ -158,6 +115,8 @@ while [ "$polls" -lt "$MAX_POLLS" ]; do
   polls=$((polls + 1))
 done
 wait
-hide_cover
-sleep 0.4 # let the bar settle before sampling the strip
-remember_cover
+# Let go first, then hand the cover to its waiter (it comes off once the panel is closed and the pointer has left the top).
+rm -f "$DRIVER/pid"
+rmdir "$DRIVER" 2>/dev/null
+trap - EXIT
+"$CONFIG_DIR/plugins/cover.sh" settle

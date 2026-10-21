@@ -22,6 +22,8 @@ BAR_BORDER=0x26ffffff
 # is hidden or animating (a color written mid-fade left icons and numbers floating).
 PANEL_STATE="$HOME/.cache/sketchybar/panel"
 PANEL_BUSY="$HOME/.cache/sketchybar/panel_busy"
+# The menu bar extra with a pill of its own next to Control Center (vorssaint.sh); the watcher and the cover follow its menu.
+MENU_EXTRA_BUNDLE="com.vorssaint.utils"
 panel_idle() { [ "$(cat "$PANEL_STATE" 2>/dev/null)" = on ] && [ ! -e "$PANEL_BUSY" ]; }
 # Runs one sketchybar call on the panel's items while holding the toggle's lock, and only while the panel is open: a check
 # made earlier than the paint let an icon land in the middle of a slide. A busy panel skips the call (the next update repaints).
@@ -31,3 +33,21 @@ panel_set() {
   rmdir "$PANEL_BUSY" 2>/dev/null
   return 0
 }
+# Where width=dynamic puts each item, as fixed widths ("item width" lines): its drawn size plus the gap to its right-hand
+# neighbour (fixed widths drop the padding between items; the last one keeps its own). Measured right before each slide,
+# while the items are drawn: a width saved on the last close was stale once a label had changed, and the items jumped a
+# few pixels when the slide ended.
+slide_widths() { # items, left to right
+  local items=("$@") i item next query width
+  for i in "${!items[@]}"; do
+    item="${items[$i]}"
+    next="${items[$((i + 1))]}"
+    query="$(sketchybar --query "$item")"
+    width="$(jq -r '.bounding_rects | to_entries[0].value.size[0] | floor' <<<"$query")"
+    if [ -n "$next" ]; then
+      width=$((width + $(jq -r '.geometry.padding_right' <<<"$query") + $(sketchybar --query "$next" | jq -r '.geometry.padding_left')))
+    fi
+    echo "$item $width"
+  done
+}
+width_of() { awk -v i="$1" '$1 == i {print $2}' <<<"$2"; }

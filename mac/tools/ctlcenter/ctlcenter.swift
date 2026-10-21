@@ -1,10 +1,15 @@
 // ctlcenter: open macOS Control Center from a script and tell whether its panel is on screen.
 //   ctlcenter open     presses fn+C, the system shortcut that opens Control Center (and closes it when it is open)
 //   ctlcenter top      exits 0 while the pointer is in the top strip where the system menu bar reveals itself
-//   ctlcenter watch [maxY]  prints "down X Y open|closed" (whether the Control Center panel was open at the press), "move X Y" and
-//                      "up X Y" lines (points, origin top-left) for every left-button press that starts within maxY points of
-//                      the top of the screen, until the output is closed; it needs no permissions
+//   ctlcenter watch [maxY [BUNDLE]]  prints "down X Y open|closed open|closed" (whether the Control Center panel and the menu
+//                      of the app BUNDLE were open at the press), "move X Y" and "up X Y" lines (points, origin top-left) for
+//                      every left-button press that starts within maxY points of the top of the screen, and "top" / "away"
+//                      when the pointer enters or leaves that strip, until the output is closed; it needs no permissions
 //   ctlcenter visible  exits 0 while a Control Center window is on screen, 1 otherwise
+//   ctlcenter menu BUNDLE   opens (or closes) the menu bar extra of the app BUNDLE, as a click on it would; needs Accessibility
+//   ctlcenter shown BUNDLE  exits 0 while the app BUNDLE has a menu or popover on screen, 1 otherwise
+//   ctlcenter dismiss X Y   clicks at X Y (points, origin top-left) and puts the pointer back, which closes a popover the
+//                      way a click outside it does; does nothing (exit 1) while a mouse button is held; needs Accessibility
 //   ctlcenter backdrop OUT HEIGHT  saves to OUT (PNG) the top HEIGHT points of the main display as they look without
 //                      SketchyBar and JankyBorders (wallpaper, the system's own dimming and anything else behind the bar) and
 //                      prints the scale to show it at (points per pixel); needs the Screen Recording permission
@@ -38,6 +43,19 @@ func openControlCenter() {
     post(fnKey, down: false, flags: [])
 }
 
+// A popover closed through its menu bar extra came back broken (Vorssaint shut it at the second click inside), and a click
+// on the extra itself is not one outside it: only a real click elsewhere closes it cleanly.
+func dismiss(at point: CGPoint) -> Bool {
+    guard !CGEventSource.buttonState(.combinedSessionState, button: .left) else { return false }
+    let back = pointerLocation()
+    for type in [CGEventType.leftMouseDown, .leftMouseUp] {
+        CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: point, mouseButton: .left)?.post(tap: .cghidEventTap)
+    }
+    CGWarpMouseCursorPosition(back)
+    CGAssociateMouseAndMouseCursorPosition(1)
+    return true
+}
+
 func pointerIsAtTop() -> Bool {
     pointerLocation().y < menuBarStripHeight
 }
@@ -46,14 +64,16 @@ func pointerLocation() -> CGPoint {
     CGEvent(source: nil)?.location ?? .zero
 }
 
-func watchPointer(maxY: CGFloat) -> Never {
+func watchPointer(maxY: CGFloat, menuBundleID: String?) -> Never {
     setvbuf(stdout, nil, _IOLBF, 0)
+    let bundleIDs = [controlCenterBundleID] + (menuBundleID.map { [$0] } ?? [])
     var tracking = false
     var ignoring = false
+    var atTop = false
     var last = CGPoint(x: -1, y: -1)
-    // Sampled before every press near the top: macOS starts closing the panel on the press itself, which this loop may see a
-    // poll late.
-    var panelWasOpen = false
+    // Sampled before every press near the top: macOS starts closing a panel or a menu on the press itself, which this loop may
+    // see a poll late.
+    var wasOpen = [false, false]
     while true {
         let pressed = CGEventSource.buttonState(.combinedSessionState, button: .left)
         let location = pointerLocation()
@@ -61,12 +81,17 @@ func watchPointer(maxY: CGFloat) -> Never {
             if tracking { print("up \(Int(location.x)) \(Int(location.y))") }
             tracking = false
             ignoring = false
-            panelWasOpen = location.y < maxY && panelIsVisible()
+            if (location.y < maxY) != atTop {
+                atTop = location.y < maxY
+                print(atTop ? "top" : "away")
+            }
+            wasOpen = atTop ? openPopups(of: bundleIDs) + [false] : [false, false]
         } else if !tracking && !ignoring {
             if location.y < maxY {
                 tracking = true
                 last = location
-                print("down \(Int(location.x)) \(Int(location.y)) \(panelWasOpen || panelIsVisible() ? "open" : "closed")")
+                let open = zip(wasOpen, openPopups(of: bundleIDs) + [false]).map { ($0 || $1) ? "open" : "closed" }
+                print("down \(Int(location.x)) \(Int(location.y)) \(open[0]) \(open[1])")
             } else {
                 ignoring = true
             }
@@ -78,17 +103,37 @@ func watchPointer(maxY: CGFloat) -> Never {
     }
 }
 
-func panelIsVisible() -> Bool {
-    // The owner is matched by pid (looked up once per call): the watcher runs this every poll near the top of the screen.
-    let owners = Set(NSRunningApplication.runningApplications(withBundleIdentifier: controlCenterBundleID).map(\.processIdentifier))
-    guard !owners.isEmpty else { return false }
+// Whether each app has a panel, menu or popover on screen: a window above the normal level, taller than the menu bar. One
+// window list for all of them, matched by pid (looked up on every call): the watcher runs this every poll near the top.
+func openPopups(of bundleIDs: [String]) -> [Bool] {
     let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
-    return windows.contains { window in
-        guard let pid = window[kCGWindowOwnerPID as String] as? pid_t, owners.contains(pid),
-            let bounds = window[kCGWindowBounds as String] as? [String: CGFloat]
-        else { return false }
-        return (bounds["Height"] ?? 0) > panelMinHeight
+    return bundleIDs.map { bundleID in
+        let owners = Set(NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).map(\.processIdentifier))
+        return windows.contains { window in
+            guard let pid = window[kCGWindowOwnerPID as String] as? pid_t, owners.contains(pid),
+                let layer = window[kCGWindowLayer as String] as? Int, layer > 0,
+                let bounds = window[kCGWindowBounds as String] as? [String: CGFloat]
+            else { return false }
+            return (bounds["Height"] ?? 0) > panelMinHeight
+        }
     }
+}
+
+func panelIsVisible() -> Bool {
+    openPopups(of: [controlCenterBundleID])[0]
+}
+
+// Presses the app's menu bar extra through Accessibility, which works while the system menu bar is hidden.
+func pressMenuExtra(of bundleID: String) -> Bool {
+    guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else { return false }
+    var menuBar: CFTypeRef?
+    var items: CFTypeRef?
+    let element = AXUIElementCreateApplication(app.processIdentifier)
+    guard AXUIElementCopyAttributeValue(element, "AXExtrasMenuBar" as CFString, &menuBar) == .success, let menuBar,
+        AXUIElementCopyAttributeValue(menuBar as! AXUIElement, kAXChildrenAttribute as CFString, &items) == .success,
+        let item = (items as? [AXUIElement])?.first
+    else { return false }
+    return AXUIElementPerformAction(item, kAXPressAction as CFString) == .success
 }
 
 let hiddenFromBackdrop: Set<String> = ["sketchybar", "borders"]
@@ -141,12 +186,26 @@ case "open":
 case "top":
     exit(pointerIsAtTop() ? 0 : 1)
 case "watch":
-    watchPointer(maxY: CommandLine.arguments.dropFirst(2).first.flatMap { Double($0) }.map { CGFloat($0) } ?? menuBarStripHeight)
+    let arguments = Array(CommandLine.arguments.dropFirst(2))
+    watchPointer(maxY: arguments.first.flatMap { Double($0) }.map { CGFloat($0) } ?? menuBarStripHeight, menuBundleID: arguments.dropFirst().first)
 case "visible":
     exit(panelIsVisible() ? 0 : 1)
+case "menu", "shown":
+    guard let bundleID = CommandLine.arguments.dropFirst(2).first else {
+        FileHandle.standardError.write(Data("usage: ctlcenter menu|shown BUNDLE\n".utf8))
+        exit(2)
+    }
+    exit((CommandLine.arguments[1] == "menu" ? pressMenuExtra(of: bundleID) : openPopups(of: [bundleID])[0]) ? 0 : 1)
+case "dismiss":
+    let numbers = CommandLine.arguments.dropFirst(2).compactMap { Double($0) }
+    guard numbers.count == 2 else {
+        FileHandle.standardError.write(Data("usage: ctlcenter dismiss X Y\n".utf8))
+        exit(2)
+    }
+    exit(dismiss(at: CGPoint(x: numbers[0], y: numbers[1])) ? 0 : 1)
 case "backdrop":
     printBackdrop(arguments: Array(CommandLine.arguments.dropFirst(2)))
 default:
-    FileHandle.standardError.write(Data("usage: ctlcenter open|top|watch|visible|backdrop\n".utf8))
+    FileHandle.standardError.write(Data("usage: ctlcenter open|top|watch|visible|menu|shown|dismiss|backdrop\n".utf8))
     exit(2)
 }

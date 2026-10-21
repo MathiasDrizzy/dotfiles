@@ -28,8 +28,8 @@ sketchybar --default \
   padding_left=1 padding_right=1 \
   background.height=24 background.corner_radius=8 background.drawing=off
 
-# The Control Center cover (controlcenter.sh): a picture of the wallpaper strip behind the bar, so the native menu bar the
-# system shows with the panel stays hidden and the bar still looks like the desktop. It is the first bracket, so every pill
+# The cover (cover.sh): a picture of the wallpaper strip behind the bar, so the native menu bar the system slides down (pointer
+# at the top, Control Center or a menu open) stays hidden and the bar still looks like the desktop. It is the first bracket, so every pill
 # paints over it, and it spans two empty edge items: while it shows, the bar drops its margin and side padding and the edges
 # take them as width (an empty item ignores its padding), so the pills keep their place.
 sketchybar --add item cover_left left --add item cover_right right \
@@ -88,8 +88,9 @@ sketchybar --set front_app icon="$icon_result"
 # --- Left: AeroSpace workspaces ---
 sketchybar --add event aerospace_workspace_change
 # Items start hidden, so the remembered row must start empty too.
-rm -f "$HOME/.cache/sketchybar/spaces" "$HOME/.cache/sketchybar/panel"
-rmdir "$HOME/.cache/sketchybar/panel_busy" 2>/dev/null
+rm -f "$HOME/.cache/sketchybar/spaces" "$HOME/.cache/sketchybar/panel" "$HOME/.cache/sketchybar/media_dirty"
+rmdir "$HOME/.cache/sketchybar/panel_busy" "$HOME/.cache/sketchybar/media_busy" "$HOME/.cache/sketchybar/cover_busy" \
+  "$HOME/.cache/sketchybar/cover_settler" 2>/dev/null
 first_space=true
 for sid in $(aerospace list-workspaces --all); do
   # One item drives the whole row (it alone listens to the workspace event and ticks); the others only react to the mouse.
@@ -124,10 +125,12 @@ media_button() { # name, icon, command, font size
 media_button media_prev "$PREV" "media-control previous-track" "$ARROW_SIZE"
 media_button media_play "$PLAY" "$PLUGIN_DIR/media_toggle.sh"
 media_button media_next "$NEXT" "media-control next-track" "$ARROW_SIZE"
-sketchybar --add item media left \
+# media_watch.sh fires now_playing_change as the player changes; the poll is only a fallback.
+sketchybar --add event now_playing_change --add item media left \
   --set media drawing=off icon.drawing=off label.font="$FONT:Regular:$TEXT_SIZE" label.width=144 label.padding_left=0 label.padding_right=10 \
-  update_freq=2 script="$PLUGIN_DIR/media.sh" \
-  click_script="$PLUGIN_DIR/close_popups.sh; media-control toggle-play-pause"
+  update_freq=5 script="$PLUGIN_DIR/media.sh" \
+  click_script="$PLUGIN_DIR/close_popups.sh; media-control toggle-play-pause" \
+  --subscribe media now_playing_change
 sketchybar --add bracket media_pill media_prev media_play media_next media
 pill media_pill
 
@@ -159,6 +162,11 @@ sketchybar --add item chevron right \
   label.drawing=off label.padding_left=0 label.padding_right=10 update_freq=5 script="$PLUGIN_DIR/control.sh" \
   click_script="$PLUGIN_DIR/controlcenter.sh" \
   --subscribe control wifi_change mouse.entered mouse.exited \
+  --add item vorssaint right \
+  --set vorssaint icon="$VORSSAINT" icon.font="$NERD_FONT:Regular:$ICON_SIZE" icon.color="$MAUVE" icon.width=34 icon.align=center \
+  icon.padding_left=0 icon.padding_right=0 label.drawing=off \
+  script="$PLUGIN_DIR/hover.sh 0xf0313244 0xd91e1e2e" click_script="$PLUGIN_DIR/vorssaint.sh" \
+  --subscribe vorssaint mouse.entered mouse.exited \
   --add item sys_mem right \
   --set sys_mem icon="$RAM" icon.color="$MAUVE" icon.padding_left=8 icon.padding_right=4 label.padding_right=12 \
   --add item sys right \
@@ -167,10 +175,10 @@ sketchybar --add item chevron right \
   --set sys_pill script="$PLUGIN_DIR/hover.sh 0xf0313244 0xd91e1e2e" click_script="$PLUGIN_DIR/monitor.sh" \
   --subscribe sys_pill mouse.entered mouse.exited
 
-for name in chevron clock battery control sys_pill; do pill "$name"; done
+for name in chevron clock battery control vorssaint sys_pill; do pill "$name"; done
 
 # Status items start collapsed; the chevron toggles them.
-sketchybar --set sys drawing=off --set sys_mem drawing=off --set sys_pill drawing=off --set control drawing=off --set battery drawing=off
+sketchybar --set sys drawing=off --set sys_mem drawing=off --set sys_pill drawing=off --set control drawing=off --set vorssaint drawing=off --set battery drawing=off
 
 sketchybar --hotload on
 sketchybar --update
@@ -181,5 +189,15 @@ pkill -f '^[^ ]*/ctlcenter watch ' 2>/dev/null
 rm -f "$HOME/.cache/sketchybar/dragging"
 nohup "$PLUGIN_DIR/drag.sh" >/dev/null 2>&1 &
 
-# Samples the desktop color the Control Center cover will use (in the background, the bar is already up).
-"$PLUGIN_DIR/controlcenter.sh" --remember-cover >/dev/null 2>&1 &
+# Keeps the focus on a workspace whose last window closed (one watcher at a time, with its subscription).
+pkill -f '^bash .*/plugins/stay\.sh$' 2>/dev/null
+pkill -f '^aerospace subscribe --no-send-initial binding-triggered ' 2>/dev/null
+nohup "$PLUGIN_DIR/stay.sh" >/dev/null 2>&1 &
+
+# Tells the now playing pill the moment the player changes (one watcher at a time, with its stream).
+pkill -f '^bash .*/plugins/media_watch\.sh$' 2>/dev/null
+pkill -f 'media-control/mediaremote-adapter\.pl .* stream$' 2>/dev/null # media-control runs its stream in Perl
+nohup "$PLUGIN_DIR/media_watch.sh" >/dev/null 2>&1 &
+
+# Takes the picture the cover will show (in the background, the bar is already up).
+"$PLUGIN_DIR/cover.sh" remember >/dev/null 2>&1 &

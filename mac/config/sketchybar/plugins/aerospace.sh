@@ -12,7 +12,8 @@ DRAGGING="$HOME/.cache/sketchybar/dragging"
 DRAG_FLAG_MAX_SECONDS=30
 SWAPPING="$HOME/.cache/sketchybar/swapping"
 PARK=swap-park # empty workspace that holds the focus during a swap
-SLOT_WIDTH=26  # keep in step with icon.width in the rc: a fixed icon width ignores the paddings
+PICK="$HOME/.cache/sketchybar/workspace_pick"
+SLOT_WIDTH=26 # keep in step with icon.width in the rc: a fixed icon width ignores the paddings
 HIDDEN_ICON=0x00000000
 ANIMATION_CURVE=tanh
 ANIMATION_FRAMES=6
@@ -53,6 +54,7 @@ fi
 case "$2" in
 click)
   "$CONFIG_DIR/plugins/close_popups.sh"
+  touch "$PICK" # asked for: stay.sh must not take the focus back
   aerospace workspace "$1"
   exit 0
   ;;

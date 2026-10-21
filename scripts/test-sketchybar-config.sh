@@ -36,7 +36,7 @@ plugins_exist() {
 symbols_defined() {
   local v
   for v in $(grep -ho '\$[A-Z][A-Z_0-9]*' "$SB"/sketchybarrc "$SB"/plugins/*.sh | tr -d '$' | sort -u); do
-    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | PRESS_PANEL | PRESS_MAX_SECONDS | DRAG_FLAG_MAX_SECONDS | DRAGGING | STRIP_HEIGHT | DRAG_THRESHOLD | GHOST | GHOST_HALF_WIDTH | SLOT_MARGIN | RELEASE_GRACE | GLIDE_FRAMES | TINT_FRAMES | DIM_ICON | DIM_BACKGROUND | TARGET_BACKGROUND | LEFT_COLUMN_LIMIT | ids | slot | lefts | rights | focused | source_slot | target_slot | down_x | mode | ghost_origin | PANEL_STATE | PANEL_BUSY | STALE_LOCK_SECONDS | SWAPPING | PARK | STASH | DROP | DROP_FRAMES | HOVER | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS | SLIDE_FRAMES | TEXT_FRAMES | SLIDE_SECONDS | TEXT_DELAY_SECONDS | WIDTHS | LOCK_RETRY_SECONDS | BACKDROP | BACKDROP_SCALE | COVER_HEIGHT | QUIET_POLLS | STEADY_POLLS | KEY_WAIT_POLLS | MAX_KEYS | INTENT | DRIVER | handled | since | seen | pressed_at | intent | serial | visible | away | polls | changed_at | keys | was | wanted) continue ;; esac
+    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | PRESS_PANEL | PRESS_MAX_SECONDS | DRAG_FLAG_MAX_SECONDS | DRAGGING | STRIP_HEIGHT | DRAG_THRESHOLD | GHOST | GHOST_HALF_WIDTH | SLOT_MARGIN | RELEASE_GRACE | GLIDE_FRAMES | TINT_FRAMES | DIM_ICON | DIM_BACKGROUND | TARGET_BACKGROUND | LEFT_COLUMN_LIMIT | ids | slot | lefts | rights | focused | source_slot | target_slot | down_x | mode | ghost_origin | PANEL_STATE | PANEL_BUSY | STALE_LOCK_SECONDS | SWAPPING | PARK | STASH | DROP | DROP_FRAMES | HOVER | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS | SLIDE_FRAMES | TEXT_FRAMES | SLIDE_SECONDS | TEXT_DELAY_SECONDS | WIDTHS | LOCK_RETRY_SECONDS | BACKDROP | BACKDROP_SCALE | COVER_HEIGHT | QUIET_POLLS | STEADY_POLLS | KEY_WAIT_POLLS | MAX_KEYS | INTENT | DRIVER | BUSY | BUTTONS | BUNDLE | COVER_BUSY | SETTLER | SETTLE_MAX | MENU_DELAY | REMEMBER_SECONDS | LOCK_TRIES | PRESS_MENU | COVER_GRACE | CLOSE_WAIT | MENU_DRIVER | FIRST_WAIT | PICK | EMPTIED_SECONDS | ASKED_SECONDS | binding_at | emptied | emptied_at | prev | line | DIRTY | RECONNECT_SECONDS | DISMISS_X | DISMISS_Y | closed_by_press | idle | handled | since | seen | pressed_at | intent | serial | visible | away | polls | changed_at | keys | was | wanted) continue ;; esac
     grep -q "^$v=" "$SB/colors.sh" "$SB/icons.sh" || {
       echo "undefined: $v" >&2
       return 1
@@ -55,7 +55,7 @@ for line in open(sys.argv[1]):
     if not m or m.group(1) in ("APP_ICON_FONT", "APPLE_FONT", "APPLE", "NERD_FONT"):
         continue
     glyph = m.group(2)
-    material = (m.group(1).startswith("BAT_") and m.group(1) != "BAT_CHARGING") or m.group(1) == "RESTART"
+    material = (m.group(1).startswith("BAT_") and m.group(1) != "BAT_CHARGING") or m.group(1) in ("RESTART", "VORSSAINT")
     if m.group(1) in names or not (re.fullmatch(r":[a-z_0-9]+:", glyph) or material):
         sys.exit(1)
     names.add(m.group(1))
@@ -119,11 +119,23 @@ control_click_does_not_reopen() {
   press="$(grep -n 'PRESS_PANEL" 2>/dev/null)" = open' "$cc" | cut -d: -f1)"
   visible="$(grep -n '"$CTL" visible; then' "$cc" | cut -d: -f1)"
   [ -n "$press" ] && [ -n "$visible" ] && [ "$press" -lt "$visible" ] || return 1
-  grep -q 'echo "$panel" >"$PRESS_PANEL"' "$SB/plugins/drag.sh" && grep -q 'panelWasOpen' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" || return 1
+  grep -q 'echo "$panel" >"$PRESS_PANEL"' "$SB/plugins/drag.sh" && grep -q 'wasOpen' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" || return 1
   # Fast clicks: one script drives the panel and the cover, the others only change what is wanted.
   grep -q 'mkdir "$DRIVER"' "$cc" && grep -q 'set_intent closed' "$cc" && grep -q 'set_intent open' "$cc" || return 1
   # fn+C only once the clicks stopped and the panel stood still: a key sent mid-animation left an empty panel on screen.
-  grep -q 'polls - changed_at)) -ge "$STEADY_POLLS"' "$cc" && grep -q '"$keys" -lt "$MAX_KEYS"' "$cc"
+  grep -q 'polls - changed_at)) -ge "$STEADY_POLLS"' "$cc" && grep -q '"$keys" -lt "$MAX_KEYS"' "$cc" || return 1
+  # ...and even the first one waits for the clicks to stop: sent at once, the clicks after it landed on a panel still
+  # opening and left it empty. Only the wait for a still panel is skipped (it starts closed): that wait made it slow.
+  # The wait is one sleep of FIRST_WAIT: counted in polls (each also asks for the panel) it took 0.45 s.
+  ! grep -q '^"$CTL" open$' "$cc" && grep -q '^changed_at=-"$STEADY_POLLS"$' "$cc" &&
+    grep -q '^since=-"$QUIET_POLLS"$' "$cc" && grep -q '^sleep "$FIRST_WAIT"' "$cc" && grep -q '^FIRST_WAIT=0.35 ' "$cc" || return 1
+  # Once open and settled the panel is left alone (clicks inside redraw it; a driver still watching closed it) and the
+  # cover waits for it on its own.
+  driver_lets_go "$cc"
+}
+driver_lets_go() { # a panel or menu driver
+  grep -q '^  \$seen && \[ \$((polls - since)) -ge "\$QUIET_POLLS" \] && \[ \$((polls - changed_at)) -ge "\$STEADY_POLLS" \] && break$' "$1" &&
+    [ "$(tail -1 "$1")" = '"$CONFIG_DIR/plugins/cover.sh" settle' ]
 }
 status_items_animate() {
   # The right-hand items slide out of the date pill and back into it (their width animates) while their text fades, and a
@@ -131,24 +143,123 @@ status_items_animate() {
   # so the visible colors given back on close left icons and numbers floating.
   local t="$SB/plugins/toggle.sh"
   grep -q -- '--animate' "$t" && grep -q 'width=0' "$t" && grep -q 'width=dynamic' "$t" && grep -q 'sys_pill' "$t" || return 1
-  awk '/^collapse\(\) \{/,/^\}/' "$t" | grep -q 'drawing=off' && ! awk '/^collapse\(\) \{/,/^\}/' "$t" | grep -q 'MAUVE\|shown'
+  awk '/^collapse\(\) \{/,/^\}/' "$t" | grep -q 'drawing=off' && ! awk '/^collapse\(\) \{/,/^\}/' "$t" | grep -q 'MAUVE\|shown' || return 1
+  # The slide ends where width=dynamic puts each item, measured right then (a width saved on the last close was stale once a
+  # label changed) and with the gap to its right-hand neighbour: fixed widths drop the padding between items, and the items
+  # jumped a few pixels at the end of the slide.
+  ! grep -q 'WIDTHS' "$t" && grep -q 'slide_widths "${ITEMS\[@\]}"' "$t" && grep -A12 '^slide_widths() {' "$SB/colors.sh" | grep -q 'padding_right'
+}
+# Closing the last window of a workspace made AeroSpace follow macOS to an app on another workspace (AeroSpace #325):
+# stay.sh brings the focus back, unless the switch was asked for (a key binding, a click on the bar, a drag swap).
+# Runs stay.sh on recorded events with a fake aerospace; prints the workspaces it switched to.
+stay_moves() { # windows left on the previous workspace, event lines...
+  local tmp out
+  tmp="$(mktemp -d)" || return 1
+  mkdir -p "$tmp/bin" "$tmp/home/.cache/sketchybar"
+  printf '%s\n' "${@:2}" >"$tmp/events"
+  cat >"$tmp/bin/aerospace" <<STUB
+#!/bin/bash
+case "\$1" in
+subscribe) cat "$tmp/events" ;;
+list-windows) echo "$1" ;;
+workspace) echo "\$2" >>"$tmp/moves" ;;
+esac
+STUB
+  chmod +x "$tmp/bin/aerospace"
+  [ "${STAY_PICK:-}" = 1 ] && touch "$tmp/home/.cache/sketchybar/workspace_pick"
+  HOME="$tmp/home" PATH="$tmp/bin:$PATH" bash "$SB/plugins/stay.sh"
+  out="$(cat "$tmp/moves" 2>/dev/null)"
+  rm -rf "$tmp"
+  echo "$out"
+}
+workspace_stays() {
+  local emptied='{"_event":"focus-changed","workspace":"3"}' jump='{"_event":"focused-workspace-changed","prevWorkspace":"3","workspace":"2"}'
+  local key='{"_event":"binding-triggered","binding":"alt-2","mode":"main"}'
+  [ -x "$SB/plugins/stay.sh" ] && grep -q '"$PLUGIN_DIR/stay.sh"' "$SB/sketchybarrc" &&
+    grep -q "pkill -f '^bash .\*/plugins/stay\\\\.sh\$'" "$SB/sketchybarrc" &&
+    grep -q 'touch "$PICK"' "$SB/plugins/aerospace.sh" &&
+    grep -q 'config/sketchybar/plugins/stay.sh|' "$ROOT/mac/scripts/check-links.sh" || return 1
+  [ "$(stay_moves 0 "$emptied" "$jump")" = 3 ] || return 1            # the window closed: back to 3
+  [ -z "$(stay_moves 0 "$emptied" "$key" "$jump")" ] || return 1      # alt-2: stays on 2
+  [ -z "$(stay_moves 1 "$emptied" "$jump")" ] || return 1             # 3 still has a window
+  [ -z "$(stay_moves 0 "$key" "$emptied" "$jump")" ] || return 1      # 3 was empty when alt-3 went there
+  [ -z "$(STAY_PICK=1 stay_moves 0 "$emptied" "$jump")" ] || return 1 # a click on the bar picked 2
+  [ -z "$(stay_moves 0 '{"_event":"focus-changed","workspace":"swap-park"}' \
+    '{"_event":"focused-workspace-changed","prevWorkspace":"swap-park","workspace":"2"}')" ] # a drag swap
+}
+# The pill follows the player at once: media_watch.sh turns `media-control stream` into a now_playing_change event (the 2 s poll
+# took up to 2.6 s to close it), and a change that lands while a slide runs is not lost but replayed after it.
+media_follows_stream() {
+  local w="$SB/plugins/media_watch.sh" rc="$SB/sketchybarrc"
+  [ -x "$w" ] && grep -q 'media-control stream' "$w" && grep -q 'sketchybar --trigger now_playing_change' "$w" &&
+    grep -q -- '--add event now_playing_change' "$rc" && grep -q -- '--subscribe media now_playing_change' "$rc" &&
+    grep -q "pkill -f '^bash .\*/plugins/media_watch\\\\.sh\$'" "$rc" && grep -q '"$PLUGIN_DIR/media_watch.sh"' "$rc" &&
+    ! grep -qw 'media_change' "$rc" && grep -q "pkill -f 'media-control/mediaremote-adapter" "$rc" &&
+    grep -q 'touch "$DIRTY"' "$SB/plugins/media.sh" && grep -q 'config/sketchybar/plugins/media_watch.sh|' "$ROOT/mac/scripts/check-links.sh"
+}
+media_slides() {
+  # The now playing pill slides open when a track loads and closed when the player quits, like the right-hand panel (it
+  # used to pop in and out), and hidden items stay transparent.
+  local m="$SB/plugins/media.sh"
+  grep -q 'slide_widths "${ITEMS\[@\]}"' "$m" && grep -q -- '--animate' "$m" && grep -q 'width=0' "$m" && grep -q 'width=dynamic' "$m" || return 1
+  awk '/^hide\(\) \{/,/^\}/' "$m" | grep -q 'drawing=off' && ! awk '/^hide\(\) \{/,/^\}/' "$m" | grep -q 'MAUVE' || return 1
+  # Whether it is open is asked of SketchyBar itself: a state file went stale when a reload rebuilt the items mid-run.
+  ! grep -q 'media-shown' "$m" && grep -q "sketchybar --query media | jq -r '.geometry.drawing'" "$m"
 }
 control_cover_is_wallpaper() {
-  # A solid cover hid the wallpaper behind a black bar. The picture (the screen behind the bar, captured without it) lives in the first bracket, so every pill paints over it.
-  local rc="$SB/sketchybarrc" cover first
+  # A solid cover hid the wallpaper behind a black bar. The picture (the screen behind the bar, captured without it) lives in
+  # the first bracket, so every pill paints over it; cover.sh is the one place that shows, hides and refreshes it.
+  local rc="$SB/sketchybarrc" c="$SB/plugins/cover.sh" cover first
   cover="$(grep -n 'add bracket cover ' "$rc" | cut -d: -f1)"
   first="$(grep -n 'add bracket' "$rc" | grep -v 'add bracket cover ' | head -1 | cut -d: -f1)"
   [ -n "$cover" ] && [ -n "$first" ] && [ "$cover" -lt "$first" ] || return 1
-  grep -q '"$CTL" backdrop' "$SB/plugins/controlcenter.sh" && grep -q -- '--set cover drawing=on' "$SB/plugins/controlcenter.sh" &&
-    grep -q 'case "backdrop"' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift"
+  grep -q '"$CTL" backdrop' "$c" && grep -q -- '--set cover drawing=on' "$c" && grep -q 'case "backdrop"' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" &&
+    ! grep -q -- '--set cover drawing=on' "$SB/plugins/controlcenter.sh" && grep -q 'cover.sh" on' "$SB/plugins/controlcenter.sh"
+}
+native_bar_stays_hidden() {
+  # The system menu bar slid down over the bar whenever the pointer reached the top: the watcher reports the pointer
+  # entering and leaving the top strip, and the cover is on while it is there. It only comes off once nothing needs it
+  # (pointer away, no Control Center run, no panel or menu open).
+  local c="$SB/plugins/cover.sh" d="$SB/plugins/drag.sh"
+  grep -q 'print(atTop ? "top" : "away")' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" || return 1
+  grep -q '^  top) .*cover.sh" on' "$d" && grep -q '^  away) .*cover.sh" off' "$d" || return 1
+  awk '/^off\)/,/;;/' "$c" | grep -q 'covered && ! needed' && ! grep -q 'COVER_ON' "$c" || return 1
+  local need
+  need="$(awk '/^needed\(\) \{/,/^\}/' "$c")"
+  grep -q '"$CTL" top' <<<"$need" && grep -q '"$CTL" visible' <<<"$need" && grep -q 'DRIVER/pid' <<<"$need" &&
+    grep -q '"$CTL" shown "$MENU_EXTRA_BUNDLE"' <<<"$need" && grep -q '^MENU_EXTRA_BUNDLE="com.vorssaint.utils"' "$SB/colors.sh"
+}
+vorssaint_pill() {
+  # Vorssaint lives in the hidden system menu bar: a pill next to Control Center opens its menu through Accessibility (the
+  # native bar stays covered), and a click while the menu is open closes it instead of reopening it.
+  local rc="$SB/sketchybarrc" v="$SB/plugins/vorssaint.sh"
+  grep -q 'add item vorssaint right' "$rc" && grep -q 'vorssaint.sh' "$rc" && grep -q 'pill "$name"' "$rc" &&
+    grep -q 'for name in .*vorssaint' "$rc" || return 1
+  grep -q '"$CTL" menu "$BUNDLE"' "$v" && grep -q 'PRESS_MENU' "$v" && grep -q 'cover.sh" on' "$v" || return 1
+  # Fast clicks: one script drives the menu, the others only flip what is wanted (the cover waits for it too).
+  grep -q 'mkdir "$DRIVER"' "$v" && grep -q 'set_intent closed' "$v" && grep -q '"$keys" -lt "$MAX_KEYS"' "$v" &&
+    awk '/^needed\(\) \{/,/^\}/' "$SB/plugins/cover.sh" | grep -q 'MENU_DRIVER/pid' || return 1
+  # The first press waits for the clicks to stop too (see the Control Center button).
+  ! grep -q '^  "$CTL" menu "$BUNDLE"' "$v" && grep -q '^changed_at=-"$STEADY_POLLS"$' "$v" &&
+    grep -q '^since=-"$QUIET_POLLS"$' "$v" && grep -q '^sleep "$FIRST_WAIT"' "$v" && grep -q '^FIRST_WAIT=0.35 ' "$v" &&
+    driver_lets_go "$v" || return 1
+  # A menu closed by a press came back broken (the second click inside shut it): a click outside it, once it is gone,
+  # finishes the close.
+  grep -qF '[ "$intent" = closed ] && closed_by_press=true' "$v" &&
+    grep -qF '$closed_by_press && [ "$intent" = closed ] && "$CTL" dismiss "$DISMISS_X" "$DISMISS_Y"' "$v" &&
+    grep -qF 'set_intent open # it stayed open' "$v" && grep -q '^case "dismiss":' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" ||
+    return 1
+  grep -q 'echo "$menu" >"$PRESS_MENU"' "$SB/plugins/drag.sh" && grep -q 'watch "$STRIP_HEIGHT" "$MENU_EXTRA_BUNDLE"' "$SB/plugins/drag.sh" &&
+    grep -q 'ITEMS=(sys sys_mem vorssaint control battery)' "$SB/plugins/toggle.sh"
 }
 installer_ok() {
   local f
   grep -q 'brew install felixkratz/formulae/sketchybar' "$ROOT/mac/install.sh" &&
     grep -q 'brew install ungive/media-control/media-control' "$ROOT/mac/install.sh" &&
     grep -q "ctlcenter.swift" "$ROOT/mac/install.sh" && [ -f "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" ] || return 1
-  for f in sketchybarrc colors.sh icons.sh plugins/aerospace.sh plugins/media.sh plugins/toggle.sh; do
-    grep -q "config/sketchybar/$f|" "$ROOT/mac/scripts/check-links.sh" || return 1
+  # Every plugin is linked one by one: a new plugin missing here is simply not there after an install.
+  for f in sketchybarrc colors.sh icons.sh "$SB"/plugins/*.sh; do
+    grep -q "config/sketchybar/${f#"$SB"/}|" "$ROOT/mac/scripts/check-links.sh" || return 1
   done
 }
 
@@ -168,7 +279,12 @@ check "a drag is followed from the first pixel by a pointer watcher with a ghost
 check "the right-hand panel survives fast clicks and plugin updates" panel_survives_fast_clicks
 check "clicking the Control Center button while its panel is open closes it" control_click_does_not_reopen
 check "the right-hand panel opens and closes with an animation" status_items_animate
+check "the now playing pill slides open and closed" media_slides
 check "the Control Center cover is a picture of the wallpaper, painted under every pill" control_cover_is_wallpaper
+check "the system menu bar never shows over the bar" native_bar_stays_hidden
+check "a Vorssaint pill next to Control Center opens its menu" vorssaint_pill
+check "closing the last window of a workspace keeps the focus on it" workspace_stays
+check "the now playing pill follows the player as it changes" media_follows_stream
 check "install.sh installs the formulae and check-links.sh links the files" installer_ok
 
 if [ "$fails" -eq 0 ]; then echo "test-sketchybar-config: PASS"; else

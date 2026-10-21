@@ -33,6 +33,7 @@ BAT_80='󰂁'
 BAT_90='󰂂'
 BAT_100='󰁹'
 CONTROL=':widget:' # opens Control Center
+VORSSAINT=''      # opens Vorssaint's menu: a planet, like its own icon (Nerd Font, fae-planet)
 CHEVRON_LEFT=':chevron_left:'
 CHEVRON_RIGHT=':chevron_right:'
 SETTINGS=':gear:'

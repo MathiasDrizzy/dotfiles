@@ -8,12 +8,14 @@ source "$CONFIG_DIR/colors.sh"
 
 DRAGGING="$HOME/.cache/sketchybar/dragging"
 PRESS_PANEL="$HOME/.cache/sketchybar/press_panel"
+PRESS_MENU="$HOME/.cache/sketchybar/press_menu"
 STRIP_HEIGHT=40 # presses that start lower than this are not on the bar
 DRAG_THRESHOLD=4
 GHOST=drag_ghost
 GHOST_HALF_WIDTH=13 # half of the slot width: the ghost is centered on the pointer
 SLOT_MARGIN=1       # the gap between two slots belongs to both
 RELEASE_GRACE=0.4   # the click that ends the drag must find the flag still there
+COVER_GRACE=0.6     # the native bar takes this long to slide away once the pointer leaves the top
 ANIMATION_CURVE=tanh
 GLIDE_FRAMES=6
 TINT_FRAMES=4
@@ -109,12 +111,17 @@ finish_drag() {
   sketchybar --trigger aerospace_workspace_change
 }
 
-"$HOME/.local/bin/ctlcenter" watch "$STRIP_HEIGHT" | while read -r event x _ panel; do
+"$HOME/.local/bin/ctlcenter" watch "$STRIP_HEIGHT" "$MENU_EXTRA_BUNDLE" | while read -r event x _ panel menu; do
   case "$event" in
+  # The system menu bar slides down while the pointer is at the top of the screen: the cover keeps it hidden.
+  top) "$CONFIG_DIR/plugins/cover.sh" on & ;;
+  away) { sleep "$COVER_GRACE" && "$CONFIG_DIR/plugins/cover.sh" off; } & ;;
   down)
     pgrep -x sketchybar >/dev/null || exit 0 # SketchyBar is gone: so is the reason to watch
-    # macOS closes Control Center with the very click that presses its button; the button's script needs to know it was open.
+    # macOS closes Control Center and a menu bar extra's menu with the very click that presses their button; the button's
+    # script needs to know it was open.
     echo "$panel" >"$PRESS_PANEL"
+    echo "$menu" >"$PRESS_MENU"
     mode=idle
     source_slot=-1
     target_slot=-1

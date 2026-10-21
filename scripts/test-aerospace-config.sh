@@ -62,6 +62,9 @@ has_borders() {
 }
 check "only the focused window gets a subtle round border (borders, installed by install.sh)" has_borders
 check "install.sh and check-links.sh link the config and install the cask" installer_links
+# Vorssaint lives in its menu: a settings window it opens tiled the workspace and squeezed the windows under its menu.
+vorssaint_floats() { grep -q "{ if = 'test %{app-bundle-id} = com.vorssaint.utils', run = 'layout floating' }" "$CFG"; }
+check "Vorssaint's windows float instead of tiling" vorssaint_floats
 
 if [ "$fails" -eq 0 ]; then echo "test-aerospace-config: PASS"; else
   echo "test-aerospace-config: $fails FAIL"
