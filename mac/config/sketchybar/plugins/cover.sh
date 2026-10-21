@@ -47,24 +47,22 @@ remember() {
   rm -rf "$tmp"
 }
 
-# The picture when there is one (set again each time, so a new picture is read), else a plain bar in the strip's color.
+# The picture when there is one (set again each time, so a new picture is read), else a plain strip in its color. Only the
+# cover changes: the bar keeps the rc's geometry, which is the cover's (a resize redrew every pill and the bar shook).
 show() {
   local color
   if [ -s "$BACKDROP" ]; then
-    sketchybar --bar margin=0 y_offset=0 height="$COVER_HEIGHT" corner_radius=0 padding_left=0 padding_right=0 \
-      --set cover_left width=18 --set cover_right width=34 \
-      --set cover drawing=on background.image="$BACKDROP" background.image.scale="$(cat "$BACKDROP_SCALE" 2>/dev/null || echo 0.5)"
+    sketchybar --set cover drawing=on background.image="$BACKDROP" background.image.drawing=on \
+      background.image.scale="$(cat "$BACKDROP_SCALE" 2>/dev/null || echo 0.5)"
   else
     color="$(cat "$COVER_CACHE" 2>/dev/null)"
-    sketchybar --animate tanh "$FADE_FRAMES" --bar color="${color:-0xff11111b}" margin=0 y_offset=0 height="$COVER_HEIGHT" \
-      corner_radius=0 padding_left=18 padding_right=34 --set cover drawing=on
+    sketchybar --set cover drawing=on background.image.drawing=off \
+      --animate tanh "$FADE_FRAMES" --set cover background.color="${color:-0xff11111b}"
   fi
 }
 
-# Back to the floating glass bar of the rc.
 hide() {
-  sketchybar --bar color="$TRANSPARENT" margin=10 y_offset=4 height=32 corner_radius=12 padding_left=8 padding_right=24 \
-    --set cover_left width=0 --set cover_right width=0 --set cover drawing=off
+  sketchybar --set cover drawing=off background.color="$TRANSPARENT"
 }
 
 # Asked of SketchyBar itself: a state file went stale when a reload rebuilt the bar uncovered.

@@ -13,11 +13,12 @@ source "$CONFIG_DIR/colors.sh"
 source "$CONFIG_DIR/icons.sh"
 
 # The bar itself is transparent: the glass lives in the pills (brackets) below, so there is a clear gap around the
-# camera housing. notch_width keeps the left pills and the right pill apart on the built-in display.
+# camera housing. notch_width keeps the left pills and the right pill apart on the built-in display. It spans the whole top
+# strip (the cover's size) and never changes: a resize redraws every pill and the bar shook for half a second.
 sketchybar --bar \
-  position=top height=32 margin=10 y_offset=4 corner_radius=12 \
+  position=top height=40 margin=0 y_offset=0 corner_radius=0 \
   color=$TRANSPARENT border_width=0 \
-  padding_left=8 padding_right=24 notch_width=210 \
+  padding_left=0 padding_right=0 notch_width=210 \
   topmost=on sticky=on shadow=off
 
 sketchybar --default \
@@ -30,11 +31,11 @@ sketchybar --default \
 
 # The cover (cover.sh): a picture of the wallpaper strip behind the bar, so the native menu bar the system slides down (pointer
 # at the top, Control Center or a menu open) stays hidden and the bar still looks like the desktop. It is the first bracket, so every pill
-# paints over it, and it spans two empty edge items: while it shows, the bar drops its margin and side padding and the edges
-# take them as width (an empty item ignores its padding), so the pills keep their place.
+# paints over it, and it spans two empty edge items that hold the pills off the screen's edges (an empty item ignores its
+# padding).
 sketchybar --add item cover_left left --add item cover_right right \
-  --set cover_left width=0 padding_left=0 padding_right=0 icon.drawing=off label.drawing=off \
-  --set cover_right width=0 padding_left=0 padding_right=0 icon.drawing=off label.drawing=off \
+  --set cover_left width=18 padding_left=0 padding_right=0 icon.drawing=off label.drawing=off \
+  --set cover_right width=34 padding_left=0 padding_right=0 icon.drawing=off label.drawing=off \
   --add bracket cover cover_left cover_right \
   --set cover drawing=off background.drawing=on background.color="$TRANSPARENT" background.height=40 background.corner_radius=0
 

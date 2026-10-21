@@ -265,6 +265,19 @@ control_center_centered() {
   grep -q '^case "center":' "$c" && grep -q 'func centerPanel(' "$c" && grep -q 'kAXChildrenAttribute' "$c" &&
     grep -q '"$CTL" center "$x"' "$d" && grep -q 'sketchybar --query control' "$d"
 }
+# The cover changed the bar's height, margin and offset: SketchyBar resized its window and the pills shook for half a second.
+# The bar keeps one geometry; the cover only shows or hides.
+cover_keeps_bar_still() {
+  ! grep -q -- '--bar' "$SB/plugins/cover.sh" && grep -q 'height=40 margin=0 y_offset=0' "$SB/sketchybarrc"
+}
+# ctlcenter stay puts Finder in front for a few milliseconds; the front app pill showed Finder when its event ran last.
+front_app_is_the_real_one() {
+  grep -q 'lsappinfo front' "$SB/plugins/appmenu.sh"
+}
+# The panel showed at the right edge for ~200 ms before moving: center polls for its window from the moment fn+C goes out.
+control_center_centered_at_once() {
+  grep -q 'centerPollMicroseconds' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" && grep -q '"$CTL" center "$x" &' "$SB/plugins/controlcenter.sh"
+}
 battery_always_shown() {
   # The battery stays on the bar: the chevron folds only the items left of it, and battery.sh paints without the panel.
   local rc="$SB/sketchybarrc" b="$SB/plugins/battery.sh"
@@ -306,6 +319,9 @@ check "closing the last window of a workspace keeps the focus on it" workspace_s
 check "the now playing pill follows the player as it changes" media_follows_stream
 check "the battery pill is always on the bar" battery_always_shown
 check "the Control Center panel opens under its button" control_center_centered
+check "the cover never changes the bar's geometry" cover_keeps_bar_still
+check "the front app pill shows the app really in front" front_app_is_the_real_one
+check "the Control Center panel shows centered from its first frame" control_center_centered_at_once
 check "install.sh installs the formulae and check-links.sh links the files" installer_ok
 
 if [ "$fails" -eq 0 ]; then echo "test-sketchybar-config: PASS"; else

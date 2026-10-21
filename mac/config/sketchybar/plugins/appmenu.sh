@@ -115,7 +115,10 @@ esac
 is_open="$(sketchybar --query front_app | jq -r '.popup.drawing')"
 case "$SENDER" in
 front_app_switched)
-  __icon_map "$INFO"
+  # The app in front now, not the one of this event: `ctlcenter stay` brings Finder forward for a few milliseconds, and when
+  # that event's run ended last the pill kept showing Finder.
+  front="$(lsappinfo info -only name "$(lsappinfo front)" 2>/dev/null | sed -n '1s/^"\(.*\)" ASN:.*/\1/p')"
+  __icon_map "${front:-$INFO}"
   sketchybar --set front_app icon="$icon_result"
   ;;
 mouse.clicked)
