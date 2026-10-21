@@ -178,7 +178,7 @@ sketchybar --add item chevron right \
 for name in chevron clock battery control vorssaint sys_pill; do pill "$name"; done
 
 # Status items start collapsed; the chevron toggles them.
-sketchybar --set sys drawing=off --set sys_mem drawing=off --set sys_pill drawing=off --set control drawing=off --set vorssaint drawing=off --set battery drawing=off
+sketchybar --set sys drawing=off --set sys_mem drawing=off --set sys_pill drawing=off --set control drawing=off --set vorssaint drawing=off
 
 sketchybar --hotload on
 sketchybar --update

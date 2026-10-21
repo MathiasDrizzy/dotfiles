@@ -22,4 +22,4 @@ else
   [ "$pct" -le 20 ] && color="$RED"
 fi
 
-panel_set --set "$NAME" icon="$icon" icon.font="$font" icon.color="$color" label="${pct}%"
+sketchybar --set "$NAME" icon="$icon" icon.font="$font" icon.color="$color" label="${pct}%"

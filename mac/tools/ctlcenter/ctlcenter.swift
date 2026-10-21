@@ -8,8 +8,9 @@
 //   ctlcenter visible  exits 0 while a Control Center window is on screen, 1 otherwise
 //   ctlcenter menu BUNDLE   opens (or closes) the menu bar extra of the app BUNDLE, as a click on it would; needs Accessibility
 //   ctlcenter shown BUNDLE  exits 0 while the app BUNDLE has a menu or popover on screen, 1 otherwise
-//   ctlcenter dismiss X Y   clicks at X Y (points, origin top-left) and puts the pointer back, which closes a popover the
-//                      way a click outside it does; does nothing (exit 1) while a mouse button is held; needs Accessibility
+//   ctlcenter dismiss X Y   clicks at X Y (points, origin top-left) and puts the pointer back 25 ms later, which closes a
+//                      popover the way a click outside it does; does nothing (exit 1) while a mouse button is held; needs
+//                      Accessibility
 //   ctlcenter backdrop OUT HEIGHT  saves to OUT (PNG) the top HEIGHT points of the main display as they look without
 //                      SketchyBar and JankyBorders (wallpaper, the system's own dimming and anything else behind the bar) and
 //                      prints the scale to show it at (points per pixel); needs the Screen Recording permission
@@ -27,6 +28,7 @@ let panelMinHeight: CGFloat = 100
 let menuBarStripHeight: CGFloat = 40
 let idlePollMicroseconds: UInt32 = 25000
 let dragPollMicroseconds: UInt32 = 8000
+var dismissHoldMicroseconds: UInt32 = 25000 // a popover reads the pointer when it handles the click, not the click's own spot
 
 func post(_ key: CGKeyCode, down: Bool, flags: CGEventFlags) {
     let source = CGEventSource(stateID: .hidSystemState)
@@ -43,14 +45,16 @@ func openControlCenter() {
     post(fnKey, down: false, flags: [])
 }
 
-// A popover closed through its menu bar extra came back broken (Vorssaint shut it at the second click inside), and a click
-// on the extra itself is not one outside it: only a real click elsewhere closes it cleanly.
+// A popover closed through its menu bar extra hands activation back to the app before it, and Vorssaint's next popover then
+// shut at a click inside it; a click elsewhere closes it as the user would. The pointer stays there a moment: the popover
+// asks where the pointer is when it handles the click, and one already back over its extra is not a click outside.
 func dismiss(at point: CGPoint) -> Bool {
     guard !CGEventSource.buttonState(.combinedSessionState, button: .left) else { return false }
     let back = pointerLocation()
     for type in [CGEventType.leftMouseDown, .leftMouseUp] {
         CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: point, mouseButton: .left)?.post(tap: .cghidEventTap)
     }
+    usleep(dismissHoldMicroseconds)
     CGWarpMouseCursorPosition(back)
     CGAssociateMouseAndMouseCursorPosition(1)
     return true

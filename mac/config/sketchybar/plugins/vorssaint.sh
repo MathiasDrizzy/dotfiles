@@ -55,7 +55,8 @@ read -r _ handled <"$INTENT"
 # Makes the menu match the intent: a press goes out once the clicks have stopped for QUIET_POLLS and the menu has looked the
 # same for STEADY_POLLS, and gets KEY_WAIT_POLLS to show (MAX_KEYS per change). A menu closed elsewhere ends it. The first
 # press waits only for the clicks (FIRST_WAIT; the menu starts still): sent at once, the clicks after it landed on a menu
-# still opening. A menu that does not close is taken as open.
+# still opening. Closing is a click outside the menu, never a press: a menu closed through its extra hands activation back
+# to the app before it, and the next menu then shut at a click inside it. A menu that does not close is taken as open.
 sleep "$FIRST_WAIT"
 polls=0
 since=-"$QUIET_POLLS"
@@ -63,7 +64,6 @@ changed_at=-"$STEADY_POLLS"
 pressed_at=-"$KEY_WAIT_POLLS"
 keys=0
 seen=false
-closed_by_press=false
 was="$visible"
 away=0
 while [ "$polls" -lt "$MAX_POLLS" ]; do
@@ -97,11 +97,14 @@ while [ "$polls" -lt "$MAX_POLLS" ]; do
     fi
     if [ $((polls - since)) -ge "$QUIET_POLLS" ] && [ $((polls - changed_at)) -ge "$STEADY_POLLS" ] &&
       [ $((polls - pressed_at)) -ge "$KEY_WAIT_POLLS" ] && [ "$keys" -lt "$MAX_KEYS" ]; then
-      "$CTL" menu "$BUNDLE" || {
-        open -b "$BUNDLE" # not running: start it instead
-        break
-      }
-      [ "$intent" = closed ] && closed_by_press=true
+      if [ "$intent" = closed ]; then
+        "$CTL" dismiss "$DISMISS_X" "$DISMISS_Y"
+      else
+        "$CTL" menu "$BUNDLE" || {
+          open -b "$BUNDLE" # not running: start it instead
+          break
+        }
+      fi
       pressed_at="$polls"
       keys=$((keys + 1))
     fi
@@ -115,9 +118,6 @@ while [ "$polls" -lt "$MAX_POLLS" ]; do
   sleep "$POLL"
   polls=$((polls + 1))
 done
-# A menu closed by a press is left half closed inside Vorssaint (the next one shut at the second click inside it): a click
-# outside it, once it is gone, finishes the close.
-$closed_by_press && [ "$intent" = closed ] && "$CTL" dismiss "$DISMISS_X" "$DISMISS_Y"
 # Let go first, then hand the cover to its waiter (it comes off once the pointer has left the top as well).
 rm -f "$DRIVER/pid"
 rmdir "$DRIVER" 2>/dev/null

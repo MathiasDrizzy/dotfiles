@@ -36,7 +36,7 @@ plugins_exist() {
 symbols_defined() {
   local v
   for v in $(grep -ho '\$[A-Z][A-Z_0-9]*' "$SB"/sketchybarrc "$SB"/plugins/*.sh | tr -d '$' | sort -u); do
-    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | PRESS_PANEL | PRESS_MAX_SECONDS | DRAG_FLAG_MAX_SECONDS | DRAGGING | STRIP_HEIGHT | DRAG_THRESHOLD | GHOST | GHOST_HALF_WIDTH | SLOT_MARGIN | RELEASE_GRACE | GLIDE_FRAMES | TINT_FRAMES | DIM_ICON | DIM_BACKGROUND | TARGET_BACKGROUND | LEFT_COLUMN_LIMIT | ids | slot | lefts | rights | focused | source_slot | target_slot | down_x | mode | ghost_origin | PANEL_STATE | PANEL_BUSY | STALE_LOCK_SECONDS | SWAPPING | PARK | STASH | DROP | DROP_FRAMES | HOVER | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS | SLIDE_FRAMES | TEXT_FRAMES | SLIDE_SECONDS | TEXT_DELAY_SECONDS | WIDTHS | LOCK_RETRY_SECONDS | BACKDROP | BACKDROP_SCALE | COVER_HEIGHT | QUIET_POLLS | STEADY_POLLS | KEY_WAIT_POLLS | MAX_KEYS | INTENT | DRIVER | BUSY | BUTTONS | BUNDLE | COVER_BUSY | SETTLER | SETTLE_MAX | MENU_DELAY | REMEMBER_SECONDS | LOCK_TRIES | PRESS_MENU | COVER_GRACE | CLOSE_WAIT | MENU_DRIVER | FIRST_WAIT | PICK | EMPTIED_SECONDS | ASKED_SECONDS | binding_at | emptied | emptied_at | prev | line | DIRTY | RECONNECT_SECONDS | DISMISS_X | DISMISS_Y | closed_by_press | idle | handled | since | seen | pressed_at | intent | serial | visible | away | polls | changed_at | keys | was | wanted) continue ;; esac
+    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | PRESS_PANEL | PRESS_MAX_SECONDS | DRAG_FLAG_MAX_SECONDS | DRAGGING | STRIP_HEIGHT | DRAG_THRESHOLD | GHOST | GHOST_HALF_WIDTH | SLOT_MARGIN | RELEASE_GRACE | GLIDE_FRAMES | TINT_FRAMES | DIM_ICON | DIM_BACKGROUND | TARGET_BACKGROUND | LEFT_COLUMN_LIMIT | ids | slot | lefts | rights | focused | source_slot | target_slot | down_x | mode | ghost_origin | PANEL_STATE | PANEL_BUSY | STALE_LOCK_SECONDS | SWAPPING | PARK | STASH | DROP | DROP_FRAMES | HOVER | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS | SLIDE_FRAMES | TEXT_FRAMES | SLIDE_SECONDS | TEXT_DELAY_SECONDS | WIDTHS | LOCK_RETRY_SECONDS | BACKDROP | BACKDROP_SCALE | COVER_HEIGHT | QUIET_POLLS | STEADY_POLLS | KEY_WAIT_POLLS | MAX_KEYS | INTENT | DRIVER | BUSY | BUTTONS | BUNDLE | COVER_BUSY | SETTLER | SETTLE_MAX | MENU_DELAY | REMEMBER_SECONDS | LOCK_TRIES | PRESS_MENU | COVER_GRACE | CLOSE_WAIT | MENU_DRIVER | FIRST_WAIT | PICK | EMPTIED_SECONDS | ASKED_SECONDS | binding_at | emptied | emptied_at | prev | line | DIRTY | RECONNECT_SECONDS | DISMISS_X | DISMISS_Y | idle | handled | since | seen | pressed_at | intent | serial | visible | away | polls | changed_at | keys | was | wanted) continue ;; esac
     grep -q "^$v=" "$SB/colors.sh" "$SB/icons.sh" || {
       echo "undefined: $v" >&2
       return 1
@@ -99,7 +99,7 @@ panel_survives_fast_clicks() {
   local f
   # They paint through panel_set, which holds the toggle's own lock for the call: checking first and painting later (control.sh
   # asks Bluetooth in between) let an icon land mid-slide and stay floating.
-  for f in sys battery control; do
+  for f in sys control; do
     grep -q '^ *panel_set ' "$SB/plugins/$f.sh" && ! grep -q '^ *sketchybar --set' "$SB/plugins/$f.sh" || return 1
   done
   grep -q '^panel_set() {' "$SB/colors.sh" && grep -q 'mkdir "$PANEL_BUSY"' "$SB/colors.sh" || return 1
@@ -243,14 +243,20 @@ vorssaint_pill() {
   ! grep -q '^  "$CTL" menu "$BUNDLE"' "$v" && grep -q '^changed_at=-"$STEADY_POLLS"$' "$v" &&
     grep -q '^since=-"$QUIET_POLLS"$' "$v" && grep -q '^sleep "$FIRST_WAIT"' "$v" && grep -q '^FIRST_WAIT=0.35 ' "$v" &&
     driver_lets_go "$v" || return 1
-  # A menu closed by a press came back broken (the second click inside shut it): a click outside it, once it is gone,
-  # finishes the close.
-  grep -qF '[ "$intent" = closed ] && closed_by_press=true' "$v" &&
-    grep -qF '$closed_by_press && [ "$intent" = closed ] && "$CTL" dismiss "$DISMISS_X" "$DISMISS_Y"' "$v" &&
-    grep -qF 'set_intent open # it stayed open' "$v" && grep -q '^case "dismiss":' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" ||
+  # Closing is a click outside the menu, never a press: a menu closed through its extra hands activation back, and the
+  # next one shut at a click inside it. The click waits for the menu to read the pointer before putting it back.
+  [ "$(grep -c '"$CTL" menu "$BUNDLE"' "$v")" = 1 ] && grep -qF '"$CTL" dismiss "$DISMISS_X" "$DISMISS_Y"' "$v" &&
+    grep -qF 'set_intent open # it stayed open' "$v" && grep -q 'usleep(dismissHoldMicroseconds)' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" &&
+    grep -q '^case "dismiss":' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" ||
     return 1
   grep -q 'echo "$menu" >"$PRESS_MENU"' "$SB/plugins/drag.sh" && grep -q 'watch "$STRIP_HEIGHT" "$MENU_EXTRA_BUNDLE"' "$SB/plugins/drag.sh" &&
-    grep -q 'ITEMS=(sys sys_mem vorssaint control battery)' "$SB/plugins/toggle.sh"
+    grep -q 'ITEMS=(sys sys_mem vorssaint control)' "$SB/plugins/toggle.sh"
+}
+battery_always_shown() {
+  # The battery stays on the bar: the chevron folds only the items left of it, and battery.sh paints without the panel.
+  local rc="$SB/sketchybarrc" b="$SB/plugins/battery.sh"
+  ! grep -q -- '--set battery drawing=off' "$rc" && ! grep -E '^(ITEMS|PILLS)=' "$SB/plugins/toggle.sh" | grep -qw battery &&
+    grep -q '^sketchybar --set "$NAME"' "$b" && ! grep -q 'panel_set' "$b"
 }
 installer_ok() {
   local f
@@ -285,6 +291,7 @@ check "the system menu bar never shows over the bar" native_bar_stays_hidden
 check "a Vorssaint pill next to Control Center opens its menu" vorssaint_pill
 check "closing the last window of a workspace keeps the focus on it" workspace_stays
 check "the now playing pill follows the player as it changes" media_follows_stream
+check "the battery pill is always on the bar" battery_always_shown
 check "install.sh installs the formulae and check-links.sh links the files" installer_ok
 
 if [ "$fails" -eq 0 ]; then echo "test-sketchybar-config: PASS"; else
