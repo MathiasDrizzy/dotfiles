@@ -8,7 +8,7 @@
 //   ctlcenter visible  exits 0 while a Control Center window is on screen, 1 otherwise
 //   ctlcenter menu BUNDLE   opens (or closes) the menu bar extra of the app BUNDLE, as a click on it would; needs Accessibility
 //   ctlcenter shown BUNDLE  exits 0 while the app BUNDLE has a menu or popover on screen, 1 otherwise
-//   ctlcenter dismiss X Y   clicks at X Y (points, origin top-left) and puts the pointer back 25 ms later, which closes a
+//   ctlcenter dismiss X Y   clicks at X Y (points, origin top-left) and moves the pointer back 25 ms later, which closes a
 //                      popover the way a click outside it does; does nothing (exit 1) while a mouse button is held; needs
 //                      Accessibility
 //   ctlcenter backdrop OUT HEIGHT  saves to OUT (PNG) the top HEIGHT points of the main display as they look without
@@ -61,8 +61,9 @@ func dismiss(at point: CGPoint) -> Bool {
         CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: point, mouseButton: .left)?.post(tap: .cghidEventTap)
     }
     usleep(dismissHoldMicroseconds)
-    CGWarpMouseCursorPosition(back)
-    CGAssociateMouseAndMouseCursorPosition(1)
+    // Back with a posted move, as the mouse itself would: after a warp macOS ignores the mouse for a moment, and the pointer
+    // looked stuck at the click's spot.
+    CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: back, mouseButton: .left)?.post(tap: .cghidEventTap)
     return true
 }
 
