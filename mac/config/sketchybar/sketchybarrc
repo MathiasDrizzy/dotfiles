@@ -45,6 +45,9 @@ sketchybar --add item cover_left left --add item cover_right right \
   --set cover_right width=34 padding_left=0 padding_right=0 icon.drawing=off label.drawing=off \
   --add bracket cover cover_left cover_right \
   --set cover drawing=off background.drawing=on background.color="$TRANSPARENT" background.height=40 background.corner_radius=0
+# Takes the cover's picture again when the wallpaper changes (cover.sh refresh: one stat while nothing changed).
+sketchybar --add item cover_watch left \
+  --set cover_watch drawing=off updates=on update_freq=10 script="$PLUGIN_DIR/cover.sh refresh"
 
 pill() { # item or bracket name: the box every item sits in
   sketchybar --set "$1" background.color="$BAR_COLOR" background.border_width=0 \

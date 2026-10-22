@@ -7,6 +7,7 @@
 #                      panel or menu open (then whoever ends that calls off again)
 #   cover.sh settle    waits until nothing needs it any more, then hides it (one waiter at a time)
 #   cover.sh remember  refreshes the picture (off does it too, at most every REMEMBER_SECONDS)
+#   cover.sh refresh   refreshes the picture when the wallpaper changed since it was taken (the rc runs it every few seconds)
 # The bar is always topmost: toggling topmost recreates its window and blanks the pills.
 # shellcheck disable=SC1091
 source "$CONFIG_DIR/colors.sh"
@@ -23,6 +24,8 @@ MENU_DRIVER="$CACHE/menu_driver"
 COVER_HEIGHT=40 # points: the cover bar is this tall and starts at the top of the screen
 FADE_FRAMES=5   # the plain cover fades in and out instead of flashing
 REMEMBER_SECONDS=60
+WALLPAPER_INDEX="$HOME/Library/Application Support/com.apple.wallpaper/Store/Index.plist" # macOS rewrites it on every change
+WALLPAPER_SETTLE_SECONDS=10                                                               # the new picture fades in; one taken before it ends still shows the old desktop
 LOCK_TRIES=50
 POLL=0.2
 SETTLE_POLLS=3 # the native bar needs a moment to slide away once nothing holds it
@@ -45,6 +48,13 @@ remember() {
     printf '0xff%s%s%s\n' "${bgra:4:2}" "${bgra:2:2}" "${bgra:0:2}" >"$COVER_CACHE"
   fi
   rm -rf "$tmp"
+}
+
+# The picture predates the wallpaper's last change, or was taken while the new one was still fading in.
+wallpaper_changed() {
+  local changed
+  changed="$(stat -f %m "$WALLPAPER_INDEX" 2>/dev/null)" || return 1
+  [ ! -s "$BACKDROP" ] || [ $((changed + WALLPAPER_SETTLE_SECONDS)) -gt "$(stat -f %m "$BACKDROP")" ]
 }
 
 # The picture when there is one (set again each time, so a new picture is read), else a plain strip in its color. Only the
@@ -97,7 +107,7 @@ off)
   hide
   rmdir "$COVER_BUSY" 2>/dev/null
   trap - EXIT
-  if [ -z "$(/usr/bin/find "$BACKDROP" -mtime -"${REMEMBER_SECONDS}s" 2>/dev/null)" ]; then
+  if wallpaper_changed || [ -z "$(/usr/bin/find "$BACKDROP" -mtime -"${REMEMBER_SECONDS}s" 2>/dev/null)" ]; then
     sleep 0.4 # let the bar settle before sampling the strip
     remember
   fi
@@ -115,8 +125,14 @@ settle)
   "$0" off
   ;;
 remember) remember ;;
+refresh)
+  wallpaper_changed || exit 0
+  lock || exit 0
+  trap 'rmdir "$COVER_BUSY" 2>/dev/null' EXIT
+  covered || needed || remember # not while the native bar or the cover is over the strip: they would be in the picture
+  ;;
 *)
-  echo "usage: cover.sh on|off|settle|remember" >&2
+  echo "usage: cover.sh on|off|settle|remember|refresh" >&2
   exit 2
   ;;
 esac
