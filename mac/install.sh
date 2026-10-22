@@ -255,7 +255,9 @@ if [ "$LINKS_ONLY" = false ]; then
   # 10. Compile ctlcenter (opens Control Center for the SketchyBar status button; needs the Xcode command line tools)
   if [ "$DRY_RUN" != true ]; then
     echo "==> Compilando ctlcenter..."
-    swiftc -O "$DOTFILES_DIR/tools/ctlcenter/ctlcenter.swift" -o "$HOME/.local/bin/ctlcenter" ||
+    # Its module cache goes under HOME: the default one (outside it) is written only when cold, as on a fresh Mac.
+    swiftc -O -module-cache-path "$HOME/.cache/swift-module-cache" "$DOTFILES_DIR/tools/ctlcenter/ctlcenter.swift" \
+      -o "$HOME/.local/bin/ctlcenter" ||
       echo "  [AVISO] ctlcenter no compiló (¿faltan las Command Line Tools?); el botón de estado abre Ajustes en su lugar."
   fi
 

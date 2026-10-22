@@ -211,6 +211,9 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
   check "rustup default stable registrado" 'grep -q "^rustup default stable" "$B/logs/rustup.log"'
   check "se descargaron los 2 temas (curl stub)" '[ "$(grep -c "^curl " "$B/logs/curl.log")" = 2 ] && [ -f "$H/.config/micro/colorschemes/catppuccin-mocha.micro" ]'
   check "herdr-ctl compilado en ~/.local/bin" '[ -x "$H/.local/bin/herdr-ctl" ]'
+  # swiftc escribe su caché de módulos fuera del HOME (DARWIN_USER_CACHE_DIR) cuando está fría, como en CI; la sandbox lo niega
+  check "ctlcenter compilado en ~/.local/bin, con su caché de módulos dentro del HOME" \
+    '[ -x "$H/.local/bin/ctlcenter" ] && [ -n "$(ls -A "$H/.cache/swift-module-cache" 2>/dev/null)" ]'
   check "el atajo del clima (Temperatura barra) se firmó y se abrió para añadirlo" \
     'w="$H/.cache/dotfiles/temperatura-barra.wflow"; grep -q "^shortcuts sign --mode anyone --input $w " "$B/logs/shortcuts.log" && [ "$(head -c 8 "$w")" = bplist00 ] && [ "$(plutil -p "$w")" = "$(plutil -p "$REPO/mac/config/shortcuts/temperatura-barra.plist")" ] && grep -q "^open .*Temperatura barra.shortcut" "$B/logs/open.log"'
   check "todos los enlaces de check-links.sh quedan OK (--strict: 0 faltantes, rc 0)" \
