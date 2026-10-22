@@ -259,6 +259,23 @@ if [ "$LINKS_ONLY" = false ]; then
       echo "  [AVISO] ctlcenter no compiló (¿faltan las Command Line Tools?); el botón de estado abre Ajustes en su lugar."
   fi
 
+  # 11. The weather box's shortcut: Apple Weather's temperature (the one the Mac and the iPhone show) is read through
+  # Shortcuts, which only adds a shortcut the user accepts. It is signed here and opened; without it the box uses Open-Meteo.
+  if [ "$DRY_RUN" != true ] && ! shortcuts list 2>/dev/null | grep -qx "Temperatura barra"; then
+    echo "==> Atajo del clima..."
+    shortcut_dir="$HOME/.cache/dotfiles"
+    mkdir -p "$shortcut_dir"
+    # The repo keeps it as readable XML; Shortcuts signs only the binary form.
+    if plutil -convert binary1 -o "$shortcut_dir/temperatura-barra.wflow" "$DOTFILES_DIR/config/shortcuts/temperatura-barra.plist" &&
+      shortcuts sign --mode anyone --input "$shortcut_dir/temperatura-barra.wflow" \
+        --output "$shortcut_dir/Temperatura barra.shortcut" 2>/dev/null; then
+      open "$shortcut_dir/Temperatura barra.shortcut"
+      echo "  [ACCIÓN] En Atajos, haz clic en \"Añadir atajo\" (y permite la ubicación la primera vez que corra)."
+    else
+      echo "  [AVISO] No se pudo firmar el atajo del clima; la barra usa Open-Meteo para la temperatura."
+    fi
+  fi
+
 fi
 
 echo "============================================================"

@@ -86,6 +86,17 @@ out=""; prev=""; for a in "\$@"; do [ "\$prev" = "-o" ] && out="\$a"; prev="\$a"
 [ -n "\$out" ] && echo "# tema de prueba (stub)" > "\$out"
 exit 0
 EOF
+  # shortcuts y open: el atajo del clima se firma y se abre para añadirlo; en la prueba solo se registra (nada sale a la pantalla)
+  cat >"$B/stubs/shortcuts" <<EOF
+#!/bin/sh
+echo "shortcuts \$*" >> "$B/logs/shortcuts.log"
+if [ "\$1" = sign ]; then while [ \$# -gt 0 ]; do [ "\$1" = --output ] && echo stub > "\$2"; shift; done; fi
+exit 0
+EOF
+  cat >"$B/stubs/open" <<EOF
+#!/bin/sh
+echo "open \$*" >> "$B/logs/open.log"
+EOF
   cat >"$B/stubs/rustup" <<EOF
 #!/usr/bin/env bash
 echo "rustup \$*" >> "$B/logs/rustup.log"; exit 0
@@ -200,6 +211,8 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
   check "rustup default stable registrado" 'grep -q "^rustup default stable" "$B/logs/rustup.log"'
   check "se descargaron los 2 temas (curl stub)" '[ "$(grep -c "^curl " "$B/logs/curl.log")" = 2 ] && [ -f "$H/.config/micro/colorschemes/catppuccin-mocha.micro" ]'
   check "herdr-ctl compilado en ~/.local/bin" '[ -x "$H/.local/bin/herdr-ctl" ]'
+  check "el atajo del clima (Temperatura barra) se firmó y se abrió para añadirlo" \
+    'w="$H/.cache/dotfiles/temperatura-barra.wflow"; grep -q "^shortcuts sign --mode anyone --input $w " "$B/logs/shortcuts.log" && [ "$(head -c 8 "$w")" = bplist00 ] && [ "$(plutil -p "$w")" = "$(plutil -p "$REPO/mac/config/shortcuts/temperatura-barra.plist")" ] && grep -q "^open .*Temperatura barra.shortcut" "$B/logs/open.log"'
   check "todos los enlaces de check-links.sh quedan OK (--strict: 0 faltantes, rc 0)" \
     'n="$(grep -c "^  \".*|\$HOME/" "$REPO/mac/scripts/check-links.sh")"; [ "$n" -ge 10 ]; o="$(HOME="$H" DOTFILES_BACKUP_DIR="$B/respaldos" "$REPO/mac/scripts/check-links.sh" --strict 2>&1 | strip)"; rc=$?; echo "$o" | grep -q " 0 Faltantes" && echo "$o" | grep -q "$n Symlinks OK" && echo "$o" | grep -q "0 Modificaciones Fuera de Git"'
   check "sin enlaces rotos" '[ "$(broken "$H")" = 0 ]'
