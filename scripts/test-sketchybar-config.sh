@@ -99,7 +99,7 @@ panel_survives_fast_clicks() {
   local f
   # They paint through panel_set, which holds the toggle's own lock for the call: checking first and painting later (control.sh
   # asks Bluetooth in between) let an icon land mid-slide and stay floating.
-  for f in sys control; do
+  for f in sys; do
     grep -q '^ *panel_set ' "$SB/plugins/$f.sh" && ! grep -q '^ *sketchybar --set' "$SB/plugins/$f.sh" || return 1
   done
   grep -q '^panel_set() {' "$SB/colors.sh" && grep -q 'mkdir "$PANEL_BUSY"' "$SB/colors.sh" || return 1
@@ -256,14 +256,19 @@ vorssaint_pill() {
     grep -q '^case "dismiss":' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" ||
     return 1
   grep -q 'echo "$menu" >"$PRESS_MENU"' "$SB/plugins/drag.sh" && grep -q 'watch "$STRIP_HEIGHT" "$MENU_EXTRA_BUNDLE"' "$SB/plugins/drag.sh" &&
-    grep -q 'ITEMS=(sys sys_mem vorssaint control)' "$SB/plugins/toggle.sh"
+    grep -q 'ITEMS=(sys sys_mem vorssaint)' "$SB/plugins/toggle.sh"
 }
-# macOS puts the Control Center panel at the right edge of the screen; the driver moves it under the button that opened it
-# (the panel's content, not its window, which is wider and runs off the screen), kept on screen.
-control_center_centered() {
-  local c="$ROOT/mac/tools/ctlcenter/ctlcenter.swift" d="$SB/plugins/controlcenter.sh"
-  grep -q '^case "center":' "$c" && grep -q 'func centerPanel(' "$c" && grep -q 'kAXChildrenAttribute' "$c" &&
-    grep -q '"$CTL" center "$x"' "$d" && grep -q 'sketchybar --query control' "$d"
+# macOS opens the Control Center panel at the right edge of the screen and it cannot be moved before it shows, so the
+# button lives there: the rightmost item, always drawn, one fixed width, out of the drawer and with no label (a Bluetooth
+# name widened it). Nothing moves the panel (scripts/test-sketchybar-anchor.sh checks the item live).
+control_anchored() {
+  local rc="$SB/sketchybarrc" c="$SB/plugins/control.sh"
+  [ "$(grep -o -- '--add item [a-z_]* right' "$rc" | sed -n 2p)" = '--add item control right' ] &&
+    grep -q -- '--set control width=34 ' "$rc" && ! grep -q -- '--set control drawing=off' "$rc" &&
+    ! grep -E '^(ITEMS|PILLS)=' "$SB/plugins/toggle.sh" | grep -qw control &&
+    ! grep -q 'label' "$c" && ! grep -q 'panel_' "$c" &&
+    ! grep -q '"$CTL" center' "$SB/plugins/controlcenter.sh" && ! grep -q 'case "center":' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" &&
+    [ -x "$ROOT/scripts/test-sketchybar-anchor.sh" ]
 }
 # The cover changed the bar's height, margin and offset: SketchyBar resized its window and the pills shook for half a second.
 # The bar keeps one geometry; the cover only shows or hides.
@@ -273,10 +278,6 @@ cover_keeps_bar_still() {
 # ctlcenter stay puts Finder in front for a few milliseconds; the front app pill showed Finder when its event ran last.
 front_app_is_the_real_one() {
   grep -q 'lsappinfo front' "$SB/plugins/appmenu.sh"
-}
-# The panel showed at the right edge for ~200 ms before moving: center polls for its window from the moment fn+C goes out.
-control_center_centered_at_once() {
-  grep -q 'centerPollMicroseconds' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" && grep -q '"$CTL" center "$x" &' "$SB/plugins/controlcenter.sh"
 }
 battery_always_shown() {
   # The battery stays on the bar: the chevron folds only the items left of it, and battery.sh paints without the panel.
@@ -318,10 +319,9 @@ check "a Vorssaint pill next to Control Center opens its menu" vorssaint_pill
 check "closing the last window of a workspace keeps the focus on it" workspace_stays
 check "the now playing pill follows the player as it changes" media_follows_stream
 check "the battery pill is always on the bar" battery_always_shown
-check "the Control Center panel opens under its button" control_center_centered
+check "the Control Center button is anchored at the right edge, so its panel opens under it" control_anchored
 check "the cover never changes the bar's geometry" cover_keeps_bar_still
 check "the front app pill shows the app really in front" front_app_is_the_real_one
-check "the Control Center panel shows centered from its first frame" control_center_centered_at_once
 check "install.sh installs the formulae and check-links.sh links the files" installer_ok
 
 if [ "$fails" -eq 0 ]; then echo "test-sketchybar-config: PASS"; else

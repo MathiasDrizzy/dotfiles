@@ -64,13 +64,6 @@ read -r _ handled <"$INTENT"
 # KEY_WAIT_POLLS to take effect (MAX_KEYS per change). A panel the user closes elsewhere ends it. The first key waits only for
 # the clicks (FIRST_WAIT): the panel starts closed and still. Sent at once, the clicks after it landed on a panel still
 # opening (a click on the bar closes it) and left it empty.
-# macOS opens the panel at the right edge of the screen: it is moved under this button as soon as its window exists.
-center_panel() {
-  local x
-  x="$(sketchybar --query control | jq -r '.bounding_rects | to_entries[0].value | .origin[0] + .size[0] / 2' 2>/dev/null)"
-  [ -n "$x" ] && [ "${x%%.*}" -ge 0 ] 2>/dev/null && "$CTL" center "$x" &
-}
-
 sleep "$FIRST_WAIT"
 polls=0
 away=0
@@ -108,7 +101,6 @@ while [ "$polls" -lt "$MAX_POLLS" ]; do
     if [ $((polls - since)) -ge "$QUIET_POLLS" ] && [ $((polls - changed_at)) -ge "$STEADY_POLLS" ] &&
       [ $((polls - pressed_at)) -ge "$KEY_WAIT_POLLS" ] && [ "$keys" -lt "$MAX_KEYS" ]; then
       "$CTL" open
-      [ "$intent" = open ] && center_panel
       pressed_at="$polls"
       keys=$((keys + 1))
     fi

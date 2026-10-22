@@ -9,8 +9,8 @@
 source "$CONFIG_DIR/colors.sh"
 source "$CONFIG_DIR/icons.sh"
 
-ITEMS=(sys sys_mem vorssaint control) # the content; the pills right of it stay on the bar
-PILLS=(sys_pill vorssaint control)    # what has the glass background (the bracket is shown and hidden with its items)
+ITEMS=(sys sys_mem vorssaint) # the content; the pills right of it stay on the bar
+PILLS=(sys_pill vorssaint)    # what has the glass background (the bracket is shown and hidden with its items)
 ANIMATION_CURVE=sin
 SLIDE_FRAMES=24
 TEXT_FRAMES=9

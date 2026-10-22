@@ -6,8 +6,6 @@
 //                      every left-button press that starts within maxY points of the top of the screen, and "top" / "away"
 //                      when the pointer enters or leaves that strip, until the output is closed; it needs no permissions
 //   ctlcenter visible  exits 0 while a Control Center window is on screen, 1 otherwise
-//   ctlcenter center X moves the Control Center panel opening now so its controls are centered at X (points), kept on
-//                      screen, from the moment its window exists until it has settled; needs Accessibility
 //   ctlcenter menu BUNDLE   opens (or closes) the menu bar extra of the app BUNDLE, as a click on it would; needs Accessibility
 //   ctlcenter shown BUNDLE  exits 0 while the app BUNDLE has a menu or popover on screen, 1 otherwise
 //   ctlcenter dismiss X Y   clicks at X Y (points, origin top-left) and puts the pointer back 25 ms later, which closes a
@@ -31,10 +29,6 @@ let cKey: CGKeyCode = 8
 let keyDelayMicroseconds: UInt32 = 8000
 let controlCenterBundleID = "com.apple.controlcenter"
 let panelMinHeight: CGFloat = 100
-let panelScreenMargin: CGFloat = 14 // how far from the screen's edge macOS itself leaves the panel
-let centerPollMicroseconds: useconds_t = 5000
-let centerMaxPolls = 300 // 1.5 s: the panel did not open
-let centerSteadyPolls = 60 // centered this long (0.3 s): it is laid out and stays
 let menuBarStripHeight: CGFloat = 40
 let idlePollMicroseconds: UInt32 = 25000
 let dragPollMicroseconds: UInt32 = 8000
@@ -143,59 +137,6 @@ func axElements(_ element: AXUIElement, _ attribute: String) -> [AXUIElement] {
     var value: CFTypeRef?
     guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else { return [] }
     return value as? [AXUIElement] ?? []
-}
-
-func axFrame(_ element: AXUIElement) -> CGRect {
-    var position: CFTypeRef?
-    var size: CFTypeRef?
-    var origin = CGPoint.zero
-    var extent = CGSize.zero
-    guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &position) == .success,
-        AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &size) == .success,
-        AXValueGetValue(position as! AXValue, .cgPoint, &origin), AXValueGetValue(size as! AXValue, .cgSize, &extent)
-    else { return .null }
-    return CGRect(origin: origin, size: extent)
-}
-
-// macOS puts the Control Center panel at the right edge of the screen. Its window is wider than what it shows (and runs off
-// the screen), so what is centered at x is its content: the controls inside the window's one view.
-// One look: .missing until the panel and its controls exist, .moved when it had to be moved, .inPlace once it is centered.
-enum PanelPlace { case missing, moved, inPlace }
-
-func centerPanel(at x: CGFloat) -> PanelPlace {
-    guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: controlCenterBundleID).first,
-        let window = axElements(AXUIElementCreateApplication(app.processIdentifier), kAXWindowsAttribute)
-            .first(where: { axFrame($0).height > panelMinHeight })
-    else { return .missing }
-    let frame = axFrame(window)
-    let shown = axElements(window, kAXChildrenAttribute).flatMap { axElements($0, kAXChildrenAttribute) }
-        .map(axFrame).reduce(CGRect.null) { $0.union($1) }
-    guard !frame.isNull, !shown.isNull else { return .missing }
-    let screenWidth = NSScreen.screens.first?.frame.width ?? 0
-    let shift = min(max(x - shown.midX, panelScreenMargin - shown.minX), screenWidth - panelScreenMargin - shown.maxX)
-    guard abs(shift) >= 1 else { return .inPlace }
-    var origin = CGPoint(x: frame.minX + shift, y: frame.minY)
-    guard let value = AXValueCreate(.cgPoint, &origin),
-        AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, value) == .success
-    else { return .missing }
-    return .moved
-}
-
-// Called as fn+C goes out: the panel is moved the moment its window exists, before it has shown at the right edge, and kept
-// there while it opens (Control Center places it again as it lays it out). Exits 0 once it stayed centered for a while.
-func centerPanelWhileOpening(at x: CGFloat) -> Bool {
-    var polls = 0
-    var steady = 0
-    while polls < centerMaxPolls {
-        switch centerPanel(at: x) {
-        case .inPlace: steady += 1
-        case .moved, .missing: steady = 0
-        }
-        if steady >= centerSteadyPolls { return true }
-        usleep(centerPollMicroseconds)
-        polls += 1
-    }
-    return false
 }
 
 // Presses the app's menu bar extra through Accessibility, which works while the system menu bar is hidden.
@@ -351,12 +292,6 @@ case "menu", "shown":
         exit(2)
     }
     exit((CommandLine.arguments[1] == "menu" ? pressMenuExtra(of: bundleID) : openPopups(of: [bundleID])[0]) ? 0 : 1)
-case "center":
-    guard let x = CommandLine.arguments.dropFirst(2).first.flatMap({ Double($0) }) else {
-        FileHandle.standardError.write(Data("usage: ctlcenter center X\n".utf8))
-        exit(2)
-    }
-    exit(centerPanelWhileOpening(at: CGFloat(x)) ? 0 : 1)
 case "dismiss":
     let numbers = CommandLine.arguments.dropFirst(2).compactMap { Double($0) }
     guard numbers.count == 2 else {
@@ -369,6 +304,6 @@ case "backdrop":
 case "stay":
     Stay.run()
 default:
-    FileHandle.standardError.write(Data("usage: ctlcenter open|top|watch|visible|center|menu|shown|dismiss|backdrop|stay\n".utf8))
+    FileHandle.standardError.write(Data("usage: ctlcenter open|top|watch|visible|menu|shown|dismiss|backdrop|stay\n".utf8))
     exit(2)
 }
