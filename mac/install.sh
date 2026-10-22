@@ -293,8 +293,8 @@ if [ "$LINKS_ONLY" = false ]; then
   if [ "$DRY_RUN" != true ] && command -v herdr >/dev/null 2>&1 &&
     ! herdr plugin list 2>/dev/null | grep -q "^- lazyfinder "; then
     echo "==> Plugin de herdr: lazyfinder..."
-    herdr plugin install MathiasDrizzy/lazyfinder ||
-      echo "  [AVISO] No se instaló el plugin lazyfinder; reintenta: herdr plugin install MathiasDrizzy/lazyfinder"
+    herdr plugin install --yes MathiasDrizzy/lazyfinder ||
+      echo "  [AVISO] No se instaló el plugin lazyfinder; reintenta: herdr plugin install --yes MathiasDrizzy/lazyfinder"
   fi
 
 fi

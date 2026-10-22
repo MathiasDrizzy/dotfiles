@@ -226,8 +226,8 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
   check "la config de aerospace quedó enlazada al repo" '[ -L "$H/.config/aerospace/aerospace.toml" ] && [ -e "$H/.config/aerospace/aerospace.toml" ]'
   check "rustup default stable registrado" 'grep -q "^rustup default stable" "$B/logs/rustup.log"'
   check "se descargaron los 2 temas (curl stub)" '[ "$(grep -c "^curl " "$B/logs/curl.log")" = 2 ] && [ -f "$H/.config/micro/colorschemes/catppuccin-mocha.micro" ]'
-  check "plugin de herdr de lazyfinder instalado (herdr plugin install MathiasDrizzy/lazyfinder)" \
-    'grep -qx "herdr plugin install MathiasDrizzy/lazyfinder" "$B/logs/herdr.log"'
+  check "plugin de herdr de lazyfinder instalado (herdr plugin install --yes MathiasDrizzy/lazyfinder)" \
+    'grep -qx "herdr plugin install --yes MathiasDrizzy/lazyfinder" "$B/logs/herdr.log"'
   check "herdr-ctl compilado en ~/.local/bin" '[ -x "$H/.local/bin/herdr-ctl" ]'
   # swiftc escribe su caché de módulos fuera del HOME (DARWIN_USER_CACHE_DIR) cuando está fría, como en CI; la sandbox lo niega
   check "ctlcenter compilado en ~/.local/bin, con su caché de módulos dentro del HOME" \
