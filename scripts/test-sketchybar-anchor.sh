@@ -22,7 +22,10 @@ REBUILD_MAX_ABSENT=10
 
 T="$(mktemp -d)"
 NAME="anchortest$$"
-REAL="$(command -v sketchybar)" || { echo "test-sketchybar-anchor: sketchybar is not installed"; exit 1; }
+REAL="$(command -v sketchybar)" || {
+  echo "test-sketchybar-anchor: sketchybar is not installed"
+  exit 1
+}
 mkdir -p "$T/bin" "$T/name"
 ln -s "$REAL" "$T/name/$NAME"
 printf '#!/bin/sh\nexec "%s" "$@"\n' "$T/name/$NAME" >"$T/bin/sketchybar"
@@ -86,8 +89,8 @@ frame() { # "x width" of the item, "hidden", "absent" (the bar has no such item,
     echo "noreply $(tr '\n' ' ' <"$T/query.err")"
     return
   fi
-  jq -r <<<"$query" '
-    if .geometry.drawing == "on" then (.bounding_rects | to_entries[0].value | "\(.origin[0]) \(.size[0])") else "hidden" end'
+  jq -r '
+    if .geometry.drawing == "on" then (.bounding_rects | to_entries[0].value | "\(.origin[0]) \(.size[0])") else "hidden" end' <<<"$query"
 }
 
 fails=0

@@ -96,12 +96,10 @@ drag_is_followed() {
 }
 panel_survives_fast_clicks() {
   # Plugins must not write colors while the right-hand panel is hidden or fading, and a click mid-animation is ignored.
-  local f
+  local f="$SB/plugins/sys.sh"
   # They paint through panel_set, which holds the toggle's own lock for the call: checking first and painting later (control.sh
-  # asks Bluetooth in between) let an icon land mid-slide and stay floating.
-  for f in sys; do
-    grep -q '^ *panel_set ' "$SB/plugins/$f.sh" && ! grep -q '^ *sketchybar --set' "$SB/plugins/$f.sh" || return 1
-  done
+  # asked Bluetooth in between) let an icon land mid-slide and stay floating.
+  grep -q '^ *panel_set ' "$f" && ! grep -q '^ *sketchybar --set' "$f" || return 1
   grep -q '^panel_set() {' "$SB/colors.sh" && grep -q 'mkdir "$PANEL_BUSY"' "$SB/colors.sh" || return 1
   grep -q 'mkdir "$PANEL_BUSY"' "$SB/plugins/toggle.sh" && grep -q 'panel_busy" ] && exit 0' "$SB/plugins/hover.sh" || return 1
   # Releasing clears the exit trap: otherwise the trap deletes, at exit, the lock of the click that took over after the
