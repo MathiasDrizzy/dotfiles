@@ -36,7 +36,7 @@ plugins_exist() {
 symbols_defined() {
   local v
   for v in $(grep -ho '\$[A-Z][A-Z_0-9]*' "$SB"/sketchybarrc "$SB"/plugins/*.sh | tr -d '$' | sort -u); do
-    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | SENDER | MAX_ENTRIES | SELF | HOLD | STEP | CACHE | ICON_SIZE | TEXT_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | PRESS_PANEL | PRESS_MAX_SECONDS | DRAG_FLAG_MAX_SECONDS | DRAGGING | STRIP_HEIGHT | DRAG_THRESHOLD | GHOST | RELEASE_GRACE | GLIDE_FRAMES | TINT_FRAMES | DIM_ICON | DIM_BACKGROUND | TARGET_BACKGROUND | LEFT_COLUMN_LIMIT | ids | slot | focused | source_slot | target_slot | mode | SWAPPING | PARK | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS | SLIDE_FRAMES | TEXT_FRAMES | SLIDE_SECONDS | TEXT_DELAY_SECONDS | BACKDROP | BACKDROP_SCALE | COVER_HEIGHT | QUIET_POLLS | STEADY_POLLS | KEY_WAIT_POLLS | MAX_KEYS | INTENT | DRIVER | BUSY | BUTTONS | BUNDLE | COVER_BUSY | SETTLER | SETTLE_MAX | MENU_DELAY | REMEMBER_SECONDS | LOCK_TRIES | PRESS_MENU | COVER_GRACE | MENU_DRIVER | FIRST_WAIT | PICK | EMPTIED_SECONDS | ASKED_SECONDS | emptied | prev | line | DIRTY | RECONNECT_SECONDS | DISMISS_X | DISMISS_Y | idle | handled | seen | intent | serial | visible | away | polls | keys | was | wanted | SPREAD_ITEMS | MAX_LENGTH | LOCATE_SECONDS | USER_AGENT | KNOWN_NEW_MOON | SYNODIC_MONTH | OWNER | PAD_LEFT | PAD_RIGHT | FRAMES_PER_POINT | FRAME_RATE | HOLD_SECONDS | END_MARGIN | SHORTCUT | SHORTCUT_SECONDS | APPLE_OUT) continue ;; esac
+    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | SENDER | MAX_ENTRIES | SELF | HOLD | STEP | CACHE | ICON_SIZE | TEXT_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | PRESS_PANEL | PRESS_MAX_SECONDS | DRAG_FLAG_MAX_SECONDS | DRAGGING | STRIP_HEIGHT | DRAG_THRESHOLD | GHOST | RELEASE_GRACE | GLIDE_FRAMES | TINT_FRAMES | DIM_ICON | DIM_BACKGROUND | TARGET_BACKGROUND | LEFT_COLUMN_LIMIT | ids | slot | focused | source_slot | target_slot | mode | SWAPPING | PARK | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS | SLIDE_FRAMES | TEXT_FRAMES | SLIDE_SECONDS | TEXT_DELAY_SECONDS | BACKDROP | BACKDROP_SCALE | COVER_HEIGHT | QUIET_POLLS | STEADY_POLLS | KEY_WAIT_POLLS | MAX_KEYS | INTENT | DRIVER | BUSY | BUTTONS | BUNDLE | COVER_BUSY | SETTLER | SETTLE_MAX | MENU_DELAY | REMEMBER_SECONDS | LOCK_TRIES | PRESS_MENU | COVER_GRACE | MENU_DRIVER | FIRST_WAIT | PICK | EMPTIED_SECONDS | ASKED_SECONDS | emptied | prev | line | DIRTY | RECONNECT_SECONDS | DISMISS_X | DISMISS_Y | idle | handled | seen | intent | serial | visible | away | polls | keys | was | wanted | SPREAD_ITEMS | MAX_LENGTH | LOCATE_SECONDS | USER_AGENT | KNOWN_NEW_MOON | SYNODIC_MONTH | OWNER | PAD_LEFT | PAD_RIGHT | FRAMES_PER_POINT | FRAME_RATE | HOLD_SECONDS | END_MARGIN | SHORTCUT | SHORTCUT_SECONDS | APPLE_OUT | MEDIA_BUNDLE | WALLPAPER_INDEX | WALLPAPER_SETTLE_SECONDS) continue ;; esac
     grep -q "^$v=" "$SB/colors.sh" "$SB/icons.sh" || {
       echo "undefined: $v" >&2
       return 1
@@ -210,6 +210,20 @@ workspace_stays() {
 }
 # The pill follows the player at once: media_watch.sh turns `media-control stream` into a now_playing_change event (the 2 s poll
 # took up to 2.6 s to close it), and a change that lands while a slide runs is not lost but replayed after it.
+# The pill is Spotify's alone: a video playing in a browser tab reports itself as now playing too, and showed up as a track.
+media_is_spotify_only() {
+  local m="$SB/plugins/media.sh"
+  grep -q '^MEDIA_BUNDLE="com.spotify.client"' "$m" && grep -q 'bundleIdentifier' "$m" && grep -q '"$MEDIA_BUNDLE"' "$m"
+}
+
+# The cover's picture of the desktop is taken again when the wallpaper changes (macOS rewrites its Index.plist), also with
+# nothing touching the cover: it used to be refreshed only after a use, at most once a minute, and kept the old desktop.
+cover_follows_wallpaper() {
+  local c="$SB/plugins/cover.sh"
+  grep -q '^WALLPAPER_INDEX=.*com.apple.wallpaper/Store/Index.plist' "$c" && grep -q '^wallpaper_changed()' "$c" &&
+    grep -q '^refresh)' "$c" && grep -q 'cover.sh refresh' "$SB/sketchybarrc" && grep -q 'update_freq=' <(grep 'cover.sh refresh' -B3 "$SB/sketchybarrc")
+}
+
 media_follows_stream() {
   local w="$SB/plugins/media_watch.sh" rc="$SB/sketchybarrc"
   [ -x "$w" ] && grep -q 'media-control stream' "$w" && grep -q 'sketchybar --trigger now_playing_change' "$w" &&
@@ -366,6 +380,8 @@ check "the system menu bar never shows over the bar" native_bar_stays_hidden
 check "a Vorssaint pill next to Control Center opens its menu" vorssaint_pill
 check "closing the last window of a workspace keeps the focus on it" workspace_stays
 check "the now playing pill follows the player as it changes" media_follows_stream
+check "the now playing pill is Spotify's alone" media_is_spotify_only
+check "the cover picture follows a wallpaper change" cover_follows_wallpaper
 check "the battery pill is always on the bar" battery_always_shown
 check "the Control Center button is anchored at the right edge, so its panel opens under it" control_anchored
 check "the cover never changes the bar's geometry" cover_keeps_bar_still
