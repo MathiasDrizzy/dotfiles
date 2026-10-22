@@ -261,7 +261,17 @@ if [ "$LINKS_ONLY" = false ]; then
       echo "  [AVISO] ctlcenter no compiló (¿faltan las Command Line Tools?); el botón de estado abre Ajustes en su lugar."
   fi
 
-  # 11. The weather box's shortcut: Apple Weather's temperature (the one the Mac and the iPhone show) is read through
+  # 11. ctrl+down (Mission Control's "Application windows", system shortcut 33) is turned off: it is of no
+  # use here. activateSettings applies it without logging out.
+  if [ "$DRY_RUN" != true ]; then
+    defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 33 \
+      "<dict><key>enabled</key><false/><key>value</key><dict><key>parameters</key><array><integer>65535</integer><integer>125</integer><integer>8650752</integer></array><key>type</key><string>standard</string></dict></dict>"
+    activate_settings="$(command -v activateSettings ||
+      echo /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings)"
+    "$activate_settings" -u 2>/dev/null || true
+  fi
+
+  # 12. The weather box's shortcut: Apple Weather's temperature (the one the Mac and the iPhone show) is read through
   # Shortcuts, which only adds a shortcut the user accepts. It is signed here and opened; without it the box uses Open-Meteo.
   if [ "$DRY_RUN" != true ] && ! shortcuts list 2>/dev/null | grep -qx "Temperatura barra"; then
     echo "==> Atajo del clima..."

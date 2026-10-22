@@ -97,6 +97,16 @@ EOF
 #!/bin/sh
 echo "open \$*" >> "$B/logs/open.log"
 EOF
+  # defaults y activateSettings: cfprefsd escribiría las preferencias reales del usuario aunque HOME sea temporal; solo se registran
+  cat >"$B/stubs/defaults" <<EOF
+#!/bin/sh
+case "\$1" in read | read-type | domains | find | export) exec /usr/bin/defaults "\$@" ;; esac
+echo "defaults \$*" >> "$B/logs/defaults.log"
+EOF
+  cat >"$B/stubs/activateSettings" <<EOF
+#!/bin/sh
+echo "activateSettings \$*" >> "$B/logs/defaults.log"
+EOF
   cat >"$B/stubs/rustup" <<EOF
 #!/usr/bin/env bash
 echo "rustup \$*" >> "$B/logs/rustup.log"; exit 0
@@ -214,6 +224,8 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
   # swiftc escribe su caché de módulos fuera del HOME (DARWIN_USER_CACHE_DIR) cuando está fría, como en CI; la sandbox lo niega
   check "ctlcenter compilado en ~/.local/bin, con su caché de módulos dentro del HOME" \
     '[ -x "$H/.local/bin/ctlcenter" ] && [ -n "$(ls -A "$H/.cache/swift-module-cache" 2>/dev/null)" ]'
+  check "ctrl+flecha abajo (Ventanas de la aplicación, atajo 33 del sistema) queda desactivado y aplicado" \
+    'grep -q "^defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 33 <dict><key>enabled</key><false/>" "$B/logs/defaults.log" && grep -q "^activateSettings -u" "$B/logs/defaults.log"'
   check "el atajo del clima (Temperatura barra) se firmó y se abrió para añadirlo" \
     'w="$H/.cache/dotfiles/temperatura-barra.wflow"; grep -q "^shortcuts sign --mode anyone --input $w " "$B/logs/shortcuts.log" && [ "$(head -c 8 "$w")" = bplist00 ] && [ "$(plutil -p "$w")" = "$(plutil -p "$REPO/mac/config/shortcuts/temperatura-barra.plist")" ] && grep -q "^open .*Temperatura barra.shortcut" "$B/logs/open.log"'
   check "todos los enlaces de check-links.sh quedan OK (--strict: 0 faltantes, rc 0)" \
