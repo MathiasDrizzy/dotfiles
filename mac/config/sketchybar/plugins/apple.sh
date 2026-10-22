@@ -4,10 +4,10 @@
 # shellcheck disable=SC1091
 source "$CONFIG_DIR/colors.sh"
 
-hover=0xf0313244
-open_color=0xf045475a
+hover="$APPLE_HOVER"
+open_color="$APPLE_PRESSED"
 
-close() { sketchybar --set apple popup.drawing=off background.color="$BAR_COLOR" icon.color="$MAUVE"; }
+close() { sketchybar --set apple popup.drawing=off background.color="$APPLE_BG" icon.color="$APPLE_ICON"; }
 
 [ "${1:-}" = close ] && {
   close
@@ -20,10 +20,10 @@ mouse.clicked)
   if [ "$is_open" = on ]; then
     close
   else
-    sketchybar --set front_app popup.drawing=off --set front_pill background.color="$BAR_COLOR" --set apple popup.drawing=on background.color="$open_color" icon.color="$MAUVE"
+    sketchybar --set front_pill popup.drawing=off background.color="$BAR_COLOR" --set apple popup.drawing=on background.color="$open_color" icon.color="$APPLE_ICON"
   fi
   ;;
 mouse.entered) [ "$is_open" = on ] || sketchybar --set apple background.color="$hover" ;;
-mouse.exited) [ "$is_open" = on ] || sketchybar --set apple background.color="$BAR_COLOR" ;;
+mouse.exited) [ "$is_open" = on ] || sketchybar --set apple background.color="$APPLE_BG" ;;
 mouse.exited.global) close ;;
 esac

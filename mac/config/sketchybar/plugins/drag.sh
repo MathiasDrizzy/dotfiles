@@ -19,9 +19,9 @@ COVER_GRACE=0.6     # the native bar takes this long to slide away once the poin
 ANIMATION_CURVE=tanh
 GLIDE_FRAMES=6
 TINT_FRAMES=4
-DIM_ICON=0x66cdd6f4
-DIM_BACKGROUND=0x33cba6f7
-TARGET_BACKGROUND=0x99cba6f7
+DIM_ICON=$OVERLAY0
+DIM_BACKGROUND=$SURFACE0
+TARGET_BACKGROUND=$SURFACE1
 LEFT_COLUMN_LIMIT=700 # workspaces live well left of this; a press further right cannot start a drag
 
 trap 'rm -f "$DRAGGING"' EXIT

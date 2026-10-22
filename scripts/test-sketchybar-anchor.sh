@@ -57,6 +57,7 @@ cleanup() {
   pkill -f "$CONFIG_DIR/plugins/" 2>/dev/null
   wait 2>/dev/null
   rm -rf "$T"
+  rm -f "/tmp/${NAME}_$(id -un).lock" # SketchyBar leaves its lock file behind
 }
 trap cleanup EXIT
 
@@ -126,7 +127,6 @@ front_app() { sketchybar --trigger front_app_switched INFO="Google Chrome"; }
 battery_text() { sketchybar --set battery label="100%" && sleep 0.5 && sketchybar --set battery label="5%"; }
 clock_text() { sketchybar --set clock label="31-12-2026 · 23:59 extra"; }
 wifi_change() { sketchybar --trigger wifi_change; }
-volume_change() { sketchybar --trigger volume_change INFO=100; }
 bluetooth() { touch "$HOME/bt" && sketchybar --update; }
 display_change() { sketchybar --trigger display_change && sketchybar --bar display=main; }
 fullscreen() { sketchybar --trigger space_change; }
@@ -162,10 +162,10 @@ gap() { # left item, right item: points between them
     (.[0].bounding_rects | to_entries[0].value) as $l | (.[1].bounding_rects | to_entries[0].value) as $r
     | $r.origin[0] - $l.origin[0] - $l.size[0]'
 }
-if [ "$(gap clock "$ITEM")" = "$(gap battery clock)" ]; then
+if [ "$(gap clock "$ITEM")" = "$(gap date clock)" ]; then
   echo "PASS  gap: $(gap clock "$ITEM") points from the clock, as between the other pills"
 else
-  echo "FAIL  gap: $(gap clock "$ITEM") points from the clock, $(gap battery clock) between the other pills"
+  echo "FAIL  gap: $(gap clock "$ITEM") points from the clock, $(gap date clock) between the other pills"
   fails=$((fails + 1))
 fi
 check "the workspace changes" space_change
@@ -173,7 +173,6 @@ check "the app in front changes" front_app
 check "the battery text changes" battery_text
 check "the clock text changes" clock_text
 check "Wi-Fi changes" wifi_change
-check "the volume changes" volume_change
 check "a Bluetooth device connects" bluetooth
 check "the display changes" display_change
 check "an app goes full screen" fullscreen

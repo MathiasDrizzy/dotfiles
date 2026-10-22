@@ -3,7 +3,7 @@
 # Test of mac/config/sketchybar (pure file checks, never touches the real SketchyBar or HOME).
 #  S1 every script parses (bash -n) and the rc plus the plugins are executable
 #  S2 every plugin the rc points to exists, and every icon or color a script uses is defined
-#  S3 the bar is transparent (the glass is in the pills, so the notch gap stays clear) and sets notch_width
+#  S3 the bar is transparent (every item sits in a solid box, so the notch gap stays clear) and sets notch_width
 #  S4 AeroSpace starts SketchyBar and notifies it of workspace changes
 #  S5 the installer installs the formulae and links every file
 set -uo pipefail
@@ -36,7 +36,7 @@ plugins_exist() {
 symbols_defined() {
   local v
   for v in $(grep -ho '\$[A-Z][A-Z_0-9]*' "$SB"/sketchybarrc "$SB"/plugins/*.sh | tr -d '$' | sort -u); do
-    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | NF | SENDER | MAX_ENTRIES | SELF | WIDTH | HOLD | STEP | CACHE | LABEL_WIDTH | CHAR_PX_X10 | BASE_PAD_RIGHT | REREAD | ICON_SIZE | TEXT_SIZE | ARROW_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | PRESS_PANEL | PRESS_MAX_SECONDS | DRAG_FLAG_MAX_SECONDS | DRAGGING | STRIP_HEIGHT | DRAG_THRESHOLD | GHOST | GHOST_HALF_WIDTH | SLOT_MARGIN | RELEASE_GRACE | GLIDE_FRAMES | TINT_FRAMES | DIM_ICON | DIM_BACKGROUND | TARGET_BACKGROUND | LEFT_COLUMN_LIMIT | ids | slot | lefts | rights | focused | source_slot | target_slot | down_x | mode | ghost_origin | PANEL_STATE | PANEL_BUSY | STALE_LOCK_SECONDS | SWAPPING | PARK | STASH | DROP | DROP_FRAMES | HOVER | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS | SLIDE_FRAMES | TEXT_FRAMES | SLIDE_SECONDS | TEXT_DELAY_SECONDS | WIDTHS | LOCK_RETRY_SECONDS | BACKDROP | BACKDROP_SCALE | COVER_HEIGHT | QUIET_POLLS | STEADY_POLLS | KEY_WAIT_POLLS | MAX_KEYS | INTENT | DRIVER | BUSY | BUTTONS | BUNDLE | COVER_BUSY | SETTLER | SETTLE_MAX | MENU_DELAY | REMEMBER_SECONDS | LOCK_TRIES | PRESS_MENU | COVER_GRACE | CLOSE_WAIT | MENU_DRIVER | FIRST_WAIT | PICK | EMPTIED_SECONDS | ASKED_SECONDS | binding_at | emptied | emptied_at | prev | line | DIRTY | RECONNECT_SECONDS | DISMISS_X | DISMISS_Y | idle | handled | since | seen | pressed_at | intent | serial | visible | away | polls | changed_at | keys | was | wanted) continue ;; esac
+    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | SENDER | MAX_ENTRIES | SELF | HOLD | STEP | CACHE | ICON_SIZE | TEXT_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | PRESS_PANEL | PRESS_MAX_SECONDS | DRAG_FLAG_MAX_SECONDS | DRAGGING | STRIP_HEIGHT | DRAG_THRESHOLD | GHOST | RELEASE_GRACE | GLIDE_FRAMES | TINT_FRAMES | DIM_ICON | DIM_BACKGROUND | TARGET_BACKGROUND | LEFT_COLUMN_LIMIT | ids | slot | focused | source_slot | target_slot | mode | SWAPPING | PARK | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS | SLIDE_FRAMES | TEXT_FRAMES | SLIDE_SECONDS | TEXT_DELAY_SECONDS | BACKDROP | BACKDROP_SCALE | COVER_HEIGHT | QUIET_POLLS | STEADY_POLLS | KEY_WAIT_POLLS | MAX_KEYS | INTENT | DRIVER | BUSY | BUTTONS | BUNDLE | COVER_BUSY | SETTLER | SETTLE_MAX | MENU_DELAY | REMEMBER_SECONDS | LOCK_TRIES | PRESS_MENU | COVER_GRACE | MENU_DRIVER | FIRST_WAIT | PICK | EMPTIED_SECONDS | ASKED_SECONDS | emptied | prev | line | DIRTY | RECONNECT_SECONDS | DISMISS_X | DISMISS_Y | idle | handled | seen | intent | serial | visible | away | polls | keys | was | wanted | SPREAD_ITEMS | MAX_LENGTH | LOCATE_SECONDS | USER_AGENT | KNOWN_NEW_MOON | SYNODIC_MONTH | OWNER | PAD_LEFT | PAD_RIGHT | FRAMES_PER_POINT | FRAME_RATE | HOLD_SECONDS | END_MARGIN | SHORTCUT | SHORTCUT_SECONDS | APPLE_OUT) continue ;; esac
     grep -q "^$v=" "$SB/colors.sh" "$SB/icons.sh" || {
       echo "undefined: $v" >&2
       return 1
@@ -55,12 +55,55 @@ for line in open(sys.argv[1]):
     if not m or m.group(1) in ("APP_ICON_FONT", "APPLE_FONT", "APPLE", "NERD_FONT"):
         continue
     glyph = m.group(2)
-    material = (m.group(1).startswith("BAT_") and m.group(1) != "BAT_CHARGING") or m.group(1) in ("RESTART", "VORSSAINT")
+    # neutonfoo's Nerd Font glyphs (battery, Spotify, weather, moon, both menus) and the few the pack lacks
+    material = m.group(1).startswith(("BAT_", "MOON_", "WEATHER", "SPOTIFY", "MEDIA_DOT")) or m.group(1) in ("RESTART", "VORSSAINT", "TIME", "CALENDAR", "POWERLINE_ARROW", "CHEVRON_LEFT", "CHEVRON_RIGHT", "SETTINGS", "ICON_INFO", "SLEEP", "LOCK", "LOGOUT", "POWER")
     if m.group(1) in names or not (re.fullmatch(r":[a-z_0-9]+:", glyph) or material):
         sys.exit(1)
     names.add(m.group(1))
 PY
   ! grep -qE '(Bold|Regular):[0-9]' "$SB/sketchybarrc" "$SB"/plugins/*.sh
+}
+# Switching the app menu (its menus <-> one menu's items) emptied the popup while System Events answered, then grew it one
+# entry per call. Now the names are read first and every entry is replaced in a single sketchybar call.
+app_menu_swaps_at_once() {
+  local f="$SB/plugins/appmenu.sh"
+  ! sed -n '/^add_entry() {/,/^}/p' "$f" | grep -q 'sketchybar' &&
+    [ "$(sed -n '/^show_top() {/,/^}/p;/^show_menu() {/,/^}/p' "$f" | grep -c 'sketchybar "${entries\[@\]}"')" = 2 ] &&
+    ! sed -n '/^show_top() {/,/^}/p;/^show_menu() {/,/^}/p' "$f" | grep -q 'clear_entries'
+}
+# Both menus use neutonfoo's icon font (JetBrainsMono Nerd Font) like the rest of the bar: the pack's pictures did not match.
+menu_icons_are_nerd_font() {
+  local name
+  for name in ICON_INFO SETTINGS SLEEP LOCK LOGOUT RESTART POWER CHEVRON_LEFT CHEVRON_RIGHT; do
+    grep -qE "^$name='[^:]" "$SB/icons.sh" || return 1
+  done
+  sed -n '/^apple_entry() {/,/^}/p' "$SB/sketchybarrc" | grep -q 'icon.font="$NERD_FONT:' &&
+    sed -n '/^add_entry() {/,/^}/p' "$SB/plugins/appmenu.sh" | grep -q 'icon.font="$NERD_FONT:'
+}
+# The popup entries and the menu chevrons are pack ligatures that set no font of their own: with any other default font
+# they printed as ":gear:" and ":chevron_right:".
+default_icon_font_is_the_pack() {
+  sed -n '/^sketchybar --default/,/^$/p' "$SB/sketchybarrc" | grep -q 'icon.font="$APP_ICON_FONT:'
+}
+# The boxes are solid, as in neutonfoo/dotfiles: every color is opaque (alpha ff) and from Catppuccin Macchiato (plus
+# 242639, the box color his bar shows on screen), and the only see-through value is TRANSPARENT itself. A translucent hover,
+# popup or outline read as a see-through bar.
+MACCHIATO="242639 24273a 1e2030 181926 363a4f 494d64 5b6078 6e738d 8087a2 939ab7 a5adcb b8c0e0 cad3f5 c6a0f6 ed8796 ee99a0 \
+f5a97f eed49f a6da95 8bd5ca 91d7e3 7dc4e4 8aadf4 b7bdf8 f5bde6 f0c6c6 f4dbd6"
+solid_macchiato_colors() {
+  local c
+  for c in $(grep -rhoE '0x[0-9a-fA-F]{8}' "$SB"/colors.sh "$SB"/sketchybarrc "$SB"/plugins/*.sh | sort -u); do
+    [ "$c" = 0x00000000 ] && continue
+    case "$c" in 0xff*) ;; *)
+      echo "translucent: $c" >&2
+      return 1
+      ;;
+    esac
+    grep -qw "${c#0xff}" <<<"$MACCHIATO" || {
+      echo "not Macchiato: $c" >&2
+      return 1
+    }
+  done
 }
 transparent_bar() {
   grep -q 'color=\$TRANSPARENT' "$SB/sketchybarrc" && grep -q 'notch_width=' "$SB/sketchybarrc"
@@ -176,8 +219,8 @@ media_follows_stream() {
     grep -q 'touch "$DIRTY"' "$SB/plugins/media.sh" && grep -q 'config/sketchybar/plugins/media_watch.sh|' "$ROOT/mac/scripts/check-links.sh"
 }
 media_slides() {
-  # The now playing pill slides open when a track loads and closed when the player quits, like the right-hand panel (it
-  # used to pop in and out), and hidden items stay transparent.
+  # The now playing pill slides open when a track loads and closed when the player quits (it used to pop in and out), and
+  # hidden items stay transparent.
   local m="$SB/plugins/media.sh"
   grep -q 'slide_widths "${ITEMS\[@\]}"' "$m" && grep -q -- '--animate' "$m" && grep -q 'width=0' "$m" && grep -q 'width=dynamic' "$m" || return 1
   awk '/^hide\(\) \{/,/^\}/' "$m" | grep -q 'drawing=off' && ! awk '/^hide\(\) \{/,/^\}/' "$m" | grep -q 'MAUVE' || return 1
@@ -221,17 +264,20 @@ vorssaint_pill() {
   ! grep -q '^  "$CTL" menu "$BUNDLE"' "$v" && grep -q '^changed_at=-"$STEADY_POLLS"$' "$v" &&
     grep -q '^since=-"$QUIET_POLLS"$' "$v" && grep -q '^sleep "$FIRST_WAIT"' "$v" && grep -q '^FIRST_WAIT=0.35 ' "$v" &&
     driver_lets_go "$v" || return 1
-  # Closing is a click outside the menu, never a press: a menu closed through its extra hands activation back, and the
-  # next one shut at a click inside it. The click waits for the menu to read the pointer before putting it back.
+  # Closing is a click outside the menu, never a press nor Escape: a menu closed either way left Vorssaint so that the next
+  # one shut at a click inside it (every other opening). The pointer comes back with a posted move, not a warp: after a warp
+  # macOS ignores the mouse for a moment, and the pointer looked stuck on the left.
+  local dismiss
+  dismiss="$(awk '/^func dismiss\(/,/^}/' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift")"
   [ "$(grep -c '"$CTL" menu "$BUNDLE"' "$v")" = 1 ] && grep -qF '"$CTL" dismiss "$DISMISS_X" "$DISMISS_Y"' "$v" &&
-    grep -qF 'set_intent open # it stayed open' "$v" && grep -q 'usleep(dismissHoldMicroseconds)' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" &&
-    grep -q '^case "dismiss":' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" ||
-    return 1
+    grep -qF 'set_intent open # it stayed open' "$v" && grep -q 'usleep(dismissHoldMicroseconds)' <<<"$dismiss" &&
+    grep -q '^case "dismiss":' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" && grep -q 'mouseMoved' <<<"$dismiss" &&
+    ! grep -q 'CGWarpMouseCursorPosition' <<<"$dismiss" || return 1
   grep -q 'echo "$menu" >"$PRESS_MENU"' "$SB/plugins/drag.sh" && grep -q 'watch "$STRIP_HEIGHT" "$MENU_EXTRA_BUNDLE"' "$SB/plugins/drag.sh" &&
     ! grep -q -- '--set vorssaint drawing=off' "$SB/sketchybarrc"
 }
 # macOS opens the Control Center panel at the right edge of the screen and it cannot be moved before it shows, so the
-# button lives there: the rightmost item, always drawn, one fixed width, out of the drawer and with no label (a Bluetooth
+# button lives there: the rightmost item, always drawn, one fixed width and with no label (a Bluetooth
 # name widened it). Nothing moves the panel (scripts/test-sketchybar-anchor.sh checks the item live).
 # The bar is minimal: the status items stay on it, with no chevron folding them away, no drawer animation and no lock that
 # plugins had to take to paint them.
@@ -244,7 +290,7 @@ status_items_always_shown() {
 control_anchored() {
   local rc="$SB/sketchybarrc" c="$SB/plugins/control.sh"
   [ "$(grep -o -- '--add item [a-z_]* right' "$rc" | sed -n 2p)" = '--add item control right' ] &&
-    grep -q -- 'icon.width=34' <<<"$(grep -A2 -- '--set control ' "$rc")" && ! grep -q -- '--set control width=' "$rc" && ! grep -q -- '--set control drawing=off' "$rc" &&
+    grep -qE -- 'icon.width=[0-9]+ ' <<<"$(grep -A2 -- '--set control ' "$rc")" && ! grep -q -- '--set control width=' "$rc" && ! grep -q -- '--set control drawing=off' "$rc" &&
     ! grep -q 'label' "$c" && ! grep -q 'panel_' "$c" &&
     ! grep -q '"$CTL" center' "$SB/plugins/controlcenter.sh" && ! grep -q 'case "center":' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" &&
     [ -x "$ROOT/scripts/test-sketchybar-anchor.sh" ]
@@ -257,6 +303,28 @@ cover_keeps_bar_still() {
 # ctlcenter stay puts Finder in front for a few milliseconds; the front app pill showed Finder when its event ran last.
 front_app_is_the_real_one() {
   grep -q 'lsappinfo front' "$SB/plugins/appmenu.sh"
+}
+front_app_name_is_fixed() { # a name never resizes the pill: it has a fixed width and a longer one slides there and back
+  local rc="$SB/sketchybarrc" scroll="$SB/plugins/app_name.sh"
+  grep -q 'front_app.name .*label.width="\$APP_NAME_WIDTH"' "$rc" &&
+    grep -q 'app_name.sh' "$SB/plugins/appmenu.sh" && ! grep -q 'front_app.name label=' "$SB/plugins/appmenu.sh" &&
+    grep -q -- '--animate' "$scroll" && [ "$(grep -c 'label.padding_left=' "$scroll")" -ge 2 ]
+}
+# The temperature is Apple Weather's (what the Mac and the iPhone show) through a Shortcuts shortcut, when it exists;
+# Open-Meteo, a different source that read a degree off, is only the fallback. The shortcut writes nothing into TMPDIR
+# (mktemp): its output goes to the bar's cache.
+# The app menu hangs from the whole pill, centered under it: hung from the icon block it opened off to the left.
+app_menu_centered() {
+  grep -qF '(.popup.items // [])' "$SB/plugins/appmenu.sh" || return 1 # a pill without entries yet has no items list
+  sed -n '/--add bracket front_pill/,/^pill front_pill/p' "$SB/sketchybarrc" | grep -q 'popup.align=center' && ! grep -q 'popup.front_app\b' "$SB/plugins/appmenu.sh" &&
+    ! grep -rq 'front_app popup.drawing\|--query front_app |' "$SB/plugins" "$SB/sketchybarrc" &&
+    ! sed -n '/--add item front_app left/,/--add item front_app.arrow/p' "$SB/sketchybarrc" | grep -q 'popup\.'
+}
+weather_is_apples() {
+  local w="$SB/plugins/weather.sh"
+  grep -q '^SHORTCUT="Temperatura barra"' "$w" && grep -q 'shortcuts run "$SHORTCUT" --output-path "$APPLE_OUT"' "$w" &&
+    grep -q '^APPLE_OUT="$CACHE/' "$w" && ! grep -q 'mktemp' "$w" && grep -q 'open-meteo' "$w" &&
+    [ "$(grep -n 'shortcuts run' "$w" | head -1 | cut -d: -f1)" -lt "$(grep -n 'open-meteo' "$w" | head -1 | cut -d: -f1)" ]
 }
 battery_always_shown() {
   local rc="$SB/sketchybarrc" b="$SB/plugins/battery.sh"
@@ -279,7 +347,11 @@ check "every plugin the rc points to exists" plugins_exist
 check "every icon and color used is defined" symbols_defined
 check "colors.sh and icons.sh do not shadow SketchyBar event variables" no_event_var_shadowing
 check "icons are one pack (sketchybar-app-font) and every font size comes from ICON_SIZE or TEXT_SIZE" one_icon_pack_and_sizes
+check "icons default to the app font, so popup ligatures (:gear:) draw as glyphs" default_icon_font_is_the_pack
+check "both menus draw Nerd Font icons, like the rest of the bar" menu_icons_are_nerd_font
+check "the app menu swaps its entries in one step, never empty or growing" app_menu_swaps_at_once
 check "the bar is transparent and keeps the notch gap" transparent_bar
+check "every color is solid Catppuccin Macchiato (no translucent box, popup or hover)" solid_macchiato_colors
 check "AeroSpace starts SketchyBar and triggers workspace changes" aerospace_hooks
 check "no plugin toggles the bar topmost flag (it blanks the pills)" no_topmost_toggle
 check "AeroSpace workspaces refresh in one animated call from one driver item" workspaces_refresh_once
@@ -298,6 +370,9 @@ check "the battery pill is always on the bar" battery_always_shown
 check "the Control Center button is anchored at the right edge, so its panel opens under it" control_anchored
 check "the cover never changes the bar's geometry" cover_keeps_bar_still
 check "the front app pill shows the app really in front" front_app_is_the_real_one
+check "the app menu opens centered under the front app pill" app_menu_centered
+check "the temperature comes from Apple Weather (a Shortcuts shortcut), Open-Meteo only as the fallback" weather_is_apples
+check "the front app name keeps a fixed width and slides a long name there and back" front_app_name_is_fixed
 check "install.sh installs the formulae and check-links.sh links the files" installer_ok
 
 if [ "$fails" -eq 0 ]; then echo "test-sketchybar-config: PASS"; else

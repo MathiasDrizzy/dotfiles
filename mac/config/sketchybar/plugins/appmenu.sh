@@ -15,17 +15,25 @@ SELF="$CONFIG_DIR/plugins/appmenu.sh"
 quote() { printf "'%s'" "${1//\'/\'\\\'\'}"; }
 
 close() {
-  sketchybar --set front_app popup.drawing=off --set front_pill background.color="$BAR_COLOR"
+  sketchybar --set front_pill popup.drawing=off background.color="$BAR_COLOR"
 }
 
-clear_entries() { sketchybar --remove '/appmenu\.entry\..*/' >/dev/null 2>&1; }
+# The entries are built into one sketchybar call: the old ones go and the new ones come in the same step, so the popup never
+# shows empty while System Events answers, nor grows one entry at a time.
+entries=()
+new_entries() {
+  entries=()
+  if [ "$(sketchybar --query front_pill | jq '[(.popup.items // [])[] | select(startswith("appmenu.entry."))] | length')" -gt 0 ]; then
+    entries=(--remove '/appmenu\.entry\..*/')
+  fi
+}
 
 add_entry() { # index, label, click command, icon
-  sketchybar --add item "appmenu.entry.$1" popup.front_app \
-    --set "appmenu.entry.$1" icon="${4:-}" icon.color="$MAUVE" icon.width=26 icon.align=center \
-    label="$2" label.padding_right=14 \
-    script="$CONFIG_DIR/plugins/hover.sh" click_script="$3" \
-    --subscribe "appmenu.entry.$1" mouse.entered mouse.exited
+  entries+=(--add item "appmenu.entry.$1" popup.front_pill
+    --set "appmenu.entry.$1" icon="${4:-}" icon.font="$NERD_FONT:Regular:$ICON_SIZE" icon.color="$BLUE" icon.width=26 icon.align=center
+    label="$2" label.padding_right=14
+    script="$CONFIG_DIR/plugins/hover.sh" click_script="$3"
+    --subscribe "appmenu.entry.$1" mouse.entered mouse.exited)
 }
 
 top_menus() {
@@ -75,26 +83,30 @@ AS
 }
 
 show_top() {
-  clear_entries
-  local i=0 name
+  local i=0 name names
+  names="$(top_menus)"
+  new_entries
   while IFS= read -r name; do
     [ -z "$name" ] && continue
     add_entry "$i" "$name" "$SELF menu $(quote "$name")" "$CHEVRON_RIGHT"
     i=$((i + 1))
-  done < <(top_menus)
-  sketchybar --set apple popup.drawing=off background.color="$BAR_COLOR" icon.color="$MAUVE" --set front_app popup.drawing=on --set front_pill background.color=0xf045475a
+  done <<<"$names"
+  sketchybar "${entries[@]}" --set apple popup.drawing=off background.color="$APPLE_BG" icon.color="$APPLE_ICON" \
+    --set front_pill popup.drawing=on background.color="$BAR_PRESSED"
 }
 
 show_menu() {
-  clear_entries
+  local i=0 name names
+  names="$(menu_items "$1")"
+  new_entries
   add_entry back "Menús" "$SELF top" "$CHEVRON_LEFT"
-  local i=0 name
   while IFS= read -r name; do
     { [ -z "$name" ] || [ "$name" = "missing value" ]; } && continue
     [ "$i" -ge "$MAX_ENTRIES" ] && break
-    add_entry "$i" "$name" "sketchybar --set front_app popup.drawing=off; $SELF run $(quote "$1") $(quote "$name")"
+    add_entry "$i" "$name" "sketchybar --set front_pill popup.drawing=off; $SELF run $(quote "$1") $(quote "$name")"
     i=$((i + 1))
-  done < <(menu_items "$1")
+  done <<<"$names"
+  sketchybar "${entries[@]}"
 }
 
 case "${1:-}" in
@@ -112,7 +124,7 @@ run)
   ;;
 esac
 
-is_open="$(sketchybar --query front_app | jq -r '.popup.drawing')"
+is_open="$(sketchybar --query front_pill | jq -r '.popup.drawing')"
 case "$SENDER" in
 front_app_switched)
   # The app in front now, not the one of this event: `ctlcenter stay` brings Finder forward for a few milliseconds, and when
@@ -120,11 +132,12 @@ front_app_switched)
   front="$(lsappinfo info -only name "$(lsappinfo front)" 2>/dev/null | sed -n '1s/^"\(.*\)" ASN:.*/\1/p')"
   __icon_map "${front:-$INFO}"
   sketchybar --set front_app icon="$icon_result"
+  "$CONFIG_DIR/plugins/app_name.sh" "${front:-$INFO}" &
   ;;
 mouse.clicked)
   if [ "$is_open" = on ]; then close; else show_top; fi
   ;;
-mouse.entered) [ "$is_open" = on ] || sketchybar --set front_pill background.color=0xf0313244 ;;
+mouse.entered) [ "$is_open" = on ] || sketchybar --set front_pill background.color="$BAR_HOVER" ;;
 mouse.exited) [ "$is_open" = on ] || sketchybar --set front_pill background.color="$BAR_COLOR" ;;
 mouse.exited.global) close ;;
 esac

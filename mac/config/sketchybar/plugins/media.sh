@@ -1,22 +1,27 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1091,SC2153
-# Now playing, polled every 2 s: updates the buttons and the title, and slides the pill open when a track loads and closed
-# when none is left (the same drawer as the right-hand panel). The title itself is animated by marquee.sh, which this
-# script starts when needed. The play/pause button shows the action the click will do.
+# Now playing, polled every 5 s and on every now_playing_change: updates the logo and "title  artist" (cut to fit like
+# neutonfoo/dotfiles's Spotify item), and slides the pill open when a track loads and closed when none is left.
 source "$CONFIG_DIR/colors.sh"
 source "$CONFIG_DIR/icons.sh"
 
 CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/sketchybar"
 BUSY="$CACHE/media_busy"
 DIRTY="$CACHE/media_dirty" # the player changed while a slide ran
-ITEMS=(media_prev media_play media_next media)
-BUTTONS=(media_prev media_play media_next)
+ITEMS=(media_icon media)
 ANIMATION_CURVE=sin
 SLIDE_FRAMES=24
 TEXT_FRAMES=9
 SLIDE_SECONDS=0.45
 TEXT_DELAY_SECONDS=0.22
+MAX_LENGTH=35 # characters of title and artist together
+export LC_ALL=en_US.UTF-8 # count characters, not bytes
 mkdir -p "$CACHE"
+
+# A reload rebuilds the items while this script may be mid-slide: it stops as soon as they are gone, instead of painting
+# items that no longer exist ("Item not found" in SketchyBar's log).
+alive() { sketchybar --query media_pill >/dev/null 2>&1; }
+alive || exit 0
 
 info="$(media-control get 2>/dev/null)"
 playing="$(jq -r '.playing // false' <<<"$info" 2>/dev/null)"
@@ -38,10 +43,11 @@ finish() {
 }
 trap finish EXIT
 
-# Closes the drawer: the text fades while the widths go to 0, then the items are hidden and stay transparent (SketchyBar
+# Closes the pill: the text fades while the widths go to 0, then the items are hidden and stay transparent (SketchyBar
 # keeps painting an animating item for a few frames after drawing=off, so visible colors would float).
 hide() {
   local item widths args=() fade_out=() slide=()
+  alive || exit 0
   widths="$(slide_widths "${ITEMS[@]}")"
   for item in "${ITEMS[@]}"; do
     args+=(--set "$item" width="$(width_of "$item" "$widths")")
@@ -52,14 +58,15 @@ hide() {
   sketchybar "${args[@]}" --animate "$ANIMATION_CURVE" "$TEXT_FRAMES" "${fade_out[@]}" \
     --animate "$ANIMATION_CURVE" "$SLIDE_FRAMES" "${slide[@]}"
   sleep "$SLIDE_SECONDS"
+  alive || exit 0
   args=()
   for item in "${ITEMS[@]}"; do args+=(--set "$item" drawing=off width=dynamic); done
   sketchybar "${args[@]}"
 }
 
-# Opens the drawer from nothing: the items come in at width 0 and transparent, slide to their own widths with the pill, and
-# the text fades in once the drawer is half open.
-show() { # label color
+# Opens the pill from nothing: the items come in at width 0 and transparent, slide to their own widths with the pill, and
+# the text fades in once the pill is half open.
+show() { # label color, logo color
   local item widths args=() slide=() fade_in=() dynamic=()
   for item in "${ITEMS[@]}"; do
     args+=(--set "$item" drawing=on width=0 icon.color="$TRANSPARENT" label.color="$TRANSPARENT")
@@ -67,15 +74,17 @@ show() { # label color
   done
   args+=(--set media_pill background.color="$TRANSPARENT" background.border_color="$TRANSPARENT")
   sketchybar "${args[@]}"
+  alive || exit 0
   widths="$(slide_widths "${ITEMS[@]}")" # a drawn item reports the size of its content even at width 0
   for item in "${ITEMS[@]}"; do slide+=(--set "$item" width="$(width_of "$item" "$widths")"); done
   slide+=(--set media_pill background.color="$BAR_COLOR" background.border_color="$BAR_BORDER")
-  for item in "${BUTTONS[@]}"; do fade_in+=(--set "$item" icon.color="$MAUVE"); done
-  fade_in+=(--set media label.color="$1")
+  fade_in+=(--set media_icon icon.color="$2" --set media label.color="$1")
   sketchybar --animate "$ANIMATION_CURVE" "$SLIDE_FRAMES" "${slide[@]}"
   sleep "$TEXT_DELAY_SECONDS"
+  alive || exit 0
   sketchybar --animate "$ANIMATION_CURVE" "$TEXT_FRAMES" "${fade_in[@]}"
   sleep "$TEXT_DELAY_SECONDS"
+  alive || exit 0
   sketchybar "${dynamic[@]}"
 }
 
@@ -83,34 +92,39 @@ show() { # label color
 shown() { [ "$(sketchybar --query media | jq -r '.geometry.drawing')" = on ]; }
 
 if [ -z "$title" ]; then
-  : >"$CACHE/media-text"
   shown && hide
   exit 0
 fi
 
+# His cut: when both are long each gets half, otherwise the long one gives way to the other.
+half=$(((MAX_LENGTH + 1) / 2))
+if [ $((${#title} + ${#artist})) -gt "$MAX_LENGTH" ]; then
+  if [ "${#title}" -gt "$half" ] && [ "${#artist}" -gt "$half" ]; then
+    title="${title:0:$((half - 1))}…"
+    artist="${artist:0:$((half - 2))}…"
+  elif [ "${#title}" -gt "$half" ]; then
+    title="${title:0:$((MAX_LENGTH - ${#artist} - 1))}…"
+  elif [ "${#artist}" -gt "$half" ]; then
+    artist="${artist:0:$((MAX_LENGTH - ${#title} - 1))}…"
+  fi
+fi
 text="$title"
-[ -n "$artist" ] && text="$title - $artist"
-printf '%s' "$text" >"$CACHE/media-text"
+[ -n "$artist" ] && text="$title $MEDIA_DOT $artist"
 if [ "$(sketchybar --query media | jq -r '.label.value')" != "$text" ]; then
-  sketchybar --set media label="$text" label.padding_left=0 label.padding_right=10
+  sketchybar --set media label="$text"
 fi
 
+# His colors: a green logo while playing, a yellow one while paused.
 if [ "$playing" = "true" ]; then
-  play_icon="$PAUSE"
+  logo_color="$GREEN"
   label_color="$TEXT"
 else
-  play_icon="$PLAY"
+  logo_color="$YELLOW"
   label_color="$OVERLAY0"
 fi
-sketchybar --set media_play icon="$play_icon"
 if shown; then
-  sketchybar --set media label.color="$label_color"
+  sketchybar --set media_icon icon.color="$logo_color" --set media label.color="$label_color"
 else
-  show "$label_color"
+  show "$label_color" "$logo_color"
 fi
 
-pidfile="$CACHE/marquee.pid"
-if ! { [ -s "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; }; then
-  nohup "$CONFIG_DIR/plugins/marquee.sh" >/dev/null 2>&1 &
-  echo $! >"$pidfile"
-fi

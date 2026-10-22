@@ -57,7 +57,7 @@ show() {
   else
     color="$(cat "$COVER_CACHE" 2>/dev/null)"
     sketchybar --set cover drawing=on background.image.drawing=off \
-      --animate tanh "$FADE_FRAMES" --set cover background.color="${color:-0xff11111b}"
+      --animate tanh "$FADE_FRAMES" --set cover background.color="${color:-$CRUST}"
   fi
 }
 

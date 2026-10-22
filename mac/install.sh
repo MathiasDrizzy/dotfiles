@@ -103,6 +103,7 @@ if [ "$LINKS_ONLY" = false ]; then
     brew install felixkratz/formulae/borders || true
     brew install felixkratz/formulae/sketchybar || true
     brew install ungive/media-control/media-control || true
+    brew install --cask corelocationcli || true # the weather box asks Location Services for the commune you are in
   fi
 
   # 4. Activar toolchain de Rust
@@ -163,11 +164,12 @@ REQUIRED_SOURCES=(
   "config/sketchybar/plugins/appmenu.sh"
   "config/sketchybar/plugins/monitor.sh"
   "config/sketchybar/plugins/close_popups.sh"
-  "config/sketchybar/plugins/media_toggle.sh"
   "config/sketchybar/plugins/controlcenter.sh"
   "config/sketchybar/plugins/control.sh"
   "config/sketchybar/plugins/about.sh"
-  "config/sketchybar/plugins/marquee.sh"
+  "config/sketchybar/plugins/weather.sh"
+  "config/sketchybar/plugins/app_name.sh"
+  "config/sketchybar/plugins/moon.sh"
   "config/sketchybar/plugins/drag.sh"
   "config/sketchybar/plugins/sys.sh"
   "config/yazi/keymap.toml"

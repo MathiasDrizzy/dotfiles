@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Date and time: "20-10-2026 · 12:39". Mouse events are handled by hover.sh.
-case "$SENDER" in mouse.*) exec "$CONFIG_DIR/plugins/hover.sh" 0xf0313244 0xd91e1e2e ;; esac
+# The date ("21-10-2026") and the time ("22:46"), each in its own box. Mouse events are handled by hover.sh.
+# shellcheck disable=SC1091
+source "$CONFIG_DIR/colors.sh"
+case "$SENDER" in mouse.*) exec "$CONFIG_DIR/plugins/hover.sh" "$BAR_HOVER" "$BAR_COLOR" ;; esac
 
-sketchybar --set "$NAME" label="$(date '+%d-%m-%Y · %H:%M')"
+case "$NAME" in
+date) sketchybar --set date label="$(date '+%d-%m-%Y')" ;;
+*) sketchybar --set "$NAME" label="$(date '+%H:%M')" ;;
+esac

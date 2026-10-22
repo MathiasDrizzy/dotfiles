@@ -2,6 +2,8 @@
 # Vorssaint button: opens the menu of Vorssaint's menu bar extra, or closes it when it is open. The system menu bar is
 # hidden, so the extra is pressed through Accessibility, and the cover keeps the native bar (which slides down with the
 # menu) under the bar until the menu closes. Starts Vorssaint when it is not running. Mouse events are handled by hover.sh.
+# macOS opens the menu under the extra, wherever the hidden menu bar has it, so "vorssaint.sh align" (run by the rc and
+# after every press) moves the pill right above it.
 # shellcheck disable=SC1091
 source "$CONFIG_DIR/colors.sh"
 
@@ -22,6 +24,40 @@ FIRST_WAIT=0.35 # a click this soon after the first is part of the same burst
 DISMISS_X=8     # an empty spot of the bar, left of the Apple logo
 DISMISS_Y=20
 GRACE_POLLS=3
+
+PILL_WIDTH=28
+SPREAD_ITEMS=(battery date clock) # the items right of this one whose labels widen to make the room it needs
+
+# The labels right of this one widen evenly (from their least widths in colors.sh) so this item's center sits over the
+# extra's: the boxes grow a little instead of leaving a gap. An extra right of where the item naturally goes leaves them
+# at their least widths.
+align() {
+  local extra x width current wanted least=() now=() total=0 share item i args=()
+  extra="$(osascript -e "tell application \"System Events\" to tell (first process whose bundle identifier is \"$BUNDLE\") to \
+get {position, size} of menu bar item 1 of menu bar 2" 2>/dev/null)" || return 0
+  IFS=', ' read -r x _ width _ <<<"$extra"
+  current="$(sketchybar --query vorssaint | jq -r '.bounding_rects | to_entries[0].value.origin[0] | floor')"
+  [ -n "$x" ] && [ -n "$width" ] && [ -n "$current" ] || return 0
+  least=("$BATTERY_LABEL_WIDTH" "$DATE_LABEL_WIDTH" "$TIME_LABEL_WIDTH")
+  for i in "${!SPREAD_ITEMS[@]}"; do
+    now[i]="$(sketchybar --query "${SPREAD_ITEMS[i]}" | jq -r '.label.width')"
+    total=$((total + now[i] - least[i]))
+  done
+  wanted=$((x + width / 2 - PILL_WIDTH / 2))
+  total=$((total + current - wanted))
+  [ "$total" -lt 0 ] && total=0
+  for i in "${!SPREAD_ITEMS[@]}"; do
+    share=$((total / ${#SPREAD_ITEMS[@]}))
+    [ "$i" -eq 0 ] && share=$((share + total % ${#SPREAD_ITEMS[@]}))
+    item="${SPREAD_ITEMS[i]}"
+    [ "${now[i]}" = $((least[i] + share)) ] || args+=(--set "$item" label.width=$((least[i] + share)))
+  done
+  [ ${#args[@]} -eq 0 ] || sketchybar "${args[@]}"
+}
+if [ "${1:-}" = align ]; then
+  align
+  exit 0
+fi
 
 # The menu was open at the press (drag.sh noted it). A click on the bar does not always close it by itself.
 press_saw_menu() {
@@ -46,6 +82,7 @@ echo $$ >"$DRIVER/pid"
 trap 'rm -f "$DRIVER/pid"; rmdir "$DRIVER" 2>/dev/null' EXIT
 
 "$CONFIG_DIR/plugins/close_popups.sh" &
+align & # the extra moves only when other extras come or go: the next press finds the pill in place
 "$CONFIG_DIR/plugins/cover.sh" on
 visible=false
 "$CTL" shown "$BUNDLE" && visible=true
@@ -55,8 +92,8 @@ read -r _ handled <"$INTENT"
 # Makes the menu match the intent: a press goes out once the clicks have stopped for QUIET_POLLS and the menu has looked the
 # same for STEADY_POLLS, and gets KEY_WAIT_POLLS to show (MAX_KEYS per change). A menu closed elsewhere ends it. The first
 # press waits only for the clicks (FIRST_WAIT; the menu starts still): sent at once, the clicks after it landed on a menu
-# still opening. Closing is a click outside the menu, never a press: a menu closed through its extra hands activation back
-# to the app before it, and the next menu then shut at a click inside it. A menu that does not close is taken as open.
+# still opening. Closing is a click outside the menu, never a press nor Escape: a menu closed either way left Vorssaint so
+# that the next menu shut at a click inside it (every other opening). A menu that does not close is taken as open.
 sleep "$FIRST_WAIT"
 polls=0
 since=-"$QUIET_POLLS"

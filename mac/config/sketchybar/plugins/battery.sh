@@ -1,25 +1,27 @@
 #!/usr/bin/env bash
+# neutonfoo/dotfiles's battery: five levels, each with its own Macchiato color, and a bolt while on power.
 # shellcheck disable=SC1091
-case "$SENDER" in mouse.*) exec "$CONFIG_DIR/plugins/hover.sh" 0xf0313244 0xd91e1e2e ;; esac
 source "$CONFIG_DIR/colors.sh"
+case "$SENDER" in mouse.*) exec "$CONFIG_DIR/plugins/hover.sh" "$BAR_HOVER" "$BAR_COLOR" ;; esac
 source "$CONFIG_DIR/icons.sh"
 
 batt="$(pmset -g batt)"
 pct="$(grep -Eo '[0-9]+%' <<<"$batt" | head -1 | tr -d '%')"
 [ -z "$pct" ] && exit 0
 
-if grep -q 'AC Power' <<<"$batt"; then
-  icon="$BAT_CHARGING"
-  font="$APP_ICON_FONT:Regular:$ICON_SIZE"
-  color="$MAUVE"
+if [ "$pct" -ge 80 ]; then
+  icon="$BAT_FULL" color="$GREEN"
+elif [ "$pct" -ge 70 ]; then
+  icon="$BAT_THREE_QUARTERS" color="$YELLOW"
+elif [ "$pct" -ge 40 ]; then
+  icon="$BAT_HALF" color="$PEACH"
+elif [ "$pct" -ge 10 ]; then
+  icon="$BAT_QUARTER" color="$MAROON"
 else
-  color="$MAUVE"
-  font="$NERD_FONT:Regular:$ICON_SIZE"
-  step=$(((pct + 5) / 10 * 10))
-  [ "$step" -gt 100 ] && step=100
-  var="BAT_$step"
-  icon="${!var}"
-  [ "$pct" -le 20 ] && color="$RED"
+  icon="$BAT_EMPTY" color="$RED"
+fi
+if grep -q 'AC Power' <<<"$batt"; then
+  icon="$BAT_CHARGING" color="$YELLOW"
 fi
 
-sketchybar --set "$NAME" icon="$icon" icon.font="$font" icon.color="$color" label="${pct}%"
+sketchybar --set "$NAME" icon="$icon" icon.color="$color" label="${pct}%"

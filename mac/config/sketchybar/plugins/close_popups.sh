@@ -3,5 +3,5 @@
 # shellcheck disable=SC1091
 source "$CONFIG_DIR/colors.sh"
 
-sketchybar --set apple popup.drawing=off background.color="$BAR_COLOR" icon.color="$MAUVE" \
-  --set front_app popup.drawing=off --set front_pill background.color="$BAR_COLOR"
+sketchybar --set apple popup.drawing=off background.color="$APPLE_BG" icon.color="$APPLE_ICON" \
+  --set front_pill popup.drawing=off background.color="$BAR_COLOR"

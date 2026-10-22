@@ -66,7 +66,7 @@ esac
 
 case "$SENDER" in
 mouse.entered)
-  [ "$1" = "$focused" ] || sketchybar --set "$NAME" background.color=0x44cba6f7 icon.color="$TEXT"
+  [ "$1" = "$focused" ] || sketchybar --set "$NAME" background.color="$BAR_HOVER" icon.color="$TEXT"
   exit 0
   ;;
 mouse.exited)

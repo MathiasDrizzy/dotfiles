@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Hover feedback: highlights the item under the mouse. $1 = color on enter, $2 = color on exit
 # ("none" turns the background off again, which is what plain items want).
-on="${1:-0x44cba6f7}"
+# shellcheck disable=SC1091
+source "$CONFIG_DIR/colors.sh"
+on="${1:-$BAR_HOVER}"
 off="${2:-none}"
 
 case "$SENDER" in
 mouse.clicked)
   # Pressed: flash a stronger tint, then release it (the next mouse.entered brings the hover tint back).
-  sketchybar --set "$NAME" background.drawing=on background.color=0x99cba6f7
+  sketchybar --set "$NAME" background.drawing=on background.color="$BAR_PRESSED"
   sleep 0.15
   if [ "$off" = none ]; then
     sketchybar --set "$NAME" background.drawing=off
