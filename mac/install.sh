@@ -81,7 +81,7 @@ if [ "$LINKS_ONLY" = false ]; then
   BREW_PACKAGES=(
     herdr ghostty micro glow bat git-delta go rustup
     yazi ffmpeg poppler fd ripgrep fzf zoxide atuin starship mise
-    lazygit lazydocker termscp sshs btop chafa blueutil
+    lazygit lazydocker termscp sshs btop chafa blueutil mathiasdrizzy/tap/lazyfinder
     fzf-tab zsh-autosuggestions zsh-syntax-highlighting
   )
 
@@ -286,6 +286,15 @@ if [ "$LINKS_ONLY" = false ]; then
     else
       echo "  [AVISO] No se pudo firmar el atajo del clima; la barra usa Open-Meteo para la temperatura."
     fi
+  fi
+
+  # 13. lazyfinder is herdr's sidebar: its plugin docks it at the left of every tab and opens it by itself
+  # (prefix+f toggles it). It builds with Go or reuses the lazyfinder installed above.
+  if [ "$DRY_RUN" != true ] && command -v herdr >/dev/null 2>&1 &&
+    ! herdr plugin list 2>/dev/null | grep -q "^- lazyfinder "; then
+    echo "==> Plugin de herdr: lazyfinder..."
+    herdr plugin install MathiasDrizzy/lazyfinder ||
+      echo "  [AVISO] No se instaló el plugin lazyfinder; reintenta: herdr plugin install MathiasDrizzy/lazyfinder"
   fi
 
 fi

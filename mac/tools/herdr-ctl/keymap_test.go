@@ -62,7 +62,7 @@ func TestRepoOverridesAndCommands(t *testing.T) {
 	for _, c := range km.Commands {
 		keys[c.Key] = true
 	}
-	for _, k := range []string{"prefix+h", "prefix+t", "prefix+m", "prefix+f"} {
+	for _, k := range []string{"prefix+h", "prefix+t", "prefix+f"} {
 		if !keys[k] {
 			t.Errorf("falta el comando %s en el config del repo", k)
 		}
@@ -208,16 +208,16 @@ description = "duplicado"
 	}
 }
 
-func TestPrefixShiftRIsDocumentedReplacement(t *testing.T) {
+func TestPrefixHIsDocumentedReplacement(t *testing.T) {
 	text := ""
 	for _, f := range fixtureKeymap(t).Conflicts() {
 		text += f.Level + " " + f.Msg + "\n"
 	}
-	if !strings.Contains(text, "INFO prefix+shift+r") || !strings.Contains(text, "reload_config") {
-		t.Errorf("prefix+shift+r debe quedar documentado como reemplazo de reload_config:\n%s", text)
-	}
 	if !strings.Contains(text, "prefix+h") || !strings.Contains(text, "focus_pane_left") {
 		t.Errorf("prefix+h debe quedar documentado como tecla liberada por el remapeo de focus_pane_left:\n%s", text)
+	}
+	if strings.Contains(text, "prefix+shift+r") {
+		t.Errorf("prefix+shift+r ya no se pisa: no debe aparecer en los hallazgos:\n%s", text)
 	}
 }
 
@@ -241,21 +241,19 @@ func TestLiveHerdrDefaultsMatchFixture(t *testing.T) {
 	}
 }
 
-// Si un comando del repo pisa una acción nativa, el cheatsheet solo muestra el comando que realmente corre.
+// Si un comando del repo pisa una acción nativa, el cheatsheet solo muestra el comando que realmente corre:
+// cada tecla de un comando del repo aparece exactamente una vez.
 func TestCheatsheetHidesShadowedNativeAction(t *testing.T) {
 	km := fixtureKeymap(t)
-	n := 0
+	seen := map[string]int{}
 	for _, sec := range herdrSections(km) {
 		for _, it := range sec.Items {
-			if it.Key == "ctrl+b → Shift+R" {
-				n++
-				if strings.Contains(it.Desc, "Recargar") {
-					t.Errorf("Shift+R aparece como reload_config, pero el repo lo reasigna: %q", it.Desc)
-				}
-			}
+			seen[it.Key]++
 		}
 	}
-	if n != 1 {
-		t.Errorf("ctrl+b → Shift+R debe aparecer exactamente una vez, aparece %d", n)
+	for _, c := range km.Commands {
+		if n := seen[km.displayKey(c.Key)]; n != 1 {
+			t.Errorf("%s debe aparecer exactamente una vez en el cheatsheet, aparece %d", c.Key, n)
+		}
 	}
 }

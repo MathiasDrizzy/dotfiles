@@ -11,7 +11,7 @@ dotfiles/
 │   ├── zshrc / zshenv          # interactive shell and global PATH
 │   ├── config/                 # ghostty, herdr, aerospace, yazi, micro, starship, termscp, lazygit, lazydocker, btop, bat
 │   ├── scripts/                # check-links.sh, herdr-reload.sh, terminal-popup.sh
-│   └── tools/herdr-ctl/        # Go tool: cheatsheet, adapt, agent bus, keys-check
+│   └── tools/herdr-ctl/        # Go tool: cheatsheet, agent bus, keys-check
 ├── scripts/
 │   ├── harness-quick.sh        # quick harness (run by the pre-commit hook)
 │   ├── harness-behavior.py     # behavior harness against an isolated herdr
@@ -45,11 +45,9 @@ What this repo adds on top of herdr's defaults:
 | `ctrl+b → Shift+← ↑ ↓ →` | Swap the pane with its neighbor |
 | `ctrl+b → h` | Cheatsheet |
 | `ctrl+b → t` | Terminal popup (scratchpad); close it with `Esc` (empty prompt), `Ctrl+Q`, `Ctrl+D` or `exit` |
-| `ctrl+b → m` | Fit the sidebar width to the screen (`herdr-ctl adapt`) |
-| `ctrl+b → f` / `Shift+F` | Sidebar explorer / quick open |
+| `ctrl+b → f` | Open, focus or close the lazyfinder sidebar (it opens by itself, docked on the left of every tab) |
 | `ctrl+b → Shift+C` | Move the pane to a new tab |
 | `ctrl+b → < / >` | Reorder tabs |
-| `ctrl+b → Shift+R` / `Shift+Q` | Refresh agent quotas / their settings (replaces `reload_config`; reload the config with `herdr server reload-config`) |
 
 `herdr-ctl keys-check` compares every shortcut in the repo with herdr's defaults and reports collisions.
 
@@ -91,10 +89,11 @@ The weather box finds the commune with [CoreLocationCLI](https://github.com/full
 
 AeroSpace starts it and notifies it of workspace changes. Reload after editing: `sketchybar --reload`. Installed by `install.sh`.
 
+The sidebar is [lazyfinder](https://github.com/MathiasDrizzy/lazyfinder) as a herdr plugin (`install.sh` installs it): it docks on the left of each tab and follows the folder of the terminal next to it. Its width, side and auto-open are lazyfinder's own settings (`herdr.width`, `herdr.dock`, `herdr.auto_open`).
+
 ## herdr-ctl (Go, `mac/tools/herdr-ctl`)
 
 ```bash
-herdr-ctl adapt [laptop|external]   # sidebar width: 24 cols (Mac) / 22 cols (ultra-wide monitor)
 herdr-ctl cheatsheet                # the ctrl+b → h popup
 herdr-ctl keys-check                # shortcut collisions against herdr's defaults
 herdr-ctl move-tab new              # move the current pane to a new tab
@@ -114,7 +113,7 @@ afocus <agent>          # jump to its pane                 (herdr-ctl focus)
 
 ## Aliases (in `mac/zshrc`)
 
-`lg` lazygit · `ld` lazydocker · `sftp` termscp · `hosts` sshs · `y` yazi (leaves the shell in the folder you exit from) · `sb`, `sb-ext`, `sb-lap`, `sb-auto` sidebar · `agy` Antigravity CLI (fallback agent) · `claude` Claude Code (updates itself, then opens in bypass mode; `command claude` skips that) · `brewup` (non-interactive: no prompts, never asks for a password), `brewout` Homebrew.
+`lg` lazygit · `ld` lazydocker · `sftp` termscp · `hosts` sshs · `y` yazi (leaves the shell in the folder you exit from) · `sb` lazyfinder sidebar · `agy` Antigravity CLI (fallback agent) · `claude` Claude Code (updates itself, then opens in bypass mode; `command claude` skips that) · `brewup` (non-interactive: no prompts, never asks for a password), `brewout` Homebrew.
 
 ## Development and testing
 
@@ -126,7 +125,7 @@ scripts/test-install-full.sh              # full install in a sandbox with a tem
 ```
 
 * The **pre-commit** hook runs the quick harness and, if the commit touches herdr, scripts or `zshrc`, the behavior harness too.
-* The **behavior harness** uses a temporary HOME and its own session (it does not touch your herdr). It checks that `prefix+h` opens the cheatsheet and `q`/`Esc` close it, that the terminal popup closes with `Esc`, that `prefix+m` changes the sidebar width, that the arrow keys move focus, that `Shift+arrows` swap panes and that `prefix+Shift+R` runs the repo's command.
+* The **behavior harness** uses a temporary HOME and its own session (it does not touch your herdr). It checks that `prefix+h` opens the cheatsheet and `q`/`Esc` close it, that the terminal popup closes with `Esc`, that `prefix+f` runs the lazyfinder plugin's toggle action, that the arrow keys move focus, that `Shift+arrows` swap panes and that `prefix+Shift+R` stays herdr's own `reload_config`.
 * The repo is **public**: no local-network IPs, hostnames, passwords or tokens (the harness enforces it).
 
 ## Documentation

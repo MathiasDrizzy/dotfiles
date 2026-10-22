@@ -3,8 +3,8 @@ onboarding = false
 [theme]
 name = "catppuccin"
 
+auto_switch = false
 [ui]
-agent_panel_sort = "spaces" # herdr-agent-usage
 
 [ui.sound]
 enabled = false
@@ -12,11 +12,6 @@ enabled = false
 [ui.toast]
 delivery = "terminal"
 
-[ui.sidebar]
-
-[ui.sidebar.agents]
-row_gap = 0 # herdr-agent-usage
-rows = [[{ token = "$quota_group", bold = true, dim = false }], [{ token = "$quota_icon", fg = "#e9e9f0", bold = false, dim = false, rules = [{ contains = "⁠", fg = "#94e2d5" }, { contains = "⁡", fg = "#f9e2af" }, { contains = "⁢", fg = "#f38ba8" }] }, { token = "$quota_provider_model", fg = "#e9e9f0", bold = true, dim = false }], [{ token = "$quota_share_5h_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_share_5h_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_share_5h_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_share_5h_unknown", bold = false, dim = false }], [{ token = "$quota_share_week_inline_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_share_week_inline_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_share_week_inline_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_share_week_inline_unknown", bold = false, dim = false }, { token = "$quota_share_week_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_share_week_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_share_week_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_share_week_unknown", bold = false, dim = false }], [{ token = "$quota_share_month_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_share_month_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_share_month_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_share_month_unknown", bold = false, dim = false }], [{ token = "$quota_model", fg = "#e9e9f0", bold = false, dim = false }], [{ token = "$quota_topic", bold = false, dim = false }], [{ token = "$quota_error", fg = "#e4b957", bold = false, dim = false }], [{ token = "$quota_context_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_context_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_context_danger", fg = "#df919b", bold = false, dim = false }], [{ token = "$quota_5h_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_5h_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_5h_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_5h_unknown", bold = false, dim = false }], [{ token = "$quota_week_inline_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_week_inline_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_week_inline_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_week_inline_unknown", bold = false, dim = false }, { token = "$quota_week_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_week_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_week_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_week_unknown", bold = false, dim = false }], [{ token = "$quota_month_normal", fg = "#98b17d", bold = false, dim = false }, { token = "$quota_month_warning", fg = "#dec27f", bold = false, dim = false }, { token = "$quota_month_danger", fg = "#df919b", bold = false, dim = false }, { token = "$quota_month_unknown", bold = false, dim = false }], [{ token = "$quota_nest_gap", bold = false, dim = false }]] # herdr-agent-usage-row
 
 # Atajos nativos de herdr (Rust)
 [keys]
@@ -36,19 +31,12 @@ swap_pane_down = "prefix+shift+down"
 move_tab_previous = "prefix+<"
 move_tab_next = "prefix+>"
 
-# herdr-sidebar: abrir / enfocar / cerrar la barra
+# lazyfinder: abrir / enfocar / cerrar el sidebar (plugin de herdr; se abre solo a la izquierda en cada pestaña)
 [[keys.command]]
 key = "prefix+f"
 type = "plugin_action"
-command = "herdr-sidebar.open-sidebar"
-description = "toggle sidebar (explorer)"
-
-# herdr-sidebar: buscar archivo por nombre (como Ctrl+P de VS Code)
-[[keys.command]]
-key = "prefix+shift+f"
-type = "plugin_action"
-command = "herdr-sidebar.quick-open"
-description = "sidebar quick open"
+command = "lazyfinder.toggle"
+description = "toggle lazyfinder sidebar"
 
 # terminal: scratchpad interactivo flotante en popup (cerrar con Esc, Ctrl+D o exit)
 [[keys.command]]
@@ -59,13 +47,6 @@ description = "terminal popup (scratchpad)"
 width = "85%"
 height = "80%"
 
-# sidebar-adapt: ajusta el ancho del sidebar según pantalla conectada (auto/laptop/external)
-[[keys.command]]
-key = "prefix+m"
-type = "shell"
-command = "/Users/drizzy/.local/bin/herdr-ctl adapt"
-description = "sidebar adapt"
-
 # cheatsheet: atajos de herdr y herramientas del entorno (ctrl+b h)
 [[keys.command]]
 key = "prefix+h"
@@ -74,18 +55,6 @@ command = "/Users/drizzy/.local/bin/herdr-ctl cheatsheet"
 description = "cheatsheet (atajos y comandos)"
 width = 82
 height = 26
-
-[[keys.command]]
-key = "prefix+shift+r"
-type = "plugin_action"
-command = "herdr-agent-usage.refresh"
-description = "refresh all agent quotas"
-
-[[keys.command]]
-key = "prefix+shift+q"
-type = "plugin_action"
-command = "herdr-agent-usage.open-settings"
-description = "open agent quota settings"
 
 # ==============================================================================
 # Mover cuadro a otra pestaña

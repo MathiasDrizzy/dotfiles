@@ -9,9 +9,9 @@ No toca el herdr ni el HOME reales.
 Casos:
   a) prefix+h abre el cheatsheet; `q` lo cierra; prefix+h otra vez y `Esc` lo cierra.
   b) prefix+t abre el popup de terminal; `Esc` lo cierra.
-  c) prefix+m cambia el ancho del sidebar.
+  c) prefix+f invoca la acción toggle del plugin lazyfinder (un plugin de prueba con ese id deja una marca).
   d) prefix+flechas mueven el foco; prefix+Shift+flechas intercambian cuadros.
-  e) prefix+shift+r ejecuta el comando del repo (pisa a reload_config).
+  e) prefix+shift+r sigue siendo reload_config nativo (el repo ya no lo pisa).
 
 Uso: scripts/harness-behavior.py [-v]
 """
@@ -244,17 +244,12 @@ def b(lab):
 
 
 def prepare_sidebar_layout(lab):
-    """Un tab con 2 cuadros; el de la izquierda se llama 'Sidebar' (lo que busca herdr-ctl adapt)."""
+    """Un tab con 2 cuadros; el de la izquierda se llama 'Sidebar' (hace de lazyfinder para los casos de foco e intercambio)."""
     first = lab.panes()[0]["pane_id"]
     lab.api("pane", "split", first, "--direction", "right", "--focus")
     lab.sh("herdr", "pane", "rename", first, "Sidebar")
     lab.pump(1)
     return first
-
-
-def sidebar_ratio(lab, pane_id):
-    lay = lab.layout(pane_id)
-    return [round(s["ratio"], 3) for s in lay["splits"] if s["rect"]["x"] == 0 and s["direction"] == "right"]
 
 
 def focused(lab):
@@ -265,17 +260,25 @@ def xs(lab, pane_id):
     return {p["pane_id"]: p["rect"]["x"] for p in lab.layout(pane_id)["panes"]}
 
 
-@case("c prefix+m cambia el ancho del sidebar")
+@case("c prefix+f invoca la acción toggle de lazyfinder")
 def c(lab):
-    sb = prepare_sidebar_layout(lab)
-    before = sidebar_ratio(lab, sb)
-    lab.prefix("m")
+    # Plugin de prueba con el id de lazyfinder: su acción toggle deja una marca, sin necesitar lazyfinder.
+    plug = os.path.join(lab.tmp, "fake-lazyfinder")
+    os.makedirs(plug)
+    with open(os.path.join(plug, "herdr-plugin.toml"), "w") as f:
+        f.write('id = "lazyfinder"\nname = "lazyfinder"\nversion = "0.0.0"\nmin_herdr_version = "0.9.0"\n'
+                'platforms = ["linux", "macos"]\n\n[[actions]]\nid = "toggle"\ntitle = "Toggle"\n'
+                f'command = ["/usr/bin/touch", "{lab.marker}"]\n')
+    lab.sh("herdr", "plugin", "link", plug)
     lab.pump(2)
-    after = sidebar_ratio(lab, sb)
-    return bool(before) and bool(after) and before != after, f"ratio del sidebar {before} -> {after}"
+    lab.prefix("f")
+    ok = lab.wait_for(lambda: os.path.exists(lab.marker), 6)
+    return bool(ok), "prefix+f corrió lazyfinder.toggle" if ok else "prefix+f no invocó lazyfinder.toggle"
 
 
 def pair(lab):
+    if not any(p.get("label") == "Sidebar" for p in lab.panes()):
+        prepare_sidebar_layout(lab)
     ps = lab.panes()
     sb = next(p["pane_id"] for p in ps if p.get("label") == "Sidebar")
     tab = next(p["tab_id"] for p in ps if p["pane_id"] == sb)
@@ -309,13 +312,10 @@ def d2(lab):
     return swapped, f"x antes {before} -> después {after}"
 
 
-@case("e prefix+shift+r ejecuta el comando del repo (no reload_config)")
+@case("e prefix+shift+r sigue siendo reload_config nativo")
 def e(lab):
-    # El config de prueba añade un comando shell en prefix+shift+r que deja una marca.
-    # Si herdr priorizara reload_config, la marca no aparecería.
-    lab.prefix("R")
-    ok = lab.wait_for(lambda: os.path.exists(lab.marker), 5)
-    return bool(ok), "el comando del repo corrió" if ok else "prefix+shift+r no ejecutó el comando personalizado"
+    bound = re.search(r'key = "prefix\+shift\+r"', lab.cfg)
+    return not bound, "el repo no pisa prefix+shift+r" if not bound else "el repo vuelve a pisar prefix+shift+r"
 
 
 def run_btop(lab, conf_path):
@@ -365,11 +365,6 @@ def main():
     lab = Lab()
     try:
         lab.prepare()
-        # Caso e: cambia el binding de prefix+shift+r por un comando shell de prueba.
-        cfg = lab.cfg
-        cfg = re.sub(r'(key = "prefix\+shift\+r"\n)type = "plugin_action"\ncommand = "herdr-agent-usage.refresh"',
-                     r'\1type = "shell"\ncommand = "touch ' + lab.marker + '"', cfg)
-        open(lab.env["HERDR_CONFIG_PATH"], "w").write(cfg)
         lab.start_client()
         for fn in (a1, a2, b, c, d1, d2, e, f):
             fn(lab)

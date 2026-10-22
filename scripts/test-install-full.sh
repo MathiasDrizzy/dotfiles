@@ -107,6 +107,12 @@ EOF
 #!/bin/sh
 echo "activateSettings \$*" >> "$B/logs/defaults.log"
 EOF
+  # herdr: el plugin de lazyfinder se instala con `herdr plugin install`; en la prueba solo se registra
+  cat >"$B/stubs/herdr" <<EOF
+#!/bin/sh
+echo "herdr \$*" >> "$B/logs/herdr.log"
+exit 0
+EOF
   cat >"$B/stubs/rustup" <<EOF
 #!/usr/bin/env bash
 echo "rustup \$*" >> "$B/logs/rustup.log"; exit 0
@@ -220,6 +226,8 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
   check "la config de aerospace quedó enlazada al repo" '[ -L "$H/.config/aerospace/aerospace.toml" ] && [ -e "$H/.config/aerospace/aerospace.toml" ]'
   check "rustup default stable registrado" 'grep -q "^rustup default stable" "$B/logs/rustup.log"'
   check "se descargaron los 2 temas (curl stub)" '[ "$(grep -c "^curl " "$B/logs/curl.log")" = 2 ] && [ -f "$H/.config/micro/colorschemes/catppuccin-mocha.micro" ]'
+  check "plugin de herdr de lazyfinder instalado (herdr plugin install MathiasDrizzy/lazyfinder)" \
+    'grep -qx "herdr plugin install MathiasDrizzy/lazyfinder" "$B/logs/herdr.log"'
   check "herdr-ctl compilado en ~/.local/bin" '[ -x "$H/.local/bin/herdr-ctl" ]'
   # swiftc escribe su caché de módulos fuera del HOME (DARWIN_USER_CACHE_DIR) cuando está fría, como en CI; la sandbox lo niega
   check "ctlcenter compilado en ~/.local/bin, con su caché de módulos dentro del HOME" \

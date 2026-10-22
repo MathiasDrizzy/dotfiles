@@ -96,11 +96,6 @@ func getSocketPath() string {
 	return filepath.Join(home, ".config", "herdr", "herdr.sock")
 }
 
-func getStatePath() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".local", "state", "herdr", "plugins", "herdr-sidebar", "state.json")
-}
-
 func callRPC(method string, params interface{}) (*RPCResponse, error) {
 	conn, err := net.DialTimeout("unix", getSocketPath(), 2*time.Second)
 	if err != nil {
@@ -150,148 +145,6 @@ func notify(title, message string) {
 	_, _ = callRPC("notification.show", params)
 }
 
-func parseSplitPath(splitID string) []bool {
-	if splitID == "split_0_root" || splitID == "root" {
-		return []bool{}
-	}
-	parts := strings.Split(splitID, "_")
-	if len(parts) < 3 {
-		return []bool{}
-	}
-	var path []bool
-	for _, ch := range parts[2] {
-		switch ch {
-		case '0':
-			path = append(path, false)
-		case '1':
-			path = append(path, true)
-		}
-	}
-	return path
-}
-
-func adaptSidebar(forceMode string) error {
-	const widthLaptop = 24
-	const widthExternal = 22
-	const colsThreshold = 200
-
-	// 1. Obtener lista de paneles
-	resp, err := callRPC("pane.list", map[string]interface{}{})
-	if err != nil {
-		return err
-	}
-
-	var paneList PaneListResult
-	if err := json.Unmarshal(resp.Result, &paneList); err != nil {
-		return err
-	}
-
-	if len(paneList.Panes) == 0 {
-		return fmt.Errorf("no se encontraron paneles activos")
-	}
-
-	// 2. Obtener dimensiones de la ventana usando el primer panel
-	layoutResp, err := callRPC("pane.layout", map[string]interface{}{
-		"pane_id": paneList.Panes[0].PaneID,
-	})
-	if err != nil {
-		return err
-	}
-
-	var layoutResult PaneLayoutResult
-	if err := json.Unmarshal(layoutResp.Result, &layoutResult); err != nil {
-		return err
-	}
-
-	totalWidth := layoutResult.Layout.Area.Width
-	isExternal := totalWidth > colsThreshold
-
-	targetCols := widthLaptop
-	modeDesc := fmt.Sprintf("pantalla Mac (%d cols)", totalWidth)
-
-	if forceMode == "external" || (forceMode == "" && isExternal) {
-		targetCols = widthExternal
-		modeDesc = fmt.Sprintf("monitor Ultra-Wide (%d cols)", totalWidth)
-	} else if forceMode == "laptop" {
-		targetCols = widthLaptop
-		modeDesc = "forzado laptop"
-	}
-
-	// 3. Persistir en state.json del plugin
-	statePath := getStatePath()
-	if stateData, err := os.ReadFile(statePath); err == nil {
-		var stateMap map[string]interface{}
-		if err := json.Unmarshal(stateData, &stateMap); err == nil {
-			stateMap["sidebar_width"] = targetCols
-			if updatedData, err := json.Marshal(stateMap); err == nil {
-				_ = os.WriteFile(statePath, updatedData, 0644)
-			}
-		}
-	}
-
-	// 4. Buscar y ajustar TODOS los sidebars de todos los workspaces y pestañas
-	seenTabs := make(map[string]bool)
-	var sidebarPanes []*PaneInfo
-	for i := range paneList.Panes {
-		p := &paneList.Panes[i]
-		if p.Label == "Sidebar" && !seenTabs[p.TabID] {
-			seenTabs[p.TabID] = true
-			sidebarPanes = append(sidebarPanes, p)
-		}
-	}
-
-	adaptedCount := 0
-	for _, sb := range sidebarPanes {
-		lResp, err := callRPC("pane.layout", map[string]interface{}{
-			"pane_id": sb.PaneID,
-		})
-		if err != nil {
-			continue
-		}
-		var lRes PaneLayoutResult
-		if err := json.Unmarshal(lResp.Result, &lRes); err != nil {
-			continue
-		}
-
-		var innermostSplit *LayoutSplit
-		for i := range lRes.Layout.Splits {
-			sp := &lRes.Layout.Splits[i]
-			if sp.Rect.X == 0 && sp.Direction == "right" {
-				if innermostSplit == nil || sp.Rect.Width < innermostSplit.Rect.Width {
-					innermostSplit = sp
-				}
-			}
-		}
-
-		if innermostSplit == nil {
-			continue
-		}
-
-		splitPath := parseSplitPath(innermostSplit.ID)
-		ratio := float64(targetCols) / float64(innermostSplit.Rect.Width)
-		if ratio < 0.05 {
-			ratio = 0.05
-		}
-		if ratio > 0.40 {
-			ratio = 0.40
-		}
-
-		_, err = callRPC("layout.set_split_ratio", map[string]interface{}{
-			"tab_id": sb.TabID,
-			"path":   splitPath,
-			"ratio":  ratio,
-		})
-		if err == nil {
-			adaptedCount++
-		}
-	}
-
-	msg := fmt.Sprintf("Sidebar ajustado a %d cols (%d barras) — %s", targetCols, adaptedCount, modeDesc)
-	fmt.Println("✓ " + msg)
-	notify("herdr-ctl", msg)
-	return nil
-}
-
 func movePaneTab(mode string) error {
 	resp, err := callRPC("pane.list", map[string]interface{}{})
 	if err != nil {
@@ -314,8 +167,8 @@ func movePaneTab(mode string) error {
 		return fmt.Errorf("no hay cuadro enfocado")
 	}
 
-	if focusedPane.Label == "Sidebar" {
-		notify("herdr-ctl", "El sidebar no se puede mover de pestaña")
+	if focusedPane.Label == "lazyfinder" {
+		notify("herdr-ctl", "lazyfinder no se puede mover de pestaña")
 		return nil
 	}
 
@@ -498,21 +351,12 @@ func focusAgent(target string) error {
 }
 
 func main() {
-	cmd := "adapt"
+	cmd := "cheatsheet"
 	if len(os.Args) > 1 {
 		cmd = os.Args[1]
 	}
 
 	switch cmd {
-	case "adapt":
-		mode := ""
-		if len(os.Args) > 2 {
-			mode = os.Args[2]
-		}
-		if err := adaptSidebar(mode); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
 	case "move-tab":
 		target := "new"
 		if len(os.Args) > 2 {
@@ -575,6 +419,6 @@ func main() {
 	case "keys-check":
 		os.Exit(runKeysCheck())
 	default:
-		fmt.Printf("Uso: herdr-ctl [adapt|move-tab|reload|swarm|prompt|read|focus|cheatsheet|keys-check|status]\n")
+		fmt.Printf("Uso: herdr-ctl [move-tab|reload|swarm|prompt|read|focus|cheatsheet|keys-check|status]\n")
 	}
 }

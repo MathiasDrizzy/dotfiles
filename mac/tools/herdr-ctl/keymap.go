@@ -229,9 +229,7 @@ type Finding struct {
 
 // intentionalReplacements documenta los atajos que el repo pisa a propósito.
 // La clave es la tecla; el valor, por qué se acepta.
-var intentionalReplacements = map[string]string{
-	"prefix+shift+r": "reemplaza a reload_config por el refresco de cuotas de herdr-agent-usage; recarga con `herdr server reload-config` o mac/scripts/herdr-reload.sh",
-}
+var intentionalReplacements = map[string]string{}
 
 // Conflicts compara cada atajo del repo contra los defaults y el keymap efectivo.
 func (k Keymap) Conflicts() []Finding {
