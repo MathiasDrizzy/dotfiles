@@ -48,10 +48,11 @@ pill() { # item or bracket name: the glass look shared by every pill
 
 # --- Right edge: Control Center ---
 # macOS opens its panel at the right edge of the screen (it cannot be moved before it shows), so the button stays right above
-# it: the first item after the edge spacer, always drawn and one fixed width, with nothing to its right that changes. It is
-# made before anything else, so a reload leaves it off the bar for as short a time as possible.
+# it: the first item after the edge spacer, always drawn and one fixed width (its icon's: a fixed item width would swallow
+# the padding that parts the pills), with nothing to its right that changes. It is made before anything else, so a reload
+# leaves it off the bar for as short a time as possible.
 sketchybar --add item control right \
-  --set control width=34 icon="$CONTROL" icon.color="$MAUVE" icon.width=34 icon.align=center icon.padding_left=0 \
+  --set control icon="$CONTROL" icon.color="$MAUVE" icon.width=34 icon.align=center icon.padding_left=0 \
   icon.padding_right=0 label.drawing=off update_freq=5 script="$PLUGIN_DIR/control.sh" \
   click_script="$PLUGIN_DIR/controlcenter.sh" \
   --subscribe control wifi_change mouse.entered mouse.exited

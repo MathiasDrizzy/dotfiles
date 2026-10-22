@@ -262,7 +262,7 @@ vorssaint_pill() {
 control_anchored() {
   local rc="$SB/sketchybarrc" c="$SB/plugins/control.sh"
   [ "$(grep -o -- '--add item [a-z_]* right' "$rc" | sed -n 2p)" = '--add item control right' ] &&
-    grep -q -- '--set control width=34 ' "$rc" && ! grep -q -- '--set control drawing=off' "$rc" &&
+    grep -q -- 'icon.width=34' <<<"$(grep -A2 -- '--set control ' "$rc")" && ! grep -q -- '--set control width=' "$rc" && ! grep -q -- '--set control drawing=off' "$rc" &&
     ! grep -E '^(ITEMS|PILLS)=' "$SB/plugins/toggle.sh" | grep -qw control &&
     ! grep -q 'label' "$c" && ! grep -q 'panel_' "$c" &&
     ! grep -q '"$CTL" center' "$SB/plugins/controlcenter.sh" && ! grep -q 'case "center":' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" &&

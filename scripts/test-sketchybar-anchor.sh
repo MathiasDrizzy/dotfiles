@@ -153,6 +153,19 @@ if [ "$(frame)" = hidden ]; then
   toggle_drawer >/dev/null 2>&1
   sleep "$SETTLE_SECONDS"
 fi
+# The button is a pill like the others: the same gap from its neighbour as between the other pills (a fixed `width` swallowed
+# its padding and glued it to the chevron).
+gap() { # left item, right item: points between them
+  sketchybar --query "$1" --query "$2" 2>/dev/null | jq -s -r '
+    (.[0].bounding_rects | to_entries[0].value) as $l | (.[1].bounding_rects | to_entries[0].value) as $r
+    | $r.origin[0] - $l.origin[0] - $l.size[0]'
+}
+if [ "$(gap chevron "$ITEM")" = "$(gap clock chevron)" ]; then
+  echo "PASS  gap: $(gap chevron "$ITEM") points from the chevron, as between the other pills"
+else
+  echo "FAIL  gap: $(gap chevron "$ITEM") points from the chevron, $(gap clock chevron) between the other pills"
+  fails=$((fails + 1))
+fi
 check "the drawer opens and closes" twice toggle_drawer
 check "the workspace changes" space_change
 check "the app in front changes" front_app
