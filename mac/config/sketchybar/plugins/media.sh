@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1091,SC2153
-# Now playing, polled every 5 s and on every now_playing_change: updates the logo and "title  artist" (cut to fit like
+# Now playing (Spotify's only), polled every 5 s and on every now_playing_change: updates the logo and "title  artist" (cut to fit like
 # neutonfoo/dotfiles's Spotify item), and slides the pill open when a track loads and closed when none is left.
 source "$CONFIG_DIR/colors.sh"
 source "$CONFIG_DIR/icons.sh"
@@ -14,8 +14,9 @@ SLIDE_FRAMES=24
 TEXT_FRAMES=9
 SLIDE_SECONDS=0.45
 TEXT_DELAY_SECONDS=0.22
-MAX_LENGTH=35             # characters of title and artist together
-export LC_ALL=en_US.UTF-8 # count characters, not bytes
+MAX_LENGTH=35                     # characters of title and artist together
+MEDIA_BUNDLE="com.spotify.client" # the pill is Spotify's: a video in a browser tab is "now playing" too
+export LC_ALL=en_US.UTF-8         # count characters, not bytes
 mkdir -p "$CACHE"
 
 # A reload rebuilds the items while this script may be mid-slide: it stops as soon as they are gone, instead of painting
@@ -24,6 +25,7 @@ alive() { sketchybar --query media_pill >/dev/null 2>&1; }
 alive || exit 0
 
 info="$(media-control get 2>/dev/null)"
+[ "$(jq -r '.bundleIdentifier // empty' <<<"$info" 2>/dev/null)" = "$MEDIA_BUNDLE" ] || info=""
 playing="$(jq -r '.playing // false' <<<"$info" 2>/dev/null)"
 title="$(jq -r '.title // empty' <<<"$info" 2>/dev/null)"
 artist="$(jq -r '.artist // empty' <<<"$info" 2>/dev/null)"
