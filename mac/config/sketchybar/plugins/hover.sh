@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Hover feedback: highlights the item under the mouse. $1 = color on enter, $2 = color on exit
 # ("none" turns the background off again, which is what plain items want).
-[ -e "$HOME/.cache/sketchybar/panel_busy" ] && exit 0 # the right-hand panel is animating
 on="${1:-0x44cba6f7}"
 off="${2:-none}"
 

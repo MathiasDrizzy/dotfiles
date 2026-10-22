@@ -156,7 +156,6 @@ REQUIRED_SOURCES=(
   "config/sketchybar/icon_map.sh"
   "config/sketchybar/plugins/aerospace.sh"
   "config/sketchybar/plugins/media.sh"
-  "config/sketchybar/plugins/toggle.sh"
   "config/sketchybar/plugins/clock.sh"
   "config/sketchybar/plugins/battery.sh"
   "config/sketchybar/plugins/apple.sh"

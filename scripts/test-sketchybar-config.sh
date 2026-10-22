@@ -94,20 +94,6 @@ drag_is_followed() {
     grep -q 'PLUGIN_DIR/drag.sh' "$SB/sketchybarrc" && grep -q 'case "watch"' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" &&
     grep -q 'DRAGGING' "$SB/plugins/aerospace.sh"
 }
-panel_survives_fast_clicks() {
-  # Plugins must not write colors while the right-hand panel is hidden or fading, and a click mid-animation is ignored.
-  local f="$SB/plugins/sys.sh"
-  # They paint through panel_set, which holds the toggle's own lock for the call: checking first and painting later (control.sh
-  # asked Bluetooth in between) let an icon land mid-slide and stay floating.
-  grep -q '^ *panel_set ' "$f" && ! grep -q '^ *sketchybar --set' "$f" || return 1
-  grep -q '^panel_set() {' "$SB/colors.sh" && grep -q 'mkdir "$PANEL_BUSY"' "$SB/colors.sh" || return 1
-  grep -q 'mkdir "$PANEL_BUSY"' "$SB/plugins/toggle.sh" && grep -q 'panel_busy" ] && exit 0' "$SB/plugins/hover.sh" || return 1
-  # Releasing clears the exit trap: otherwise the trap deletes, at exit, the lock of the click that took over after the
-  # early release (two toggles then run at once and leave the panel "open" with every item hidden). Only the stale-lock
-  # cleanup and release_lock may remove it.
-  grep -q '^  trap - EXIT$' "$SB/plugins/toggle.sh" && grep -q '^trap release_lock EXIT$' "$SB/plugins/toggle.sh" &&
-    [ "$(grep -c 'rmdir "$PANEL_BUSY"' "$SB/plugins/toggle.sh")" -eq 2 ]
-}
 control_click_does_not_reopen() {
   # macOS closes the panel with the press of the button's own click; the script must know it was open at the press.
   # The press is checked before the window: at the release the closing panel is still fading on screen, and pressing fn+C
@@ -134,18 +120,6 @@ control_click_does_not_reopen() {
 driver_lets_go() { # a panel or menu driver
   grep -q '^  \$seen && \[ \$((polls - since)) -ge "\$QUIET_POLLS" \] && \[ \$((polls - changed_at)) -ge "\$STEADY_POLLS" \] && break$' "$1" &&
     [ "$(tail -1 "$1")" = '"$CONFIG_DIR/plugins/cover.sh" settle' ]
-}
-status_items_animate() {
-  # The right-hand items slide out of the date pill and back into it (their width animates) while their text fades, and a
-  # hidden item stays transparent: SketchyBar keeps painting an item for a few frames after drawing=off while it animates,
-  # so the visible colors given back on close left icons and numbers floating.
-  local t="$SB/plugins/toggle.sh"
-  grep -q -- '--animate' "$t" && grep -q 'width=0' "$t" && grep -q 'width=dynamic' "$t" && grep -q 'sys_pill' "$t" || return 1
-  awk '/^collapse\(\) \{/,/^\}/' "$t" | grep -q 'drawing=off' && ! awk '/^collapse\(\) \{/,/^\}/' "$t" | grep -q 'MAUVE\|shown' || return 1
-  # The slide ends where width=dynamic puts each item, measured right then (a width saved on the last close was stale once a
-  # label changed) and with the gap to its right-hand neighbour: fixed widths drop the padding between items, and the items
-  # jumped a few pixels at the end of the slide.
-  ! grep -q 'WIDTHS' "$t" && grep -q 'slide_widths "${ITEMS\[@\]}"' "$t" && grep -A12 '^slide_widths() {' "$SB/colors.sh" | grep -q 'padding_right'
 }
 # Closing the last window of a workspace made AeroSpace follow macOS to an app on another workspace (AeroSpace #325):
 # stay.sh brings the focus back, unless the switch was asked for (a key binding, a click on the bar, a drag swap).
@@ -254,16 +228,23 @@ vorssaint_pill() {
     grep -q '^case "dismiss":' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" ||
     return 1
   grep -q 'echo "$menu" >"$PRESS_MENU"' "$SB/plugins/drag.sh" && grep -q 'watch "$STRIP_HEIGHT" "$MENU_EXTRA_BUNDLE"' "$SB/plugins/drag.sh" &&
-    grep -q 'ITEMS=(sys sys_mem vorssaint)' "$SB/plugins/toggle.sh"
+    ! grep -q -- '--set vorssaint drawing=off' "$SB/sketchybarrc"
 }
 # macOS opens the Control Center panel at the right edge of the screen and it cannot be moved before it shows, so the
 # button lives there: the rightmost item, always drawn, one fixed width, out of the drawer and with no label (a Bluetooth
 # name widened it). Nothing moves the panel (scripts/test-sketchybar-anchor.sh checks the item live).
+# The bar is minimal: the status items stay on it, with no chevron folding them away, no drawer animation and no lock that
+# plugins had to take to paint them.
+status_items_always_shown() {
+  local rc="$SB/sketchybarrc"
+  [ ! -e "$SB/plugins/toggle.sh" ] && ! grep -q -- '--add item chevron' "$rc" &&
+    ! grep -qE -- '--set (sys|sys_mem|sys_pill|vorssaint) drawing=off' "$rc" &&
+    ! grep -rqE 'PANEL_STATE|PANEL_BUSY|panel_set|panel_busy' "$SB" && ! grep -q 'plugins/toggle.sh' "$ROOT/mac/scripts/check-links.sh" && ! grep -q 'plugins/toggle.sh' "$ROOT/mac/install.sh"
+}
 control_anchored() {
   local rc="$SB/sketchybarrc" c="$SB/plugins/control.sh"
   [ "$(grep -o -- '--add item [a-z_]* right' "$rc" | sed -n 2p)" = '--add item control right' ] &&
     grep -q -- 'icon.width=34' <<<"$(grep -A2 -- '--set control ' "$rc")" && ! grep -q -- '--set control width=' "$rc" && ! grep -q -- '--set control drawing=off' "$rc" &&
-    ! grep -E '^(ITEMS|PILLS)=' "$SB/plugins/toggle.sh" | grep -qw control &&
     ! grep -q 'label' "$c" && ! grep -q 'panel_' "$c" &&
     ! grep -q '"$CTL" center' "$SB/plugins/controlcenter.sh" && ! grep -q 'case "center":' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" &&
     [ -x "$ROOT/scripts/test-sketchybar-anchor.sh" ]
@@ -278,10 +259,8 @@ front_app_is_the_real_one() {
   grep -q 'lsappinfo front' "$SB/plugins/appmenu.sh"
 }
 battery_always_shown() {
-  # The battery stays on the bar: the chevron folds only the items left of it, and battery.sh paints without the panel.
   local rc="$SB/sketchybarrc" b="$SB/plugins/battery.sh"
-  ! grep -q -- '--set battery drawing=off' "$rc" && ! grep -E '^(ITEMS|PILLS)=' "$SB/plugins/toggle.sh" | grep -qw battery &&
-    grep -q '^sketchybar --set "$NAME"' "$b" && ! grep -q 'panel_set' "$b"
+  ! grep -q -- '--set battery drawing=off' "$rc" && grep -q '^sketchybar --set "$NAME"' "$b"
 }
 installer_ok() {
   local f
@@ -307,9 +286,8 @@ check "AeroSpace workspaces refresh in one animated call from one driver item" w
 check "Control Center closes with fn+C, never a global Escape" no_global_escape
 check "dragging a workspace onto another swaps their windows" workspace_drag_swaps
 check "a drag is followed from the first pixel by a pointer watcher with a ghost pill" drag_is_followed
-check "the right-hand panel survives fast clicks and plugin updates" panel_survives_fast_clicks
 check "clicking the Control Center button while its panel is open closes it" control_click_does_not_reopen
-check "the right-hand panel opens and closes with an animation" status_items_animate
+check "the status items are always on the bar: no chevron, no drawer" status_items_always_shown
 check "the now playing pill slides open and closed" media_slides
 check "the Control Center cover is a picture of the wallpaper, painted under every pill" control_cover_is_wallpaper
 check "the system menu bar never shows over the bar" native_bar_stays_hidden

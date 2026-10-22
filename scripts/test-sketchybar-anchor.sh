@@ -117,8 +117,6 @@ check() { # name, command...: frame before, samples while it runs and settles, f
   fi
 }
 
-toggle_drawer() { NAME=chevron "$CONFIG_DIR/plugins/toggle.sh"; }
-twice() { "$@" && "$@"; }
 space_change() {
   sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=2 PREV_WORKSPACE=1
   sleep 0.5
@@ -133,9 +131,15 @@ bluetooth() { touch "$HOME/bt" && sketchybar --update; }
 display_change() { sketchybar --trigger display_change && sketchybar --bar display=main; }
 fullscreen() { sketchybar --trigger space_change; }
 reload() { sketchybar --reload; }
+kill_tree() { # pid: its children first, so none is left writing to a pipe its parent no longer reads
+  local child
+  for child in $(pgrep -P "$1"); do kill_tree "$child"; done
+  kill "$1" 2>/dev/null
+}
 restart() { # a new session ends every process of the old one, its plugin scripts too (left alive, they set items not yet made)
+  local plugin
   kill "$bar_pid" 2>/dev/null
-  pkill -f "$CONFIG_DIR/plugins/" 2>/dev/null
+  for plugin in $(pgrep -f "$CONFIG_DIR/plugins/"); do kill_tree "$plugin"; done
   while kill -0 "$bar_pid" 2>/dev/null || pgrep -f "$CONFIG_DIR/plugins/" >/dev/null; do sleep 0.05; done
   start_bar
 }
@@ -148,25 +152,22 @@ else
   echo "PASS  start: no message from SketchyBar"
 fi
 if [ "$(frame)" = hidden ]; then
-  echo "FAIL  start: the item starts hidden (in the drawer); opened to measure the rest"
+  echo "FAIL  start: the item starts hidden"
   fails=$((fails + 1))
-  toggle_drawer >/dev/null 2>&1
-  sleep "$SETTLE_SECONDS"
 fi
 # The button is a pill like the others: the same gap from its neighbour as between the other pills (a fixed `width` swallowed
-# its padding and glued it to the chevron).
+# its padding and glued it to its neighbour).
 gap() { # left item, right item: points between them
   sketchybar --query "$1" --query "$2" 2>/dev/null | jq -s -r '
     (.[0].bounding_rects | to_entries[0].value) as $l | (.[1].bounding_rects | to_entries[0].value) as $r
     | $r.origin[0] - $l.origin[0] - $l.size[0]'
 }
-if [ "$(gap chevron "$ITEM")" = "$(gap clock chevron)" ]; then
-  echo "PASS  gap: $(gap chevron "$ITEM") points from the chevron, as between the other pills"
+if [ "$(gap clock "$ITEM")" = "$(gap battery clock)" ]; then
+  echo "PASS  gap: $(gap clock "$ITEM") points from the clock, as between the other pills"
 else
-  echo "FAIL  gap: $(gap chevron "$ITEM") points from the chevron, $(gap clock chevron) between the other pills"
+  echo "FAIL  gap: $(gap clock "$ITEM") points from the clock, $(gap battery clock) between the other pills"
   fails=$((fails + 1))
 fi
-check "the drawer opens and closes" twice toggle_drawer
 check "the workspace changes" space_change
 check "the app in front changes" front_app
 check "the battery text changes" battery_text
