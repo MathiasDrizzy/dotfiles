@@ -6,7 +6,7 @@
 # Current Weather, then its Temperature); without it, Open-Meteo's, a different source that can be a degree off. None of
 # them needs a key. Offline it keeps the last text.
 
-LOCATE_SECONDS=15 # CoreLocationCLI waits for a fix (or for the permission dialog) at most this long
+LOCATE_SECONDS=15                        # CoreLocationCLI waits for a fix (or for the permission dialog) at most this long
 USER_AGENT="dotfiles-sketchybar-weather" # Nominatim's usage policy asks every client to name itself
 SHORTCUT="Temperatura barra"
 SHORTCUT_SECONDS=20 # a shortcut that hangs (a permission dialog) is given up after this long

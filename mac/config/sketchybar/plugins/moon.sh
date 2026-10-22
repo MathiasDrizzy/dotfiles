@@ -4,7 +4,7 @@
 # shellcheck disable=SC1091
 source "$CONFIG_DIR/icons.sh"
 
-KNOWN_NEW_MOON=947182440 # 2000-01-06 18:14 UTC, in seconds
+KNOWN_NEW_MOON=947182440   # 2000-01-06 18:14 UTC, in seconds
 SYNODIC_MONTH=29.530588853 # days
 
 phase="$(awk -v now="$(date +%s)" -v new="$KNOWN_NEW_MOON" -v month="$SYNODIC_MONTH" 'BEGIN {

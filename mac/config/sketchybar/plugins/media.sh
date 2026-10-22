@@ -14,7 +14,7 @@ SLIDE_FRAMES=24
 TEXT_FRAMES=9
 SLIDE_SECONDS=0.45
 TEXT_DELAY_SECONDS=0.22
-MAX_LENGTH=35 # characters of title and artist together
+MAX_LENGTH=35             # characters of title and artist together
 export LC_ALL=en_US.UTF-8 # count characters, not bytes
 mkdir -p "$CACHE"
 
@@ -127,4 +127,3 @@ if shown; then
 else
   show "$label_color" "$logo_color"
 fi
-

@@ -31,10 +31,10 @@ PILL_GAP=5
 # The camera housing of the built-in display is 208 points wide (NSScreen auxiliaryTopLeftArea/RightArea on a 15" M2
 # MacBook Air): the bar keeps 8 more on each side free, so no box ever sits under it.
 NOTCH_WIDTH=224
-SPACE_BLOCK=$MAUVE  # the focused workspace
-APP_BLOCK=$GREEN    # the front app's block and its arrow
+SPACE_BLOCK=$MAUVE   # the focused workspace
+APP_BLOCK=$GREEN     # the front app's block and its arrow
 MOON_BLOCK=$SAPPHIRE # his moon box, solid
-APPLE_BG=$PEACH     # the Apple block: at rest, under the pointer, with its popup open
+APPLE_BG=$PEACH      # the Apple block: at rest, under the pointer, with its popup open
 APPLE_ICON=$BASE
 APPLE_HOVER=$YELLOW
 APPLE_PRESSED=$RED
