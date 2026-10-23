@@ -36,7 +36,7 @@ key-mapping.key-notation-to-key-code.latamNtilde = 'semicolon'          # the ke
 gaps.inner.horizontal = 6
 gaps.inner.vertical = 6
 gaps.outer.left = 6
-gaps.outer.bottom = [{ monitor.secondary = 12 }, 6]
+gaps.outer.bottom = 6
 gaps.outer.top = 6
 gaps.outer.right = 6
 
