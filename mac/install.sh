@@ -168,6 +168,7 @@ REQUIRED_SOURCES=(
   "config/sketchybar/plugins/control.sh"
   "config/sketchybar/plugins/about.sh"
   "config/sketchybar/plugins/weather.sh"
+  "config/sketchybar/plugins/fit.sh"
   "config/sketchybar/plugins/app_name.sh"
   "config/sketchybar/plugins/moon.sh"
   "config/sketchybar/plugins/drag.sh"

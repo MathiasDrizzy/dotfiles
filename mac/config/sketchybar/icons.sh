@@ -27,6 +27,7 @@ BAT_CHARGING=''
 SPOTIFY=''
 MEDIA_DOT='' # between the title and the artist
 WEATHER=''
+MONITOR=$'\xf3\xb0\x8d\xb9' # marks the pill of the workspaces on another monitor (Nerd Font md-monitor)
 # The moon box left of the weather: the eight phases, new moon first (weather icons).
 MOON_PHASES=('' '' '' '' '' '' '' '')
 CONTROL=':widget:' # opens Control Center

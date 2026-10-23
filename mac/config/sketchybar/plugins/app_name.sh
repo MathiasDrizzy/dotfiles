@@ -14,6 +14,9 @@ FRAME_RATE=60
 HOLD_SECONDS=1.2
 END_MARGIN=6 # the slide goes this much further, or the last letter stayed half cut
 mkdir -p "$CACHE"
+# The box is APP_NAME_WIDTH wide, narrower when fit.sh needs the room.
+NAME_WIDTH="$(cat "$CACHE/fit_name_w" 2>/dev/null)"
+[ -n "$NAME_WIDTH" ] || NAME_WIDTH="$APP_NAME_WIDTH"
 
 name="$1"
 echo $$ >"$OWNER"
@@ -23,7 +26,7 @@ mine() { [ "$(cat "$OWNER" 2>/dev/null)" = $$ ]; }
 # anything on the bar.
 sketchybar --set front_app.measure label="$name"
 width="$(sketchybar --query front_app.measure | jq -r '.bounding_rects | to_entries[0].value.size[0] | floor')"
-span=$((${width:-0} - APP_NAME_WIDTH))
+span=$((${width:-0} - NAME_WIDTH))
 
 if [ "$span" -le 0 ]; then
   sketchybar --set front_app.name label="$name" label.align=center label.padding_left="$PAD_LEFT" label.padding_right="$PAD_RIGHT"

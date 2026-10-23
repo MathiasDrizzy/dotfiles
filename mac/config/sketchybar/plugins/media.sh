@@ -14,10 +14,12 @@ SLIDE_FRAMES=24
 TEXT_FRAMES=9
 SLIDE_SECONDS=0.45
 TEXT_DELAY_SECONDS=0.22
-MAX_LENGTH=35                     # characters of title and artist together
+MAX_LENGTH=35                     # characters of title and artist together, at most (fit.sh narrows it so the pill stops short of Vorssaint)
 MEDIA_BUNDLE="com.spotify.client" # the pill is Spotify's: a video in a browser tab is "now playing" too
 export LC_ALL=en_US.UTF-8         # count characters, not bytes
 mkdir -p "$CACHE"
+fitted="$(cat "$CACHE/fit_media_chars" 2>/dev/null)"
+[ -n "$fitted" ] && [ "$fitted" -lt "$MAX_LENGTH" ] && MAX_LENGTH="$fitted"
 
 # A reload rebuilds the items while this script may be mid-slide: it stops as soon as they are gone, instead of painting
 # items that no longer exist ("Item not found" in SketchyBar's log).

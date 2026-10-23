@@ -127,7 +127,8 @@ sketchybar --add item front_gap left \
 # --- Left: AeroSpace workspaces (his current-space block, for every workspace: the focused one is the mauve block) ---
 sketchybar --add event aerospace_workspace_change
 # Items start hidden, so the remembered row must start empty too.
-rm -f "$HOME/.cache/sketchybar/spaces" "$HOME/.cache/sketchybar/media_dirty"
+rm -f "$HOME/.cache/sketchybar/spaces" "$HOME/.cache/sketchybar/media_dirty" "$HOME/.cache/sketchybar/fit_slots" \
+  "$HOME/.cache/sketchybar/fit_name_w" "$HOME/.cache/sketchybar/fit_media_chars"
 rmdir "$HOME/.cache/sketchybar/media_busy" "$HOME/.cache/sketchybar/cover_busy" \
   "$HOME/.cache/sketchybar/cover_settler" 2>/dev/null
 first_space=true
@@ -149,8 +150,35 @@ for sid in $(aerospace list-workspaces --all); do
     click_script="$PLUGIN_DIR/aerospace.sh $sid click" \
     "${driver[@]}"
 done
+# "+N": the workspaces that did not fit beside the weather box (fit.sh); one at the end of each pill.
+more_item() { # item name
+  sketchybar --add item "$1" left \
+    --set "$1" drawing=off icon.font="$FONT:Bold:$TEXT_SIZE" icon.color="$OVERLAY0" icon.padding_left=4 icon.padding_right=4 \
+    label.drawing=off padding_left=1 padding_right=1
+}
+more_item space.more
 sketchybar --add bracket spaces '/space\..*/'
 pill spaces
+
+# The workspaces of another monitor are a pill of their own, after the Mac's, marked with a monitor glyph: ext.N is
+# space.N for a workspace that lives on that monitor (aerospace.sh shows one or the other).
+sketchybar --add item ext_gap left \
+  --set ext_gap width="$PILL_GAP" padding_left=0 padding_right=0 icon.drawing=off label.drawing=off drawing=off \
+  --add item ext.mark left \
+  --set ext.mark drawing=off icon="$MONITOR" icon.font="$NERD_FONT:Regular:$ICON_SIZE" icon.color="$BLUE" icon.width=26 \
+  icon.align=center icon.padding_left=0 icon.padding_right=0 label.drawing=off padding_left=1 padding_right=1
+for sid in $(aerospace list-workspaces --all); do
+  sketchybar --add item "ext.$sid" left \
+    --subscribe "ext.$sid" mouse.entered mouse.exited \
+    --set "ext.$sid" \
+    icon="$sid" icon.width=26 icon.align=center icon.padding_left=0 icon.padding_right=0 icon.font="$FONT:Bold:$TEXT_SIZE" \
+    label.drawing=off drawing=off padding_left=1 padding_right=1 \
+    background.drawing=on background.color="$TRANSPARENT" background.height="$PILL_HEIGHT" background.corner_radius="$PILL_RADIUS" \
+    script="$PLUGIN_DIR/aerospace.sh $sid" click_script="$PLUGIN_DIR/aerospace.sh $sid click"
+done
+more_item ext.more
+sketchybar --add bracket ext_spaces '/ext\..*/'
+pill ext_spaces
 
 # The pill that follows the pointer while a workspace is dragged (drag.sh); it is the last item on the left, so padding_left
 # moves it freely over everything else.

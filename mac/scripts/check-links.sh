@@ -109,6 +109,7 @@ CONFIG_PAIRS=(
   "config/sketchybar/plugins/vorssaint.sh|$HOME/.config/sketchybar/plugins/vorssaint.sh"
   "config/sketchybar/plugins/stay.sh|$HOME/.config/sketchybar/plugins/stay.sh"
   "config/sketchybar/plugins/weather.sh|$HOME/.config/sketchybar/plugins/weather.sh"
+  "config/sketchybar/plugins/fit.sh|$HOME/.config/sketchybar/plugins/fit.sh"
   "config/sketchybar/plugins/app_name.sh|$HOME/.config/sketchybar/plugins/app_name.sh"
   "config/sketchybar/plugins/moon.sh|$HOME/.config/sketchybar/plugins/moon.sh"
   "config/sketchybar/plugins/media_watch.sh|$HOME/.config/sketchybar/plugins/media_watch.sh"

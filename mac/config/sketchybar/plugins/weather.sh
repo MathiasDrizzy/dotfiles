@@ -44,3 +44,4 @@ temperature="$(apple_temperature)"
 [ -n "$temperature" ] || exit 0
 
 sketchybar --set "$NAME" label="${commune:+$commune }${temperature}°C"
+"$CONFIG_DIR/plugins/fit.sh" left &
