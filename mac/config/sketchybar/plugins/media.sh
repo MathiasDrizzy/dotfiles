@@ -131,3 +131,5 @@ if shown; then
 else
   show "$label_color" "$logo_color"
 fi
+# The track is drawn: check it stops short of Vorssaint (fit.sh cuts the next one shorter if it does not).
+"$CONFIG_DIR/plugins/fit.sh" right &

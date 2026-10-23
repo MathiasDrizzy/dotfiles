@@ -53,6 +53,8 @@ get {position, size} of menu bar item 1 of menu bar 2" 2>/dev/null)" || return 0
     [ "${now[i]}" = $((least[i] + share)) ] || args+=(--set "$item" label.width=$((least[i] + share)))
   done
   [ ${#args[@]} -eq 0 ] || sketchybar "${args[@]}"
+  # Vorssaint moved: the track beside the camera housing may have more or less room now.
+  "$CONFIG_DIR/plugins/fit.sh" right
 }
 if [ "${1:-}" = align ]; then
   align

@@ -244,6 +244,8 @@ for name in clock date battery vorssaint; do pill "$name"; done
 sketchybar --hotload on
 sketchybar --update
 "$PLUGIN_DIR/vorssaint.sh" align &
+# Fits the boxes against each other and the camera housing once everything is up (fit.sh; the plugins redo it as content changes).
+"$PLUGIN_DIR/fit.sh" &
 
 # Follows the pointer to drag workspaces (one watcher at a time: a reload replaces the old one).
 pkill -f '^bash .*/plugins/drag\.sh$' 2>/dev/null

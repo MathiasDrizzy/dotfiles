@@ -19,7 +19,7 @@ MEDIA_CHARS="$CACHE/fit_media_chars" # characters of title and artist the track 
 SLOT_STEP=28                         # a workspace slot: its 26 points plus 1 of padding on each side
 SPARE_FOR_MORE=28                    # the "+N" marker a capped pill shows
 CHAR_WIDTH_TENTHS=72                 # JetBrains Mono at TEXT_SIZE 12: 7.2 points a character, in tenths
-MEDIA_OVERHEAD=50                    # the Spotify logo, its paddings and the end padding of the track box
+MEDIA_OVERHEAD=70                   # the logo and the box paddings (47), and the separator between title and artist (3 characters)
 MEDIA_MIN_CHARS=8
 MEDIA_MAX_CHARS=35
 mkdir -p "$CACHE"
@@ -93,7 +93,7 @@ fit_left() {
 }
 
 fit_right() {
-  local width notch_right vorssaint avail chars now
+  local width notch_right vorssaint avail chars now over shorter
   vorssaint="$(left_edge vorssaint)"
   [ -n "$vorssaint" ] || return 0
   width="$(sketchybar --query displays | jq -r 'map(select(.frame.x == 0 and .frame.y == 0)) | .[0].frame.w | floor')"
@@ -104,6 +104,13 @@ fit_right() {
   [ "$chars" -le "$MEDIA_MAX_CHARS" ] || chars="$MEDIA_MAX_CHARS"
   [ "$chars" -ge "$MEDIA_MIN_CHARS" ] || chars="$MEDIA_MIN_CHARS"
   now="$(cat "$MEDIA_CHARS" 2>/dev/null)"
+  # What is drawn is the judge, not the estimate: if the box still runs into Vorssaint, take away what it overshoots.
+  over="$(right_edge media_pill)"
+  if [ -n "$over" ] && [ "$over" -gt $((vorssaint - PILL_GAP)) ] && [ -n "$now" ]; then
+    shorter=$((now - ((over - vorssaint + PILL_GAP) * 10 + CHAR_WIDTH_TENTHS - 1) / CHAR_WIDTH_TENTHS))
+    [ "$shorter" -ge "$MEDIA_MIN_CHARS" ] || shorter="$MEDIA_MIN_CHARS"
+    [ "$shorter" -ge "$chars" ] || chars="$shorter"
+  fi
   if [ "$now" != "$chars" ]; then
     echo "$chars" >"$MEDIA_CHARS"
     "$CONFIG_DIR/plugins/media.sh" >/dev/null 2>&1 &
