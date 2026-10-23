@@ -88,6 +88,18 @@ sys.exit(0 if a.get("e"+n)==["secondary","main"] and a.get(n)=="main" and "e"+n 
 }
 check "Control+Option+1..9 reach the external monitor's workspaces e1..e9, pinned to it" external_nine
 
+# The focus border is drawn in a transparent window 10 points larger than the window on every side. With the external monitor
+# above the Mac, a window with a 6 point gap at the bottom put its border window 4 points onto the Mac's screen (a purple
+# line under the bar). The secondary monitor's bottom gap has to keep that window inside it.
+BORDER_PAD=10
+secondary_bottom_gap_clears_border() {
+  python3 -I -c 'import sys,tomllib
+d=tomllib.load(open(sys.argv[1],"rb")); g=d["gaps"]["outer"]["bottom"]
+ok=isinstance(g,list) and any(isinstance(x,dict) and x.get("monitor",{}).get("secondary",0)>=int(sys.argv[2]) for x in g)
+sys.exit(0 if ok else 1)' "$CFG" "$BORDER_PAD"
+}
+check "the secondary monitor's bottom gap keeps the focus border off the screen below it" secondary_bottom_gap_clears_border
+
 if [ "$fails" -eq 0 ]; then echo "test-aerospace-config: PASS"; else
   echo "test-aerospace-config: $fails FAIL"
   exit 1
