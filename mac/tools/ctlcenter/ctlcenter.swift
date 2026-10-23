@@ -68,7 +68,14 @@ func dismiss(at point: CGPoint) -> Bool {
 }
 
 func pointerIsAtTop() -> Bool {
-    pointerLocation().y < menuBarStripHeight
+    isInTopStrip(pointerLocation(), maxY: menuBarStripHeight)
+}
+
+// The strip is the top of the Mac's own screen. A monitor above it sits at negative y, and counted as the strip while the
+// pointer was anywhere on that monitor.
+func isInTopStrip(_ location: CGPoint, maxY: CGFloat) -> Bool {
+    let main = CGDisplayBounds(CGMainDisplayID())
+    return location.y >= main.minY && location.y < main.minY + maxY && location.x >= main.minX && location.x < main.maxX
 }
 
 func pointerLocation() -> CGPoint {
@@ -92,13 +99,13 @@ func watchPointer(maxY: CGFloat, menuBundleID: String?) -> Never {
             if tracking { print("up \(Int(location.x)) \(Int(location.y))") }
             tracking = false
             ignoring = false
-            if (location.y < maxY) != atTop {
-                atTop = location.y < maxY
+            if isInTopStrip(location, maxY: maxY) != atTop {
+                atTop = isInTopStrip(location, maxY: maxY)
                 print(atTop ? "top" : "away")
             }
             wasOpen = atTop ? openPopups(of: bundleIDs) + [false] : [false, false]
         } else if !tracking && !ignoring {
-            if location.y < maxY {
+            if isInTopStrip(location, maxY: maxY) {
                 tracking = true
                 last = location
                 let open = zip(wasOpen, openPopups(of: bundleIDs) + [false]).map { ($0 || $1) ? "open" : "closed" }

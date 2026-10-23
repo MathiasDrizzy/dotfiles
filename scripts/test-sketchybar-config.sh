@@ -187,6 +187,13 @@ STUB
   rm -rf "$tmp"
   echo "$out"
 }
+# The strip is the top of the Mac's own screen: a monitor above it has negative y, which every "y < strip" test took for the
+# strip, so the cover stayed on (a dark line under the bar) for as long as the pointer was on that monitor.
+strip_is_the_macs_own() {
+  local c="$ROOT/mac/tools/ctlcenter/ctlcenter.swift"
+  grep -q '^func isInTopStrip(' "$c" && awk '/^func isInTopStrip\(/,/^}/' "$c" | grep -q 'CGDisplayBounds(CGMainDisplayID())' &&
+    ! grep -qE 'location\.y < maxY|pointerLocation\(\)\.y <' "$c"
+}
 workspace_stays() {
   local emptied='{"_event":"focus-changed","workspace":"3"}' jump='{"_event":"focused-workspace-changed","prevWorkspace":"3","workspace":"2"}'
   local key='{"_event":"binding-triggered","binding":"alt-2","mode":"main"}'
@@ -384,6 +391,7 @@ check "the Control Center cover is a picture of the wallpaper, painted under eve
 check "the system menu bar never shows over the bar" native_bar_stays_hidden
 check "a Vorssaint pill next to Control Center opens its menu" vorssaint_pill
 check "closing the last window of a workspace keeps the focus on it" workspace_stays
+check "the cover follows the pointer only on the Mac's own screen (a monitor above has negative y)" strip_is_the_macs_own
 check "the now playing pill follows the player as it changes" media_follows_stream
 check "the now playing pill is Spotify's alone" media_is_spotify_only
 check "the cover picture follows a wallpaper change" cover_follows_wallpaper
