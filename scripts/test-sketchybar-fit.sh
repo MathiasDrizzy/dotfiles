@@ -9,7 +9,7 @@ set -u
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="${1:-$ROOT/mac/config/sketchybar}"
-SETTLE_SECONDS=1.2
+SETTLE_SECONDS=2.5 # the fit may take a few hops (the refresh, the cap, the refresh again) before the layout is final
 START_TRIES=50
 EPSILON=0.5
 

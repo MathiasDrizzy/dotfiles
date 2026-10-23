@@ -19,7 +19,7 @@ MEDIA_CHARS="$CACHE/fit_media_chars" # characters of title and artist the track 
 SLOT_STEP=28                         # a workspace slot: its 26 points plus 1 of padding on each side
 SPARE_FOR_MORE=28                    # the "+N" marker a capped pill shows
 CHAR_WIDTH_TENTHS=72                 # JetBrains Mono at TEXT_SIZE 12: 7.2 points a character, in tenths
-MEDIA_OVERHEAD=70                   # the logo and the box paddings (47), and the separator between title and artist (3 characters)
+MEDIA_OVERHEAD=70                    # the logo and the box paddings (47), and the separator between title and artist (3 characters)
 MEDIA_MIN_CHARS=8
 MEDIA_MAX_CHARS=35
 mkdir -p "$CACHE"
@@ -117,9 +117,10 @@ fit_right() {
   fi
 }
 
+mode="${1:-all}"
 while :; do
   rm -f "$AGAIN"
-  case "${1:-all}" in
+  case "$mode" in
   left) fit_left ;;
   right) fit_right ;;
   *)
@@ -128,5 +129,6 @@ while :; do
     ;;
   esac
   [ -e "$AGAIN" ] || break
+  mode=all # whoever left the note may have wanted either side
 done
 exit 0
