@@ -175,7 +175,7 @@ stay_moves() { # windows left on the previous workspace, event lines...
   cat >"$tmp/bin/aerospace" <<STUB
 #!/bin/bash
 case "\$1" in
-subscribe) cat "$tmp/events" ;;
+subscribe) while read -r line; do case "\$line" in sleep*) sleep "\${line#sleep }" ;; *) echo "\$line" ;; esac; done <"$tmp/events" ;;
 list-windows) echo "$1" ;;
 workspace) echo "\$2" >>"$tmp/moves" ;;
 esac
@@ -205,6 +205,11 @@ workspace_stays() {
   [ -z "$(stay_moves 1 "$emptied" "$jump")" ] || return 1             # 3 still has a window
   [ -z "$(stay_moves 0 "$key" "$emptied" "$jump")" ] || return 1      # 3 was empty when alt-3 went there
   [ -z "$(STAY_PICK=1 stay_moves 0 "$emptied" "$jump")" ] || return 1 # a click on the bar picked 2
+  # A click on the empty desktop of a workspace that was already empty is not a window closing: clicking an app on the other
+  # monitor right after used to bring the focus back to the empty workspace.
+  local win='{"_event":"focus-changed","workspace":"3","windowId":7}'
+  [ "$(stay_moves 0 "$win" "$emptied" "$jump")" = 3 ] || return 1
+  [ -z "$(stay_moves 0 "$key" "$emptied" "sleep 1.2" "$emptied" "$jump")" ] || return 1
   [ -z "$(stay_moves 0 '{"_event":"focus-changed","workspace":"swap-park"}' \
     '{"_event":"focused-workspace-changed","prevWorkspace":"swap-park","workspace":"2"}')" ] # a drag swap
 }

@@ -14,6 +14,7 @@ ASKED_SECONDS=1   # a switch this soon after a key binding or a click was asked 
 binding_at=0
 emptied=""
 emptied_at=0
+empty_seen=" " # workspaces whose last focus event had no window: a click on their bare desktop is not a window closing
 
 # The user just asked for a switch.
 asked() {
@@ -28,10 +29,22 @@ aerospace subscribe --no-send-initial binding-triggered focus-changed focused-wo
     case "$(jq -r '._event' <<<"$line")" in
     binding-triggered) binding_at="$(date +%s)" ;;
     focus-changed)
-      # The focus is on a workspace with no window: its last one closed, unless the user just went there.
-      if [ -z "$(jq -r '.windowId // empty' <<<"$line")" ] && ! asked; then
-        emptied="$(jq -r '.workspace' <<<"$line")"
-        emptied_at="$(date +%s)"
+      # The focus is on a workspace with no window: its last one closed, unless the user just went there or it was already
+      # empty (a click on the bare desktop, then on an app elsewhere, must not be taken back).
+      ws="$(jq -r '.workspace' <<<"$line")"
+      if [ -n "$(jq -r '.windowId // empty' <<<"$line")" ]; then
+        empty_seen="${empty_seen/ $ws / }"
+      else
+        case "$empty_seen" in
+        *" $ws "*) ;;
+        *)
+          if ! asked; then
+            emptied="$ws"
+            emptied_at="$(date +%s)"
+          fi
+          empty_seen="$empty_seen$ws "
+          ;;
+        esac
       fi
       ;;
     focused-workspace-changed)
