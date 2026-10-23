@@ -154,6 +154,7 @@ shown=""
 now=()
 appear=()
 vanish=()
+gone=()   # leave at once: the pill of a monitor that was unplugged
 paint() { # item, workspace, pill color
   local item="$1" sid="$2" block="$3"
   if [ "$sid" = "$focused" ]; then
@@ -175,7 +176,12 @@ done
 for item in $shown; do case "$previous" in *" $item "*) ;; *) appear+=("$item") ;; esac done
 # What was drawn and no longer is leaves (a workspace that empties out may vanish from AeroSpace's list altogether).
 for item in $previous; do
-  case "$shown " in *" $item "*) ;; *) vanish+=("$item") ;; esac
+  case "$shown " in *" $item "*) continue ;; esac
+  if ! $external_present && [ "${item#ext.}" != "$item" ]; then
+    gone+=(--set "$item" drawing=off icon.width="$SLOT_WIDTH" background.color="$TRANSPARENT")
+  else
+    vanish+=("$item")
+  fi
 done
 printf '%s\n' "$shown" >"$STATE"
 
@@ -207,7 +213,7 @@ for side in space ext; do
 done
 
 # One call: the squeeze is instant, the colors and sizes animate together so the old and the new focus cross-fade.
-sketchybar "${squeeze[@]}" "${extra[@]}" --animate "$ANIMATION_CURVE" "$ANIMATION_FRAMES" "${now[@]}" "${grow[@]}" "${shrink[@]}"
+sketchybar "${gone[@]}" "${squeeze[@]}" "${extra[@]}" --animate "$ANIMATION_CURVE" "$ANIMATION_FRAMES" "${now[@]}" "${grow[@]}" "${shrink[@]}"
 if [ "${#shrink[@]}" -gt 0 ]; then
   sleep "$ANIMATION_SECONDS"
   # Hide only what is still gone: another refresh may have brought the workspace back meanwhile.
