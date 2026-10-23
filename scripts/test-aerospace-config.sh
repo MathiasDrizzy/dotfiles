@@ -55,6 +55,9 @@ check "no binding uses the vim keys h, j, k or l" not no_vim_keys
 check "no binding uses US punctuation keys (Latin American keyboard)" not no_us_punctuation
 check "each workspace binding has a move-node-to-workspace twin" twins
 check "on-window-detected callbacks have the documented shape" callbacks
+# Resizing a window with the mouse made AeroSpace report a monitor change, and the callback threw the pointer to the middle of the screen.
+not_warping_pointer() { ! grep -q "^on-focused-monitor-changed" "$CFG"; }
+check "a focused-monitor change never moves the pointer (it jumped mid-resize)" not_warping_pointer
 has_borders() {
   grep -q "^after-startup-command = \\[" "$CFG" && grep -q "exec-and-forget borders .*style=round" "$CFG" &&
     grep -q "inactive_color=0x00000000" "$CFG" &&
