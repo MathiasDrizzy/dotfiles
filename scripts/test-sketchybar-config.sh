@@ -128,6 +128,10 @@ unplugged_pill_leaves_at_once() {
   local a="$SB/plugins/aerospace.sh"
   grep -q 'gone+=(' "$a" && awk '/^sketchybar "\$\{gone/ {print; exit}' "$a" | grep -q 'gone\[@\]}.*--animate'
 }
+hover_exit_keeps_visible_tint() {
+  # A workspace on screen without the focus (the other monitor's) wears SURFACE1; leaving it with the pointer must not blank it.
+  awk '/^mouse\.exited\)/,/;;/' "$SB/plugins/aerospace.sh" | grep -q 'SURFACE1'
+}
 no_global_escape() {
   # A global Escape also reaches whatever app has the focus (it interrupted a running terminal session).
   ! grep -qi 'escape' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift"
@@ -397,6 +401,7 @@ check "the Control Center cover is a picture of the wallpaper, painted under eve
 check "the system menu bar never shows over the bar" native_bar_stays_hidden
 check "a Vorssaint pill next to Control Center opens its menu" vorssaint_pill
 check "an unplugged monitor's pill leaves at once, not shrinking" unplugged_pill_leaves_at_once
+check "leaving a visible workspace with the pointer keeps its tint" hover_exit_keeps_visible_tint
 check "closing the last window of a workspace keeps the focus on it" workspace_stays
 check "the cover follows the pointer only on the Mac's own screen (a monitor above has negative y)" strip_is_the_macs_own
 check "the now playing pill follows the player as it changes" media_follows_stream

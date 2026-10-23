@@ -73,7 +73,11 @@ mouse.entered)
   exit 0
   ;;
 mouse.exited)
-  [ "$1" = "$focused" ] || sketchybar --set "$NAME" background.color="$TRANSPARENT" icon.color="$TEXT"
+  if [ "$1" != "$focused" ]; then
+    tint="$TRANSPARENT"
+    case " $(aerospace list-workspaces --monitor all --visible 2>/dev/null | tr '\n' ' ')" in *" $1 "*) tint="$SURFACE1" ;; esac
+    sketchybar --set "$NAME" background.color="$tint" icon.color="$TEXT"
+  fi
   exit 0
   ;;
 esac
