@@ -97,12 +97,22 @@ in_list() {
 }
 mac=() mac_must=() ext=() ext_must=()
 visible_ids=""
+rows="$(aerospace list-workspaces --all --format '%{workspace}|%{monitor-appkit-nsscreen-screens-id}|%{workspace-is-visible}|%{workspace-is-focused}' 2>/dev/null)"
+# The external monitor's workspaces (eN) stay on the Mac once it is unplugged: they leave the bar with the monitor, unless one
+# has the focus.
+external_present=false
+while IFS='|' read -r _ monitor _ _; do
+  [ -z "$monitor" ] || [ "$monitor" = "$MAIN_SCREEN" ] || external_present=true
+done <<<"$rows"
 while IFS='|' read -r sid monitor visible is_focused; do
   [ -n "$sid" ] || continue
   [ "$visible" = true ] && visible_ids="$visible_ids $sid"
   must=false
   { [ "$sid" = "$focused" ] || [ "$visible" = true ] || [ "$is_focused" = true ]; } && must=true
   case "$occupied" in *" $sid "*) ;; *) $must || continue ;; esac
+  if ! $external_present && [ "$sid" != "$focused" ]; then
+    case "$sid" in e[0-9]*) continue ;; esac
+  fi
   if [ "$monitor" = "$MAIN_SCREEN" ]; then
     mac+=("$sid")
     $must && mac_must+=("$sid")
@@ -110,7 +120,7 @@ while IFS='|' read -r sid monitor visible is_focused; do
     ext+=("$sid")
     $must && ext_must+=("$sid")
   fi
-done < <(aerospace list-workspaces --all --format '%{workspace}|%{monitor-appkit-nsscreen-screens-id}|%{workspace-is-visible}|%{workspace-is-focused}' 2>/dev/null)
+done <<<"$rows"
 echo $((${#mac[@]} + ${#ext[@]})) >"$NATURAL"
 
 # Over the cap: the last workspace that is neither focused nor visible leaves, from the pill with more of them.

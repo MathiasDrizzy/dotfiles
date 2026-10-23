@@ -190,5 +190,13 @@ if [ "$(boxes | grep -c '^ext_spaces ')" -eq 0 ]; then echo "PASS  without an ex
   fails=$((fails + 1))
 fi
 
+# The external monitor was unplugged: AeroSpace keeps its workspaces (eN) on the Mac, but the monitor's pill and its numbers go
+# with it, even when they hold windows.
+scene "the external monitor unplugged, its workspace e1 still holds a window" "Ghostty" "La Florida 14°C" "" 1:1:fo 2:1:o e1:1:o
+if [ "$(drawn space.e1)" != on ] && [ "$(drawn ext.e1)" != on ] && [ "$(boxes | grep -c '^ext_spaces ')" -eq 0 ]; then echo "PASS  after unplugging, the external monitor's workspaces are off the bar"; else
+  echo "FAIL  after unplugging, a workspace of the external monitor is still on the bar"
+  fails=$((fails + 1))
+fi
+
 [ "$fails" -eq 0 ] && echo "test-sketchybar-fit: PASS" || echo "test-sketchybar-fit: $fails FAIL"
 [ "$fails" -eq 0 ]
