@@ -140,7 +140,7 @@ settle() { # the aerospace refresh, the app name, the track and the fit, as the 
 
 fails=0
 report() { # name, faults
-  [ -n "${VERBOSE:-}" ] && echo "        drawn: $(for i in ext_gap ext.mark ext.more space.more $(seq -f 'space.%g' 1 12) $(seq -f 'ext.%g' 1 12); do [ "$(drawn "$i")" = on ] && printf '%s ' "$i"; done)"
+  [ -n "${VERBOSE:-}" ] && echo "        drawn: $(for i in ext_gap ext.mark ext.more space.more $(seq -f 'space.%g' 1 12) ext.e1 ext.e2 ext.e3; do [ "$(drawn "$i")" = on ] && printf '%s ' "$i"; done)"
   [ -n "${VERBOSE:-}" ] && boxes | sort -k2,2n | awk '{printf "        %-12s %6.0f..%-6.0f\n", $1, $2, $2 + $3}'
   if [ -z "$2" ]; then
     echo "PASS  $1"
@@ -159,8 +159,8 @@ scene() { # name, app name, place, track, rows...
   report "$name" "$(faults)"
 }
 
-# The rc makes one item per workspace it finds: twelve, so the scenarios can use more than the ten of a real setup.
-scene_rows 1:1:f 2:1:- 3:1:- 4:1:- 5:1:- 6:1:- 7:1:- 8:1:- 9:1:- 10:2:v 11:2:- 12:2:-
+# The rc makes one item per workspace it finds: nine of the Mac and three of the external monitor (named eN, drawn as N).
+scene_rows 1:1:f 2:1:- 3:1:- 4:1:- 5:1:- 6:1:- 7:1:- 8:1:- 9:1:- e1:2:v e2:2:- e3:2:-
 start_bar
 if grep -qiE 'error|invalid|unknown|\[!\]' "$T/bar.log"; then
   echo "FAIL  start: $(tr '\n' ' ' <"$T/bar.log")"
@@ -172,14 +172,14 @@ LONG_PLACE='Pedro Aguirre Cerda 14°C'
 # 1 workspace of the Mac, nothing else: the plain bar.
 scene "the plain bar, one workspace" "Ghostty" "La Florida 14°C" "" 1:1:f
 # The case from the report: two on the Mac, two on the external monitor, then four on the Mac.
-scene "2 on the Mac, 2 on the external monitor" "Google Chrome" "La Florida 14°C" "" 1:1:fo 2:1:o 3:2:vo 4:2:o
-scene "4 on the Mac, 2 on the external monitor" "Google Chrome" "La Florida 14°C" "C.R.E.A.M.|Wu-Tang" 1:1:fo 2:1:o 5:1:o 6:1:o 3:2:vo 4:2:o
+scene "2 on the Mac, 2 on the external monitor" "Google Chrome" "La Florida 14°C" "" 1:1:fo 2:1:o e1:2:vo e2:2:o
+scene "4 on the Mac, 2 on the external monitor" "Google Chrome" "La Florida 14°C" "C.R.E.A.M.|Wu-Tang" 1:1:fo 2:1:o 5:1:o 6:1:o e1:2:vo e2:2:o
 # Everything at its longest at once.
 scene "9 on the Mac, 3 on the external monitor, a long app name, place and track" "Visual Studio Code - Insiders" "$LONG_PLACE" "$LONG_TRACK" \
-  1:1:fo 2:1:o 3:1:o 4:1:o 5:1:o 6:1:o 7:1:o 8:1:o 9:1:o 10:2:vo 11:2:o 12:2:o
+  1:1:fo 2:1:o 3:1:o 4:1:o 5:1:o 6:1:o 7:1:o 8:1:o 9:1:o e1:2:vo e2:2:o e3:2:o
 # The external monitor shows an empty workspace: it must still be on the bar.
-scene "an empty workspace on the external monitor" "Ghostty" "La Florida 14°C" "" 1:1:fo 2:1:o 10:2:v
-if [ "$(drawn ext.10)" = on ] && [ "$(boxes | grep -c '^ext_spaces ')" -eq 1 ]; then echo "PASS  the visible empty workspace of the external monitor is on the bar"; else
+scene "an empty workspace on the external monitor" "Ghostty" "La Florida 14°C" "" 1:1:fo 2:1:o e1:2:v
+if [ "$(drawn ext.e1)" = on ] && [ "$(sketchybar --query ext.e1 | jq -r .icon.value)" = 1 ] && [ "$(boxes | grep -c '^ext_spaces ')" -eq 1 ]; then echo "PASS  the visible empty workspace of the external monitor is on the bar"; else
   echo "FAIL  the visible empty workspace of the external monitor is not on the bar"
   fails=$((fails + 1))
 fi

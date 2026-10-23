@@ -24,7 +24,7 @@ automatically-unhide-macos-hidden-apps = false
 
 # Numbered workspaces only. Letter workspaces (alt-a ... alt-z) are left out on purpose:
 # alt-b, alt-f and alt-d are the shell's word motions (Option is Alt in Ghostty).
-persistent-workspaces = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+persistent-workspaces = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8", "e9"]
 
 focus-follows-mouse.enabled = false
 # AeroSpace reads key names as physical US-qwerty positions. This keyboard is Latin American, so the punctuation keys
@@ -50,6 +50,28 @@ on-window-detected = [
 exec-on-workspace-change = ['/bin/bash', '-c',
     'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE'
 ]
+
+# Two sets of nine: 1..9 live on the Mac (Option+N), e1..e9 on the external monitor (Control+Option+N). The bar draws e3 as
+# a 3 in the external monitor's pill. Without an external monitor, e1..e9 fall back to the Mac.
+[workspace-to-monitor-force-assignment]
+1 = 'main'
+2 = 'main'
+3 = 'main'
+4 = 'main'
+5 = 'main'
+6 = 'main'
+7 = 'main'
+8 = 'main'
+9 = 'main'
+e1 = ['secondary', 'main']
+e2 = ['secondary', 'main']
+e3 = ['secondary', 'main']
+e4 = ['secondary', 'main']
+e5 = ['secondary', 'main']
+e6 = ['secondary', 'main']
+e7 = ['secondary', 'main']
+e8 = ['secondary', 'main']
+e9 = ['secondary', 'main']
 
 [mode.main.binding]
     # Arrow keys instead of vim keys (h/j/k/l).
@@ -99,6 +121,27 @@ exec-on-workspace-change = ['/bin/bash', '-c',
     alt-shift-7 = 'move-node-to-workspace 7'
     alt-shift-8 = 'move-node-to-workspace 8'
     alt-shift-9 = 'move-node-to-workspace 9'
+
+
+    ctrl-alt-1 = 'workspace e1'
+    ctrl-alt-2 = 'workspace e2'
+    ctrl-alt-3 = 'workspace e3'
+    ctrl-alt-4 = 'workspace e4'
+    ctrl-alt-5 = 'workspace e5'
+    ctrl-alt-6 = 'workspace e6'
+    ctrl-alt-7 = 'workspace e7'
+    ctrl-alt-8 = 'workspace e8'
+    ctrl-alt-9 = 'workspace e9'
+
+    ctrl-alt-shift-1 = 'move-node-to-workspace e1'
+    ctrl-alt-shift-2 = 'move-node-to-workspace e2'
+    ctrl-alt-shift-3 = 'move-node-to-workspace e3'
+    ctrl-alt-shift-4 = 'move-node-to-workspace e4'
+    ctrl-alt-shift-5 = 'move-node-to-workspace e5'
+    ctrl-alt-shift-6 = 'move-node-to-workspace e6'
+    ctrl-alt-shift-7 = 'move-node-to-workspace e7'
+    ctrl-alt-shift-8 = 'move-node-to-workspace e8'
+    ctrl-alt-shift-9 = 'move-node-to-workspace e9'
 
     alt-tab = 'workspace-back-and-forth'
     alt-shift-tab = 'move-workspace-to-monitor --wrap-around next'

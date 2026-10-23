@@ -28,11 +28,16 @@ d=tomllib.load(open(sys.argv[1],"rb"))
 for mode,m in d.get("mode",{}).items():
     for k,v in m.get("binding",{}).items(): print(mode, k, v if isinstance(v,str) else ";".join(v))' "$CFG"; }
 twins() {
-  local n
+  local n twin
   while read -r mode key cmd; do
     [ "$mode" = main ] || continue
-    case "$cmd" in "workspace "[0-9]*) n="${cmd#workspace }" ;; *) continue ;; esac
-    bindings | grep -q "^main alt-shift-${key#alt-} move-node-to-workspace $n\$" || return 1
+    case "$cmd" in "workspace "[0-9e]*) n="${cmd#workspace }" ;; *) continue ;; esac
+    case "$key" in
+    alt-*) twin="alt-shift-${key#alt-}" ;;
+    ctrl-alt-*) twin="ctrl-alt-shift-${key#ctrl-alt-}" ;;
+    *) continue ;;
+    esac
+    bindings | grep -q "^main $twin move-node-to-workspace $n\$" || return 1
   done < <(bindings)
 }
 has_snail() { bindings | grep -q "^main alt-shift-s .*flatten-workspace-tree.*focus --dfs-index 1.*join-with right"; }
@@ -68,6 +73,20 @@ check "install.sh and check-links.sh link the config and install the cask" insta
 # Vorssaint lives in its menu: a settings window it opens tiled the workspace and squeezed the windows under its menu.
 vorssaint_floats() { grep -q "{ if = 'test %{app-bundle-id} = com.vorssaint.utils', run = 'layout floating' }" "$CFG"; }
 check "Vorssaint's windows float instead of tiling" vorssaint_floats
+
+# The external monitor has its own nine workspaces, drawn as 1 to 9 on the bar: Option+N for the Mac's, Control+Option+N for
+# the external's (named eN in the config, pinned to the secondary monitor, falling back to the main one without it).
+external_nine() {
+  local n
+  for n in 1 2 3 4 5 6 7 8 9; do
+    bindings | grep -q "^main ctrl-alt-$n workspace e$n\$" || return 1
+    python3 -I -c 'import sys,tomllib
+d=tomllib.load(open(sys.argv[1],"rb")); n=sys.argv[2]
+a=d.get("workspace-to-monitor-force-assignment",{})
+sys.exit(0 if a.get("e"+n)==["secondary","main"] and a.get(n)=="main" and "e"+n in d.get("persistent-workspaces",[]) else 1)' "$CFG" "$n" || return 1
+  done
+}
+check "Control+Option+1..9 reach the external monitor's workspaces e1..e9, pinned to it" external_nine
 
 if [ "$fails" -eq 0 ]; then echo "test-aerospace-config: PASS"; else
   echo "test-aerospace-config: $fails FAIL"

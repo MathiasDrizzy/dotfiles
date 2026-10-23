@@ -53,7 +53,7 @@ What this repo adds on top of herdr's defaults:
 
 ## AeroSpace (tiling windows, `mac/config/aerospace/aerospace.toml`)
 
-An i3-like tiling window manager that needs no SIP changes. It replaces the native macOS desktops with its own **workspaces** (1 to 9): use a single macOS Space and switch workspaces with the keys below. No vim keys; arrows instead.
+An i3-like tiling window manager that needs no SIP changes. It replaces the native macOS desktops with its own **workspaces** (1 to 9 on the Mac, and another 1 to 9 on the external monitor): use a single macOS Space and switch workspaces with the keys below. No vim keys; arrows instead.
 
 | Shortcut | What it does |
 |---|---|
@@ -61,6 +61,8 @@ An i3-like tiling window manager that needs no SIP changes. It replaces the nati
 | `alt+shift+←↑↓→` | Move the window in that direction |
 | `alt+1…9` | Go to workspace 1…9 |
 | `alt+shift+1…9` | Send the window to workspace 1…9 |
+| `ctrl+alt+1…9` | Go to the external monitor's workspace 1…9 (named `e1…e9` in the config, drawn as 1…9 in the blue pill) |
+| `ctrl+alt+shift+1…9` | Send the window to the external monitor's workspace 1…9 |
 | `ctrl+alt+← / →` | Previous / next workspace |
 | `alt+tab` | Back to the previous workspace |
 | `alt+-` / `alt++` (the keys labelled - and +) | Shrink / grow the window |

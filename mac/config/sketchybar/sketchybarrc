@@ -144,7 +144,7 @@ for sid in $(aerospace list-workspaces --all); do
   fi
   sketchybar --subscribe "space.$sid" mouse.entered mouse.exited \
     --set "space.$sid" \
-    icon="$sid" icon.width=26 icon.align=center icon.padding_left=0 icon.padding_right=0 icon.font="$FONT:Bold:$TEXT_SIZE" \
+    icon="${sid#e}" icon.width=26 icon.align=center icon.padding_left=0 icon.padding_right=0 icon.font="$FONT:Bold:$TEXT_SIZE" \
     label.drawing=off drawing=off padding_left=1 padding_right=1 \
     background.drawing=on background.color="$TRANSPARENT" background.height="$PILL_HEIGHT" background.corner_radius="$PILL_RADIUS" \
     click_script="$PLUGIN_DIR/aerospace.sh $sid click" \
@@ -161,6 +161,7 @@ sketchybar --add bracket spaces '/space\..*/'
 pill spaces
 
 # The workspaces of another monitor are a pill of their own, after the Mac's, marked with a monitor glyph: ext.N is
+# Workspaces of the external monitor are named eN in AeroSpace and drawn as N.
 # space.N for a workspace that lives on that monitor (aerospace.sh shows one or the other).
 sketchybar --add item ext_gap left \
   --set ext_gap width="$PILL_GAP" padding_left=0 padding_right=0 icon.drawing=off label.drawing=off drawing=off \
@@ -171,7 +172,7 @@ for sid in $(aerospace list-workspaces --all); do
   sketchybar --add item "ext.$sid" left \
     --subscribe "ext.$sid" mouse.entered mouse.exited \
     --set "ext.$sid" \
-    icon="$sid" icon.width=26 icon.align=center icon.padding_left=0 icon.padding_right=0 icon.font="$FONT:Bold:$TEXT_SIZE" \
+    icon="${sid#e}" icon.width=26 icon.align=center icon.padding_left=0 icon.padding_right=0 icon.font="$FONT:Bold:$TEXT_SIZE" \
     label.drawing=off drawing=off padding_left=1 padding_right=1 \
     background.drawing=on background.color="$TRANSPARENT" background.height="$PILL_HEIGHT" background.corner_radius="$PILL_RADIUS" \
     script="$PLUGIN_DIR/aerospace.sh $sid" click_script="$PLUGIN_DIR/aerospace.sh $sid click"
