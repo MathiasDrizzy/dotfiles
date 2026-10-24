@@ -107,10 +107,16 @@ EOF
 #!/bin/sh
 echo "activateSettings \$*" >> "$B/logs/defaults.log"
 EOF
-  # herdr: el plugin de lazyfinder se instala con `herdr plugin install`; en la prueba solo se registra
+  # herdr: los plugins se instalan con `herdr plugin install`; en la prueba se registra la llamada y el plugin queda listado
+  # como lo lista herdr de verdad ("- id (Nombre) enabled [github:repo@ref]"), así la corrida 2 ve lo que instaló la 1.
   cat >"$B/stubs/herdr" <<EOF
-#!/bin/sh
+#!/bin/bash
 echo "herdr \$*" >> "$B/logs/herdr.log"
+case "\$*" in
+"plugin list") cat "$B/logs/herdr-plugins" 2>/dev/null ;;
+"plugin install --yes MathiasDrizzy/lazyfinder"*) echo "- lazyfinder (lazyfinder) enabled [github:MathiasDrizzy/lazyfinder@main]" >> "$B/logs/herdr-plugins" ;;
+"plugin install --yes kryptamine/herdr-auto-title --ref "*) echo "- herdr.auto-title (Auto Title) enabled [github:kryptamine/herdr-auto-title@\${6}]" >> "$B/logs/herdr-plugins" ;;
+esac
 exit 0
 EOF
   cat >"$B/stubs/rustup" <<EOF
@@ -257,6 +263,8 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
   check "corrida 2: sin más respaldos" '[ "$(find "$B/respaldos" -type f | wc -l | tr -d " ")" = "$nresp1" ]'
   check "corrida 2: mismas llamadas a brew que la 1 (registradas dos veces)" '[ "$(cat "$B/logs/brew.log")" = "$(printf "%s\n%s" "$calls1" "$calls1")" ]'
   check "corrida 2: sin enlaces rotos" '[ "$(broken "$H")" = 0 ]'
+  check "corrida 2: no reinstaló plugins de herdr que ya estaban en la versión fijada" \
+    '[ "$(grep -c "^herdr plugin install " "$B/logs/herdr.log")" = 2 ]'
   [ "$brewpath" = 1 ] || check "no intentó reinstalar Homebrew (no hubo curl a Homebrew/install) y sí usó el brew del prefijo" '! grep -q "Homebrew/install" "$B/logs/curl.log" && grep -q "^brew install " "$B/logs/brew.log"'
   check "la sandbox no reportó escrituras denegadas" '! echo "$OUT" | grep -i "operation not permitted" | head -5 | tee /dev/stderr | grep -q .'
   check "todo brew invocado fue el stub de la prueba (ruta registrada por el propio stub)" '[ -s "$B/logs/brew.bin" ] && ! grep -v "^$B/" "$B/logs/brew.bin" | grep -q .'

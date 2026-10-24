@@ -299,7 +299,7 @@ if [ "$LINKS_ONLY" = false ]; then
   # action).
   AUTO_TITLE_REF=e7fbd5717cc4293d2768a8792d7b331f69595474 # v0.14.0
   if [ "$DRY_RUN" != true ] && command -v herdr >/dev/null 2>&1 &&
-    ! herdr plugin list 2>/dev/null | grep -q "^- herdr.auto-title .*@$AUTO_TITLE_REF\]"; then
+    ! herdr plugin list 2>/dev/null | grep -q "^- herdr.auto-title .*@$AUTO_TITLE_REF]"; then
     echo "==> Plugin de herdr: Auto Title ${AUTO_TITLE_REF:0:7}..."
     herdr plugin install --yes kryptamine/herdr-auto-title --ref "$AUTO_TITLE_REF" &&
       { herdr plugin action invoke herdr.auto-title.restart >/dev/null 2>&1 || true; } ||
