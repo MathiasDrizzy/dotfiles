@@ -73,7 +73,15 @@ done
 sleep 1
 check "media.sh: a hung media-control is asked once, not once per run" 1 "$(hung)"
 wait
-sleep 3 # the run a note brings back asks once more, also bounded
+# The run a note brings back asks once more, also bounded: wait for it with a deadline instead of a fixed pause.
+settle() { # seconds: until no hung command and no media lock are left, or the deadline
+  local _
+  for _ in $(seq $(($1 * 10))); do
+    [ "$(hung)" = 0 ] && [ ! -e "$CACHE/media_busy" ] && return
+    sleep 0.1
+  done
+}
+settle 10
 check "media.sh: the hung media-control is ended by its limit" 0 "$(hung)"
 check "media.sh: its lock is released" 0 "$([ -e "$CACHE/media_busy" ] && echo 1 || echo 0)"
 
@@ -91,6 +99,17 @@ check "cover.sh: no hung ctlcenter is left" 0 "$(hung)"
 check "battery.sh: a hung pmset does not hold it" 1 "$(NAME=battery within 6 "$CONFIG_DIR/plugins/battery.sh")"
 check "battery.sh: no hung pmset is left" 0 "$(hung)"
 
+# control.sh: networksetup and ipconfig never answer.
+stub networksetup "exec sleep $HANG"
+stub ipconfig "exec sleep $HANG"
+check "control.sh: hung network commands do not hold it" 1 "$(NAME=control within 8 "$CONFIG_DIR/plugins/control.sh")"
+check "control.sh: no hung network command is left" 0 "$(hung)"
+
+# about.sh: System Events never answers the click.
+stub osascript "exec sleep $HANG"
+check "about.sh: a hung osascript does not hold it" 1 "$(within 7 "$CONFIG_DIR/plugins/about.sh")"
+check "about.sh: no hung osascript is left" 0 "$(hung)"
+
 # weather.sh: Location Services is slow (the Mac is loaded); the last place it gave is kept, not the network's commune.
 printf '%s\t%s\t%s\n' -33.437 -70.650 Providencia >"$CACHE/weather_place"
 : >"$T/sketchybar.log"
@@ -98,6 +117,14 @@ NAME=weather LOCATE_SECONDS=1 /usr/bin/perl -e 'alarm shift; exec @ARGV' 30 "$CO
 check "weather.sh: a slow fix keeps the last real place" 1 \
   "$(grep -c 'label=Providencia 15°C' "$T/sketchybar.log" | tr -d ' ')"
 check "weather.sh: no hung CoreLocationCLI is left" 0 "$(hung)"
+
+# weather.sh: a fix whose commune macOS could not name still gives the exact point, named by OpenStreetMap.
+rm -f "$CACHE/weather_place"
+stub CoreLocationCLI "printf '%s\\t%s\\t\\n' -33.437 -70.650"
+: >"$T/sketchybar.log"
+NAME=weather /usr/bin/perl -e 'alarm shift; exec @ARGV' 30 "$CONFIG_DIR/plugins/weather.sh" >/dev/null 2>&1
+check "weather.sh: a fix without a commune is still used" 1 "$(grep -c 'label=Conchalí 15°C' "$T/sketchybar.log" | tr -d ' ')"
+check "weather.sh: ...and is not remembered as a place" 0 "$([ -e "$CACHE/weather_place" ] && echo 1 || echo 0)"
 
 if [ "$fails" -eq 0 ]; then echo "test-sketchybar-no-pileup: PASS"; else
   echo "test-sketchybar-no-pileup: $fails FAILED"

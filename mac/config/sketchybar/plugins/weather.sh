@@ -19,8 +19,9 @@ here() { # "latitude<TAB>longitude<TAB>commune" (the commune only from Location 
   local found
   if command -v CoreLocationCLI >/dev/null 2>&1; then
     found="$(perl -e 'alarm shift; exec @ARGV' "$LOCATE_SECONDS" CoreLocationCLI --format $'%latitude\t%longitude\t%locality' 2>/dev/null)"
-    if [[ "$found" =~ ^-?[0-9.]+$'\t'-?[0-9.]+$'\t'.+ ]]; then
-      mkdir -p "$CACHE" && echo "$found" >"$PLACE"
+    if [[ "$found" =~ ^-?[0-9.]+$'\t'-?[0-9.]+$'\t' ]]; then
+      # A fix without a commune still has the exact point (OpenStreetMap names it below); only a named one is remembered.
+      [[ "$found" =~ $'\t'.+$'\t'.+ ]] && mkdir -p "$CACHE" && echo "$found" >"$PLACE"
       echo "$found"
       return
     fi
