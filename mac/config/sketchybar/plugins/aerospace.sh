@@ -83,6 +83,21 @@ mouse.exited)
 esac
 [ "$2" = refresh ] || exit 0
 [ -e "$SWAPPING" ] && exit 0
+# The focus moves on screen at once: the full refresh below waits for AeroSpace's answers (about a tenth of a second), and
+# paints what is left (the other pills, the sizes) over this. Only for pills that are already drawn.
+if [ "$SENDER" = aerospace_workspace_change ] && [ -n "$FOCUSED_WORKSPACE" ]; then
+  FOCUS_PREV="$HOME/.cache/sketchybar/focused"
+  drawn=" $(cat "$STATE" 2>/dev/null) "
+  prev="$(cat "$FOCUS_PREV" 2>/dev/null)"
+  echo "$FOCUSED_WORKSPACE" >"$FOCUS_PREV"
+  quick=()
+  case "$drawn" in *" space.$prev "*) quick+=(--set "space.$prev" background.color="$TRANSPARENT" icon.color="$TEXT") ;; esac
+  case "$drawn" in *" ext.$prev "*) quick+=(--set "ext.$prev" background.color="$TRANSPARENT" icon.color="$TEXT") ;; esac
+  [ "$prev" = "$FOCUSED_WORKSPACE" ] && quick=()
+  case "$drawn" in *" space.$FOCUSED_WORKSPACE "*) quick+=(--set "space.$FOCUSED_WORKSPACE" background.color="$MAUVE" icon.color="$BASE") ;; esac
+  case "$drawn" in *" ext.$FOCUSED_WORKSPACE "*) quick+=(--set "ext.$FOCUSED_WORKSPACE" background.color="$EXT_BLOCK" icon.color="$BASE") ;; esac
+  [ "${#quick[@]}" -eq 0 ] || sketchybar "${quick[@]}"
+fi
 # The rc makes the items one by one and this item already ticks: wait until the last one (the other monitor's pill) exists.
 sketchybar --query ext_spaces >/dev/null 2>&1 || exit 0
 
