@@ -189,7 +189,7 @@ func herdrSections(km Keymap) []Section {
 		grpWS:    "󰌌  herdr · workspaces y agentes",
 		grpOther: "󰌌  herdr · sesión",
 	}
-	// Un comando del repo en la misma tecla gana a la acción nativa (verificado contra un herdr aislado).
+	// Un comando del repo en la misma tecla gana a la acción nativa.
 	shadowed := map[string]bool{}
 	for _, c := range km.Commands {
 		shadowed[c.Key] = true
