@@ -7,7 +7,9 @@ source "$CONFIG_DIR/icons.sh"
 
 CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/sketchybar"
 BUSY="$CACHE/media_busy"
-DIRTY="$CACHE/media_dirty" # the player changed while a slide ran
+DIRTY="$CACHE/media_dirty"                          # the player changed while a slide ran
+BUSY_STALE_SECONDS=60                               # a run takes a second or two; a lock this old was left by a killed one
+MEDIA_CONTROL_SECONDS="${MEDIA_CONTROL_SECONDS:-5}" # the player's answer is a few milliseconds; past this it is not coming
 ITEMS=(media_icon media)
 ANIMATION_CURVE=sin
 SLIDE_FRAMES=24
@@ -26,14 +28,11 @@ fitted="$(cat "$CACHE/fit_media_chars" 2>/dev/null)"
 alive() { sketchybar --query media_pill >/dev/null 2>&1; }
 alive || exit 0
 
-info="$(media-control get 2>/dev/null)"
-[ "$(jq -r '.bundleIdentifier // empty' <<<"$info" 2>/dev/null)" = "$MEDIA_BUNDLE" ] || info=""
-playing="$(jq -r '.playing // false' <<<"$info" 2>/dev/null)"
-title="$(jq -r '.title // empty' <<<"$info" 2>/dev/null)"
-artist="$(jq -r '.artist // empty' <<<"$info" 2>/dev/null)"
-
 # One slide at a time (the play button and every now_playing_change run this script too). A run that finds one going marks the
 # change, and the running one replays it once done: left to the next poll, a player that quit mid-slide kept the pill up.
+# The lock comes before asking the player: a media-control that hangs (a loaded machine) used to be started again by every
+# poll and every event, a pile of them that took the computer down. Now at most one is asked at a time, and it has a time limit.
+[ -z "$(/usr/bin/find "$BUSY" -mtime +"$BUSY_STALE_SECONDS"s 2>/dev/null)" ] || rmdir "$BUSY" 2>/dev/null # left by a killed run
 if ! mkdir "$BUSY" 2>/dev/null; then
   touch "$DIRTY"
   exit 0
@@ -46,6 +45,12 @@ finish() {
   fi
 }
 trap finish EXIT
+
+info="$(/usr/bin/perl -e 'alarm shift; exec @ARGV' "$MEDIA_CONTROL_SECONDS" media-control get 2>/dev/null)"
+[ "$(jq -r '.bundleIdentifier // empty' <<<"$info" 2>/dev/null)" = "$MEDIA_BUNDLE" ] || info=""
+playing="$(jq -r '.playing // false' <<<"$info" 2>/dev/null)"
+title="$(jq -r '.title // empty' <<<"$info" 2>/dev/null)"
+artist="$(jq -r '.artist // empty' <<<"$info" 2>/dev/null)"
 
 # Closes the pill: the text fades while the widths go to 0, then the items are hidden and stay transparent (SketchyBar
 # keeps painting an animating item for a few frames after drawing=off, so visible colors would float).

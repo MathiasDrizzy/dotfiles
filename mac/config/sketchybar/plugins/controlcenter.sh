@@ -3,6 +3,7 @@
 # while the panel is open, so until the panel closes the cover (cover.sh) keeps it hidden under the bar.
 # shellcheck disable=SC1091
 source "$CONFIG_DIR/colors.sh"
+source "$CONFIG_DIR/helpers.sh"
 
 CTL="$HOME/.local/bin/ctlcenter"
 PRESS_PANEL="$HOME/.cache/sketchybar/press_panel"
@@ -47,7 +48,7 @@ echo $$ >"$DRIVER/pid"
 trap 'rm -f "$DRIVER/pid"; rmdir "$DRIVER" 2>/dev/null' EXIT
 
 press_closed_panel && exit 0
-if "$CTL" visible; then # opened some other way (fn+C): this click closes it
+if ctl visible; then # opened some other way (fn+C): this click closes it
   "$CTL" open
   exit 0
 fi
@@ -76,7 +77,7 @@ was=false
 while [ "$polls" -lt "$MAX_POLLS" ]; do
   read -r intent serial <"$INTENT"
   visible=false
-  "$CTL" visible && visible=true
+  ctl visible && visible=true
   if [ "$visible" != "$was" ]; then
     was="$visible"
     changed_at="$polls"
@@ -105,7 +106,7 @@ while [ "$polls" -lt "$MAX_POLLS" ]; do
       keys=$((keys + 1))
     fi
   fi
-  if [ "$intent" = closed ] && ! $visible && ! "$CTL" top; then
+  if [ "$intent" = closed ] && ! $visible && ! ctl top; then
     away=$((away + 1))
     [ "$away" -ge "$GRACE_POLLS" ] && break
   else

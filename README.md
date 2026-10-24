@@ -123,6 +123,7 @@ afocus <agent>          # jump to its pane                 (herdr-ctl focus)
 scripts/lint-shell.sh                     # shellcheck and shfmt
 scripts/go-checks.sh                      # herdr-ctl: vet, test -race, golangci-lint, govulncheck
 scripts/test-install-full.sh              # full install in a sandbox with a temporary HOME
+scripts/test-sketchybar-no-pileup.sh      # no plugin waits forever on an outside command or piles up (all stubbed, no bar)
 scripts/test-sketchybar-workspaces.sh     # by hand: the workspace pills follow AeroSpace through bursts of switches (own bar, stubbed AeroSpace)
 scripts/test-sketchybar-fit.sh            # by hand: no bar box overlaps another or the camera housing (a throwaway bar shows at the bottom of the screen for ~20 s)
 ```

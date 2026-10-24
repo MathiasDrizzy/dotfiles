@@ -154,6 +154,7 @@ REQUIRED_SOURCES=(
   "config/sketchybar/sketchybarrc"
   "config/sketchybar/colors.sh"
   "config/sketchybar/icons.sh"
+  "config/sketchybar/helpers.sh"
   "config/sketchybar/icon_map.sh"
   "config/sketchybar/plugins/aerospace.sh"
   "config/sketchybar/plugins/media.sh"

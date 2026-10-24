@@ -2,10 +2,11 @@
 # neutonfoo/dotfiles's battery: five levels, each with its own Macchiato color, and a bolt while on power.
 # shellcheck disable=SC1091
 source "$CONFIG_DIR/colors.sh"
+source "$CONFIG_DIR/helpers.sh"
 case "$SENDER" in mouse.*) exec "$CONFIG_DIR/plugins/hover.sh" "$BAR_HOVER" "$BAR_COLOR" ;; esac
 source "$CONFIG_DIR/icons.sh"
 
-batt="$(pmset -g batt)"
+batt="$(bounded 3 pmset -g batt)"
 pct="$(grep -Eo '[0-9]+%' <<<"$batt" | head -1 | tr -d '%')"
 [ -z "$pct" ] && exit 0
 

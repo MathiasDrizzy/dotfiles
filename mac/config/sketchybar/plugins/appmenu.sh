@@ -6,6 +6,7 @@
 #   appmenu.sh run <Menu> <Item>
 # shellcheck disable=SC1091,SC2154
 source "$CONFIG_DIR/colors.sh"
+source "$CONFIG_DIR/helpers.sh"
 source "$CONFIG_DIR/icons.sh"
 source "$CONFIG_DIR/icon_map.sh"
 
@@ -37,7 +38,7 @@ add_entry() { # index, label, click command, icon
 }
 
 top_menus() {
-  osascript <<'AS'
+  bounded 5 osascript <<'AS'
 tell application "System Events"
   tell (first process whose frontmost is true)
     set names to name of every menu bar item of menu bar 1
@@ -53,7 +54,7 @@ AS
 }
 
 menu_items() {
-  osascript - "$1" <<'AS'
+  bounded 5 osascript - "$1" <<'AS'
 on run argv
   tell application "System Events"
     tell (first process whose frontmost is true)
@@ -71,7 +72,7 @@ AS
 }
 
 run_item() {
-  osascript - "$1" "$2" <<'AS'
+  bounded 5 osascript - "$1" "$2" <<'AS'
 on run argv
   tell application "System Events"
     tell (first process whose frontmost is true)
@@ -129,7 +130,7 @@ case "$SENDER" in
 front_app_switched)
   # The app in front now, not the one of this event: `ctlcenter stay` brings Finder forward for a few milliseconds, and when
   # that event's run ended last the pill kept showing Finder.
-  front="$(lsappinfo info -only name "$(lsappinfo front)" 2>/dev/null | sed -n '1s/^"\(.*\)" ASN:.*/\1/p')"
+  front="$(bounded 2 lsappinfo info -only name "$(bounded 2 lsappinfo front)" 2>/dev/null | sed -n '1s/^"\(.*\)" ASN:.*/\1/p')"
   __icon_map "${front:-$INFO}"
   sketchybar --set front_app icon="$icon_result"
   "$CONFIG_DIR/plugins/app_name.sh" "${front:-$INFO}" &

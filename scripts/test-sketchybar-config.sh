@@ -21,7 +21,7 @@ check() { # name, command...
 
 syntax_ok() {
   local f
-  for f in "$SB"/sketchybarrc "$SB"/colors.sh "$SB"/icons.sh "$SB"/plugins/*.sh; do bash -n "$f" || return 1; done
+  for f in "$SB"/sketchybarrc "$SB"/colors.sh "$SB"/icons.sh "$SB"/helpers.sh "$SB"/plugins/*.sh; do bash -n "$f" || return 1; done
 }
 executable_ok() {
   local f
@@ -36,7 +36,7 @@ plugins_exist() {
 symbols_defined() {
   local v
   for v in $(grep -ho '\$[A-Z][A-Z_0-9]*' "$SB"/sketchybarrc "$SB"/plugins/*.sh | tr -d '$' | sort -u); do
-    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | SENDER | MAX_ENTRIES | SELF | HOLD | STEP | CACHE | ICON_SIZE | TEXT_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | PRESS_PANEL | PRESS_MAX_SECONDS | DRAG_FLAG_MAX_SECONDS | DRAGGING | STRIP_HEIGHT | DRAG_THRESHOLD | GHOST | RELEASE_GRACE | GLIDE_FRAMES | TINT_FRAMES | DIM_ICON | DIM_BACKGROUND | TARGET_BACKGROUND | LEFT_COLUMN_LIMIT | ids | slot | focused | source_slot | target_slot | mode | SWAPPING | PARK | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | AGAIN | LOCK | SLOTS | NATURAL | NAME_W | NAME_WIDTH | MEDIA_CHARS | CAP | MAIN_SCREEN | SLOT_STEP | SPARE_FOR_MORE | CHAR_WIDTH_TENTHS | MEDIA_OVERHEAD | MEDIA_MIN_CHARS | MEDIA_MAX_CHARS | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS | SLIDE_FRAMES | TEXT_FRAMES | SLIDE_SECONDS | TEXT_DELAY_SECONDS | BACKDROP | BACKDROP_SCALE | COVER_HEIGHT | QUIET_POLLS | STEADY_POLLS | KEY_WAIT_POLLS | MAX_KEYS | INTENT | DRIVER | BUSY | BUTTONS | BUNDLE | COVER_BUSY | SETTLER | SETTLE_MAX | MENU_DELAY | REMEMBER_SECONDS | LOCK_TRIES | PRESS_MENU | COVER_GRACE | MENU_DRIVER | FIRST_WAIT | PICK | EMPTIED_SECONDS | ASKED_SECONDS | emptied | prev | line | DIRTY | RECONNECT_SECONDS | DISMISS_X | DISMISS_Y | idle | handled | seen | intent | serial | visible | away | polls | keys | was | wanted | SPREAD_ITEMS | MAX_LENGTH | LOCATE_SECONDS | USER_AGENT | KNOWN_NEW_MOON | SYNODIC_MONTH | OWNER | PAD_LEFT | PAD_RIGHT | FRAMES_PER_POINT | FRAME_RATE | HOLD_SECONDS | END_MARGIN | SHORTCUT | SHORTCUT_SECONDS | APPLE_OUT | MEDIA_BUNDLE | WALLPAPER_INDEX | WALLPAPER_SETTLE_SECONDS | BACKDROP_SECONDS | LOCK_STALE_SECONDS) continue ;; esac
+    case "$v" in CONFIG_DIR | PLUGIN_DIR | FONT | HOME | NAME | INFO | FOCUSED_WORKSPACE | SENDER | MAX_ENTRIES | SELF | HOLD | STEP | CACHE | ICON_SIZE | TEXT_SIZE | NERD_FONT | APPLE_SIZE | APPLE_FONT | APP_ICON_FONT | POLL | MAX_POLLS | SETTLE_POLLS | CTL | GRACE_POLLS | STATE | PRESS_PANEL | PRESS_MAX_SECONDS | DRAG_FLAG_MAX_SECONDS | DRAGGING | STRIP_HEIGHT | DRAG_THRESHOLD | GHOST | RELEASE_GRACE | GLIDE_FRAMES | TINT_FRAMES | DIM_ICON | DIM_BACKGROUND | TARGET_BACKGROUND | LEFT_COLUMN_LIMIT | ids | slot | focused | source_slot | target_slot | mode | SWAPPING | PARK | COVER_CACHE | FADE_FRAMES | SLOT_WIDTH | HIDDEN_ICON | AGAIN | LOCK | SLOTS | NATURAL | NAME_W | NAME_WIDTH | MEDIA_CHARS | CAP | MAIN_SCREEN | SLOT_STEP | SPARE_FOR_MORE | CHAR_WIDTH_TENTHS | MEDIA_OVERHEAD | MEDIA_MIN_CHARS | MEDIA_MAX_CHARS | ANIMATION_CURVE | ANIMATION_FRAMES | ANIMATION_SECONDS | SLIDE_FRAMES | TEXT_FRAMES | SLIDE_SECONDS | TEXT_DELAY_SECONDS | BACKDROP | BACKDROP_SCALE | COVER_HEIGHT | QUIET_POLLS | STEADY_POLLS | KEY_WAIT_POLLS | MAX_KEYS | INTENT | DRIVER | BUSY | BUTTONS | BUNDLE | COVER_BUSY | SETTLER | SETTLE_MAX | MENU_DELAY | REMEMBER_SECONDS | LOCK_TRIES | PRESS_MENU | COVER_GRACE | MENU_DRIVER | FIRST_WAIT | PICK | EMPTIED_SECONDS | ASKED_SECONDS | emptied | prev | line | DIRTY | RECONNECT_SECONDS | DISMISS_X | DISMISS_Y | idle | handled | seen | intent | serial | visible | away | polls | keys | was | wanted | SPREAD_ITEMS | MAX_LENGTH | LOCATE_SECONDS | USER_AGENT | KNOWN_NEW_MOON | SYNODIC_MONTH | OWNER | PAD_LEFT | PAD_RIGHT | FRAMES_PER_POINT | FRAME_RATE | HOLD_SECONDS | END_MARGIN | SHORTCUT | SHORTCUT_SECONDS | APPLE_OUT | MEDIA_BUNDLE | WALLPAPER_INDEX | WALLPAPER_SETTLE_SECONDS | BACKDROP_SECONDS | LOCK_STALE_SECONDS | BUSY_STALE_SECONDS | MEDIA_CONTROL_SECONDS | AEROSPACE_BIN | PLACE | PLACE_MAX_HOURS) continue ;; esac
     grep -q "^$v=" "$SB/colors.sh" "$SB/icons.sh" || {
       echo "undefined: $v" >&2
       return 1
@@ -154,7 +154,7 @@ control_click_does_not_reopen() {
   # poll late still knows the panel was open.
   local cc="$SB/plugins/controlcenter.sh" press visible
   press="$(grep -n 'PRESS_PANEL" 2>/dev/null)" = open' "$cc" | cut -d: -f1)"
-  visible="$(grep -n '"$CTL" visible; then' "$cc" | cut -d: -f1)"
+  visible="$(grep -n 'ctl visible; then' "$cc" | cut -d: -f1)"
   [ -n "$press" ] && [ -n "$visible" ] && [ "$press" -lt "$visible" ] || return 1
   grep -q 'echo "$panel" >"$PRESS_PANEL"' "$SB/plugins/drag.sh" && grep -q 'wasOpen' "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" || return 1
   # Fast clicks: one script drives the panel and the cover, the others only change what is wanted.
@@ -283,8 +283,8 @@ native_bar_stays_hidden() {
   awk '/^off\)/,/;;/' "$c" | grep -q 'covered && ! needed' && ! grep -q 'COVER_ON' "$c" || return 1
   local need
   need="$(awk '/^needed\(\) \{/,/^\}/' "$c")"
-  grep -q '"$CTL" top' <<<"$need" && grep -q '"$CTL" visible' <<<"$need" && grep -q 'DRIVER/pid' <<<"$need" &&
-    grep -q '"$CTL" shown "$MENU_EXTRA_BUNDLE"' <<<"$need" && grep -q '^MENU_EXTRA_BUNDLE="com.vorssaint.utils"' "$SB/colors.sh"
+  grep -q 'ctl top' <<<"$need" && grep -q 'ctl visible' <<<"$need" && grep -q 'DRIVER/pid' <<<"$need" &&
+    grep -q 'ctl shown "$MENU_EXTRA_BUNDLE"' <<<"$need" && grep -q '^MENU_EXTRA_BUNDLE="com.vorssaint.utils"' "$SB/colors.sh"
 }
 vorssaint_pill() {
   # Vorssaint lives in the hidden system menu bar: a pill next to Control Center opens its menu through Accessibility (the

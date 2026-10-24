@@ -6,6 +6,9 @@
 # appear or disappear so the pills next to them glide instead of jumping.
 # shellcheck disable=SC1091
 source "$CONFIG_DIR/colors.sh"
+source "$CONFIG_DIR/helpers.sh"
+AEROSPACE_BIN="$(command -v aerospace)"
+aerospace() { bounded 3 "$AEROSPACE_BIN" "$@"; } # a hung answer held the lock, and refreshes piled up behind it
 
 STATE="$HOME/.cache/sketchybar/spaces"
 DRAGGING="$HOME/.cache/sketchybar/dragging"

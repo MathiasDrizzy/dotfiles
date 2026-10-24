@@ -11,6 +11,7 @@
 # The bar is always topmost: toggling topmost recreates its window and blanks the pills.
 # shellcheck disable=SC1091
 source "$CONFIG_DIR/colors.sh"
+source "$CONFIG_DIR/helpers.sh"
 
 CTL="$HOME/.local/bin/ctlcenter"
 CACHE="$HOME/.cache/sketchybar"
@@ -39,12 +40,12 @@ remember() {
   local tmp bgra scale
   tmp="$(mktemp -d)" || return
   mkdir -p "$CACHE"
-  if scale="$(/usr/bin/perl -e 'alarm shift; exec @ARGV' "$BACKDROP_SECONDS" "$CTL" backdrop "$tmp/backdrop.png" "$COVER_HEIGHT" 2>/dev/null)"; then
+  if scale="$(bounded "$BACKDROP_SECONDS" "$CTL" backdrop "$tmp/backdrop.png" "$COVER_HEIGHT" 2>/dev/null)"; then
     mv "$tmp/backdrop.png" "$BACKDROP"
     echo "$scale" >"$BACKDROP_SCALE"
   fi
-  if screencapture -x -R0,0,800,3 "$tmp/edge.png" 2>/dev/null &&
-    sips -s format bmp -z 1 1 "$tmp/edge.png" --out "$tmp/pixel.bmp" >/dev/null 2>&1; then
+  if bounded 5 screencapture -x -R0,0,800,3 "$tmp/edge.png" 2>/dev/null &&
+    bounded 5 sips -s format bmp -z 1 1 "$tmp/edge.png" --out "$tmp/pixel.bmp" >/dev/null 2>&1; then
     bgra="$(tail -c 4 "$tmp/pixel.bmp" | xxd -p)"
     printf '0xff%s%s%s\n' "${bgra:4:2}" "${bgra:2:2}" "${bgra:0:2}" >"$COVER_CACHE"
   fi
@@ -80,8 +81,8 @@ hide() {
 covered() { [ "$(sketchybar --query cover | jq -r '.geometry.drawing')" = on ]; }
 
 needed() {
-  "$CTL" top || kill -0 "$(cat "$DRIVER/pid" 2>/dev/null)" 2>/dev/null || kill -0 "$(cat "$MENU_DRIVER/pid" 2>/dev/null)" 2>/dev/null ||
-    "$CTL" visible || "$CTL" shown "$MENU_EXTRA_BUNDLE"
+  ctl top || kill -0 "$(cat "$DRIVER/pid" 2>/dev/null)" 2>/dev/null || kill -0 "$(cat "$MENU_DRIVER/pid" 2>/dev/null)" 2>/dev/null ||
+    ctl visible || ctl shown "$MENU_EXTRA_BUNDLE"
 }
 
 # on and off one at a time: an off that checked just before the pointer came back would otherwise hide the cover under it.

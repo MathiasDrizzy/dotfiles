@@ -6,6 +6,7 @@
 # after every press) moves the pill right above it.
 # shellcheck disable=SC1091
 source "$CONFIG_DIR/colors.sh"
+source "$CONFIG_DIR/helpers.sh"
 
 CTL="$HOME/.local/bin/ctlcenter"
 BUNDLE="$MENU_EXTRA_BUNDLE"
@@ -33,7 +34,7 @@ SPREAD_ITEMS=(battery date clock) # the items right of this one whose labels wid
 # at their least widths.
 align() {
   local extra x width current wanted least=() now=() total=0 share item i args=()
-  extra="$(osascript -e "tell application \"System Events\" to tell (first process whose bundle identifier is \"$BUNDLE\") to \
+  extra="$(bounded 5 osascript -e "tell application \"System Events\" to tell (first process whose bundle identifier is \"$BUNDLE\") to \
 get {position, size} of menu bar item 1 of menu bar 2" 2>/dev/null)" || return 0
   IFS=', ' read -r x _ width _ <<<"$extra"
   current="$(sketchybar --query vorssaint | jq -r '.bounding_rects | to_entries[0].value.origin[0] | floor')"
@@ -87,7 +88,7 @@ trap 'rm -f "$DRIVER/pid"; rmdir "$DRIVER" 2>/dev/null' EXIT
 align & # the extra moves only when other extras come or go: the next press finds the pill in place
 "$CONFIG_DIR/plugins/cover.sh" on
 visible=false
-"$CTL" shown "$BUNDLE" && visible=true
+ctl shown "$BUNDLE" && visible=true
 if press_saw_menu || $visible; then set_intent closed; else set_intent open; fi
 read -r _ handled <"$INTENT"
 
@@ -108,7 +109,7 @@ away=0
 while [ "$polls" -lt "$MAX_POLLS" ]; do
   read -r intent serial <"$INTENT"
   visible=false
-  "$CTL" shown "$BUNDLE" && visible=true
+  ctl shown "$BUNDLE" && visible=true
   if [ "$visible" != "$was" ]; then
     was="$visible"
     changed_at="$polls"
