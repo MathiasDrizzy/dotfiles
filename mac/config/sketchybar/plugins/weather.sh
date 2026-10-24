@@ -6,21 +6,28 @@
 # Current Weather, then its Temperature); without it, Open-Meteo's, a different source that can be a degree off. None of
 # them needs a key. Offline it keeps the last text.
 
-LOCATE_SECONDS=15                        # CoreLocationCLI waits for a fix (or for the permission dialog) at most this long
+LOCATE_SECONDS="${LOCATE_SECONDS:-15}"   # CoreLocationCLI waits for a fix (or for the permission dialog) at most this long
 USER_AGENT="dotfiles-sketchybar-weather" # Nominatim's usage policy asks every client to name itself
 SHORTCUT="Temperatura barra"
 SHORTCUT_SECONDS=20 # a shortcut that hangs (a permission dialog) is given up after this long
 CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/sketchybar"
 APPLE_OUT="$CACHE/weather_apple" # Shortcuts writes nothing into the system temporary folder: a file there came back empty
+PLACE="$CACHE/weather_place"     # the last place Location Services gave, "latitude<TAB>longitude<TAB>commune"
+PLACE_MAX_HOURS=12               # a slow fix (a loaded Mac) reuses it instead of the network's commune, which is the provider's
 
 here() { # "latitude<TAB>longitude<TAB>commune" (the commune only from Location Services)
   local found
   if command -v CoreLocationCLI >/dev/null 2>&1; then
     found="$(perl -e 'alarm shift; exec @ARGV' "$LOCATE_SECONDS" CoreLocationCLI --format $'%latitude\t%longitude\t%locality' 2>/dev/null)"
-    if [[ "$found" =~ ^-?[0-9.]+$'\t'-?[0-9.]+$'\t' ]]; then
+    if [[ "$found" =~ ^-?[0-9.]+$'\t'-?[0-9.]+$'\t'.+ ]]; then
+      mkdir -p "$CACHE" && echo "$found" >"$PLACE"
       echo "$found"
       return
     fi
+  fi
+  if [ -s "$PLACE" ] && [ -n "$(/usr/bin/find "$PLACE" -mmin -$((PLACE_MAX_HOURS * 60)) 2>/dev/null)" ]; then
+    cat "$PLACE"
+    return
   fi
   curl -fsS --max-time 10 'https://wttr.in/?format=j1' 2>/dev/null |
     jq -r '.nearest_area[0] | "\(.latitude)\t\(.longitude)\t"' 2>/dev/null
