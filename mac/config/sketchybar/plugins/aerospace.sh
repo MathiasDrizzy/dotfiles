@@ -96,10 +96,11 @@ mkdir -p "$(dirname "$STATE")"
 LOCK="$HOME/.cache/sketchybar/spaces_busy"
 AGAIN="$HOME/.cache/sketchybar/spaces_again"
 [ -z "$(/usr/bin/find "$LOCK" -mtime +10s 2>/dev/null)" ] || rmdir "$LOCK" 2>/dev/null # left behind by a killed run
-mkdir "$LOCK" 2>/dev/null || {
+if ! mkdir "$LOCK" 2>/dev/null; then
   touch "$AGAIN"
-  exit 0
-}
+  # The holder may have let go before the note landed: take over then, or leave it to the holder, which looks after letting go.
+  mkdir "$LOCK" 2>/dev/null || exit 0
+fi
 trap 'rmdir "$LOCK" 2>/dev/null' EXIT
 rm -f "$AGAIN"
 previous=" $(cat "$STATE" 2>/dev/null) "
@@ -241,9 +242,7 @@ if [ "${#shrink[@]}" -gt 0 ]; then
 fi
 # What is drawn changed: the boxes may no longer fit beside each other (fit.sh).
 [ " $shown " = "$previous" ] || "$CONFIG_DIR/plugins/fit.sh" left
-if [ -e "$AGAIN" ]; then
-  rmdir "$LOCK" 2>/dev/null
-  trap - EXIT
-  exec "$0" "$@"
-fi
+rmdir "$LOCK" 2>/dev/null
+trap - EXIT
+[ ! -e "$AGAIN" ] || exec "$0" "$@" # a note left while it ran (looked at after letting go, so none is lost)
 exit 0
