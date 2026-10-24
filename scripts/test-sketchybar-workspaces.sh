@@ -55,9 +55,8 @@ printf '#!/bin/sh\nexit 0\n' >"$T/bin/blueutil"
 printf '#!/bin/sh\nexit 0\n' >"$T/bin/media-control"
 chmod +x "$T/bin/blueutil" "$T/bin/media-control"
 
-bar_pid=""
 cleanup() {
-  [ -n "$bar_pid" ] && kill "$bar_pid" 2>/dev/null
+  pkill -f "$T/name/$NAME" 2>/dev/null # the test bar: its own binary name, in this run's own directory
   # Only the plugins this run's bar started (CONFIG_DIR is inside its own temporary directory): the stubs in $T/bin run and
   # return, so nothing else of this run lives on, and nothing outside it can match.
   pkill -f "$CONFIG_DIR/plugins/" 2>/dev/null
@@ -100,7 +99,6 @@ residue() {
 focus_rows 1
 sketchybar --version >/dev/null 2>&1 || true
 (sketchybar --config "$RC" >>"$T/bar.log" 2>&1 &)
-bar_pid="$(pgrep -f "$T/name/$NAME" | head -1)"
 for _ in $(seq "$START_TRIES"); do
   [ "$(sketchybar --query bar 2>/dev/null | jq -r '.position')" = bottom ] && break
   sleep 0.1
