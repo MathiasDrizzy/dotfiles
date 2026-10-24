@@ -91,6 +91,8 @@ The weather box finds the commune with [CoreLocationCLI](https://github.com/full
 
 AeroSpace starts it and notifies it of workspace changes. Reload after editing: `sketchybar --reload`. Installed by `install.sh`.
 
+Tabs are named after what runs in them by the [Auto Title](https://github.com/kryptamine/herdr-auto-title) herdr plugin (`install.sh` installs it, pinned to a release; it needs `ui.prompt_new_tab_name = false`, already set). A tab you rename by hand keeps its name.
+
 The sidebar is [lazyfinder](https://github.com/MathiasDrizzy/lazyfinder) as a herdr plugin (`install.sh` installs it): it docks on the left of each tab and follows the folder of the terminal next to it. Its width, side and auto-open are lazyfinder's own settings (`herdr.width`, `herdr.dock`, `herdr.auto_open`).
 
 ## herdr-ctl (Go, `mac/tools/herdr-ctl`)

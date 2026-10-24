@@ -292,6 +292,18 @@ if [ "$LINKS_ONLY" = false ]; then
       echo "  [AVISO] No se instaló el plugin lazyfinder; reintenta: herdr plugin install --yes MathiasDrizzy/lazyfinder"
   fi
 
+  # 14. Auto Title names the tabs after what runs in them (ui.prompt_new_tab_name = false in the herdr config makes tabs
+  # without a prompt; a tab you rename by hand is left alone). Pinned: a plugin runs with your permissions, so a new
+  # release is read before the pin moves. It builds with Go and starts with the herdr server (or the restart action).
+  AUTO_TITLE_REF=v0.14.0
+  if [ "$DRY_RUN" != true ] && command -v herdr >/dev/null 2>&1 &&
+    ! herdr plugin list 2>/dev/null | grep -q "^- herdr.auto-title "; then
+    echo "==> Plugin de herdr: Auto Title $AUTO_TITLE_REF..."
+    herdr plugin install --yes kryptamine/herdr-auto-title --ref "$AUTO_TITLE_REF" &&
+      { herdr plugin action invoke herdr.auto-title.restart >/dev/null 2>&1 || true; } ||
+      echo "  [AVISO] No se instaló el plugin Auto Title; reintenta: herdr plugin install --yes kryptamine/herdr-auto-title --ref $AUTO_TITLE_REF"
+  fi
+
 fi
 
 echo "============================================================"
