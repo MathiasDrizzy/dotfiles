@@ -293,12 +293,14 @@ if [ "$LINKS_ONLY" = false ]; then
   fi
 
   # 14. Auto Title names the tabs after what runs in them (ui.prompt_new_tab_name = false in the herdr config makes tabs
-  # without a prompt; a tab you rename by hand is left alone). Pinned: a plugin runs with your permissions, so a new
-  # release is read before the pin moves. It builds with Go and starts with the herdr server (or the restart action).
-  AUTO_TITLE_REF=v0.14.0
+  # without a prompt; a tab you rename by hand is left alone). Pinned to a commit, not a tag (a tag can be moved): a plugin
+  # runs with your permissions, so a new release is read before the pin moves. Installed again whenever another commit is
+  # installed, so moving the pin updates every machine. It builds with Go and starts with the herdr server (or the restart
+  # action).
+  AUTO_TITLE_REF=e7fbd5717cc4293d2768a8792d7b331f69595474 # v0.14.0
   if [ "$DRY_RUN" != true ] && command -v herdr >/dev/null 2>&1 &&
-    ! herdr plugin list 2>/dev/null | grep -q "^- herdr.auto-title "; then
-    echo "==> Plugin de herdr: Auto Title $AUTO_TITLE_REF..."
+    ! herdr plugin list 2>/dev/null | grep -q "^- herdr.auto-title .*@$AUTO_TITLE_REF\]"; then
+    echo "==> Plugin de herdr: Auto Title ${AUTO_TITLE_REF:0:7}..."
     herdr plugin install --yes kryptamine/herdr-auto-title --ref "$AUTO_TITLE_REF" &&
       { herdr plugin action invoke herdr.auto-title.restart >/dev/null 2>&1 || true; } ||
       echo "  [AVISO] No se instaló el plugin Auto Title; reintenta: herdr plugin install --yes kryptamine/herdr-auto-title --ref $AUTO_TITLE_REF"

@@ -125,6 +125,7 @@ stub CoreLocationCLI "printf '%s\\t%s\\t\\n' -33.437 -70.650"
 NAME=weather /usr/bin/perl -e 'alarm shift; exec @ARGV' 30 "$CONFIG_DIR/plugins/weather.sh" >/dev/null 2>&1
 check "weather.sh: a fix without a commune is still used" 1 "$(grep -c 'label=Conchalí 15°C' "$T/sketchybar.log" | tr -d ' ')"
 check "weather.sh: ...and is not remembered as a place" 0 "$([ -e "$CACHE/weather_place" ] && echo 1 || echo 0)"
+check "weather.sh: ...and leaves nothing running" 0 "$(hung)"
 
 if [ "$fails" -eq 0 ]; then echo "test-sketchybar-no-pileup: PASS"; else
   echo "test-sketchybar-no-pileup: $fails FAILED"
