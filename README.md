@@ -13,10 +13,9 @@ dotfiles/
 │   ├── scripts/                # check-links.sh, herdr-reload.sh, terminal-popup.sh
 │   └── tools/herdr-ctl/        # Go tool: cheatsheet, agent bus, keys-check
 ├── scripts/
-│   ├── harness-quick.sh        # quick harness (run by the pre-commit hook)
-│   ├── harness-behavior.py     # behavior harness against an isolated herdr
-│   ├── test-install-full.sh    # full install in a sandbox
-│   └── hooks/                  # versioned pre-commit and post-commit hooks (core.hooksPath)
+│   ├── go-checks.sh            # herdr-ctl: vet, test -race, golangci-lint, govulncheck
+│   ├── lint-shell.sh           # shellcheck and shfmt
+│   └── test-install-full.sh    # full install in a sandbox
 └── docs/adr/                   # architecture decision records
 ```
 
@@ -116,21 +115,19 @@ afocus <agent>          # jump to its pane                 (herdr-ctl focus)
 
 ## Aliases (in `mac/zshrc`)
 
-`lg` lazygit · `ld` lazydocker · `sftp` termscp · `hosts` sshs · `y` yazi (leaves the shell in the folder you exit from) · `sb` lazyfinder sidebar · `agy` Antigravity CLI (fallback agent) · `claude` Claude Code (updates itself, then opens in bypass mode; `command claude` skips that) · `brewup` (non-interactive: no prompts, never asks for a password), `brewout` Homebrew.
+`lg` lazygit · `ld` lazydocker · `sftp` termscp · `hosts` sshs · `y` yazi (leaves the shell in the folder you exit from) · `sb` lazyfinder sidebar · `agy` Antigravity CLI (fallback agent) · `brewup` (non-interactive: no prompts, never asks for a password), `brewout` Homebrew.
 
 ## Development and testing
 
 ```bash
-git config core.hooksPath scripts/hooks   # install.sh does this
-scripts/harness-quick.sh                  # quick: no local-network data, syntax, go vet/test, keys-check
-python3 scripts/harness-behavior.py -v    # opens an isolated herdr and really tests the shortcuts
+scripts/lint-shell.sh                     # shellcheck and shfmt
+scripts/go-checks.sh                      # herdr-ctl: vet, test -race, golangci-lint, govulncheck
 scripts/test-install-full.sh              # full install in a sandbox with a temporary HOME
 scripts/test-sketchybar-fit.sh            # by hand: no bar box overlaps another or the camera housing (a throwaway bar shows at the bottom of the screen for ~20 s)
 ```
 
-* The **pre-commit** hook runs the quick harness and, if the commit touches herdr, scripts or `zshrc`, the behavior harness too.
-* The **behavior harness** uses a temporary HOME and its own session (it does not touch your herdr). It checks that `prefix+h` opens the cheatsheet and `q`/`Esc` close it, that the terminal popup closes with `Esc`, that `prefix+f` runs the lazyfinder plugin's toggle action, that the arrow keys move focus, that `Shift+arrows` swap panes and that `prefix+Shift+R` stays herdr's own `reload_config`.
-* The repo is **public**: no local-network IPs, hostnames, passwords or tokens (the harness enforces it).
+* Development runs under the gentle-ai harness (ODD workflow, Engram memory, CodeGraph); the repo keeps no git hooks of its own.
+* The repo is **public**: no local-network IPs, hostnames, passwords or tokens.
 
 ## Documentation
 
