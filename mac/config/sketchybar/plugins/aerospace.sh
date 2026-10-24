@@ -91,6 +91,17 @@ sketchybar --query ext_spaces >/dev/null 2>&1 || exit 0
 # A workspace shows when it is focused, visible on its monitor (even empty) or has windows. fit.sh caps how many slots
 # fit beside the weather box; the focused and visible ones always stay, the rest give way (the pill says "+N").
 mkdir -p "$(dirname "$STATE")"
+# One refresh at a time: a call that finds another one running leaves a note and the running one goes round once more, so
+# the last change is always the one drawn (two refreshes interleaving would read and write the state half done).
+LOCK="$HOME/.cache/sketchybar/spaces_busy"
+AGAIN="$HOME/.cache/sketchybar/spaces_again"
+[ -z "$(/usr/bin/find "$LOCK" -mtime +10s 2>/dev/null)" ] || rmdir "$LOCK" 2>/dev/null # left behind by a killed run
+mkdir "$LOCK" 2>/dev/null || {
+  touch "$AGAIN"
+  exit 0
+}
+trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+rm -f "$AGAIN"
 previous=" $(cat "$STATE" 2>/dev/null) "
 occupied=" $(aerospace list-windows --all --format '%{workspace}' 2>/dev/null | sort -u | tr '\n' ' ') "
 cap="$(cat "$CAP" 2>/dev/null)"
@@ -230,4 +241,9 @@ if [ "${#shrink[@]}" -gt 0 ]; then
 fi
 # What is drawn changed: the boxes may no longer fit beside each other (fit.sh).
 [ " $shown " = "$previous" ] || "$CONFIG_DIR/plugins/fit.sh" left
+if [ -e "$AGAIN" ]; then
+  rmdir "$LOCK" 2>/dev/null
+  trap - EXIT
+  exec "$0" "$@"
+fi
 exit 0
