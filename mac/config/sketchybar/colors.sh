@@ -35,7 +35,6 @@ SPACE_BLOCK=$MAUVE    # the focused workspace
 EXT_BLOCK=$BLUE       # the focused workspace when it is on another monitor
 APP_NAME_MIN_WIDTH=40 # the front app name never shrinks below this (fit.sh)
 APP_BLOCK=$GREEN      # the front app's block and its arrow
-MOON_BLOCK=$SAPPHIRE  # his moon box, solid
 APPLE_BG=$PEACH       # the Apple block: at rest, under the pointer, with its popup open
 APPLE_ICON=$BASE
 APPLE_HOVER=$YELLOW

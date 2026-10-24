@@ -196,11 +196,10 @@ sketchybar --add item weather q \
   --subscribe weather system_woke
 pill weather
 sketchybar --add item weather.moon q \
-  --set weather.moon icon.font="$NERD_FONT:Bold:$MOON_SIZE" icon.color="$CRUST" \
+  --set weather.moon icon.font="$NERD_FONT:Bold:$MOON_SIZE" icon.color="$TEXT" \
   icon.padding_left=4 icon.padding_right=3 label.drawing=off update_freq=3600 script="$PLUGIN_DIR/moon.sh" \
   --subscribe weather.moon system_woke
 pill weather.moon
-sketchybar --set weather.moon background.color="$MOON_BLOCK"
 
 # --- Right of the notch: his Spotify (the logo, green while playing, then "title  artist"), for whatever plays ---
 # media.sh slides it open and closed (our animation); a click plays or pauses.
