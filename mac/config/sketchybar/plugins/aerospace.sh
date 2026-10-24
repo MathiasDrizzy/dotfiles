@@ -94,8 +94,9 @@ mkdir -p "$(dirname "$STATE")"
 # One refresh at a time: a call that finds another one running leaves a note and the running one goes round once more, so
 # the last change is always the one drawn (two refreshes interleaving would read and write the state half done).
 LOCK="$HOME/.cache/sketchybar/spaces_busy"
+LOCK_STALE_SECONDS=10 # a refresh takes a fraction of a second; a lock this old was left by a killed run
 AGAIN="$HOME/.cache/sketchybar/spaces_again"
-[ -z "$(/usr/bin/find "$LOCK" -mtime +10s 2>/dev/null)" ] || rmdir "$LOCK" 2>/dev/null # left behind by a killed run
+[ -z "$(/usr/bin/find "$LOCK" -mtime +"$LOCK_STALE_SECONDS"s 2>/dev/null)" ] || rmdir "$LOCK" 2>/dev/null # left behind by a killed run
 if ! mkdir "$LOCK" 2>/dev/null; then
   touch "$AGAIN"
   # The holder may have let go before the note landed: take over then, or leave it to the holder, which looks after letting go.

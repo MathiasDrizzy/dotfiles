@@ -58,8 +58,7 @@ chmod +x "$T/bin/blueutil" "$T/bin/media-control"
 bar_pid=""
 cleanup() {
   [ -n "$bar_pid" ] && kill "$bar_pid" 2>/dev/null
-  pkill -f "$CONFIG_DIR/plugins/" 2>/dev/null
-  pkill -f "$T/" 2>/dev/null
+  pkill -f "$CONFIG_DIR/plugins/" 2>/dev/null # only what this run started: CONFIG_DIR is inside its own temporary directory
   wait 2>/dev/null
   rm -rf "$T"
   rm -f "/tmp/${NAME}_$(id -un).lock"
@@ -167,9 +166,10 @@ sleep 3 # runs that started while it was slow are still finishing
 check "...and leaves no lock or note behind" "" "$(residue)"
 
 # cover.sh remember: ctlcenter backdrop hung for days at 10% of a core. It gets a time limit and is gone after it.
-cat >"$HOME/.local/bin/ctlcenter" <<'EOF2'
+SLEEPER="300$$" # a duration no other process on the machine has, so the checks below see only this run's sleeper
+cat >"$HOME/.local/bin/ctlcenter" <<EOF2
 #!/bin/bash
-[ "$1" = backdrop ] && exec sleep 300
+[ "\$1" = backdrop ] && exec sleep $SLEEPER
 exit 1
 EOF2
 chmod +x "$HOME/.local/bin/ctlcenter"
@@ -177,7 +177,7 @@ start=$(date +%s)
 BACKDROP_SECONDS=1 "$CONFIG_DIR/plugins/cover.sh" remember >/dev/null 2>&1
 elapsed=$(($(date +%s) - start))
 check "a hung ctlcenter backdrop is stopped by its time limit" 1 "$([ "$elapsed" -le 5 ] && echo 1 || echo "$elapsed s")"
-check "...and no sleeper is left running" 0 "$(pgrep -f 'sleep 300' | wc -l | tr -d ' ')"
+check "...and no sleeper is left running" 0 "$(pgrep -f "sleep $SLEEPER" | wc -l | tr -d ' ')"
 
 if grep -qiE 'error|invalid|unknown' "$T/bar.log"; then
   echo "FAIL  the bar logged: $(tr '\n' ' ' <"$T/bar.log")"
