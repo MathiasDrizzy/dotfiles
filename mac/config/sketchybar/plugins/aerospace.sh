@@ -83,25 +83,6 @@ mouse.exited)
 esac
 [ "$2" = refresh ] || exit 0
 [ -e "$SWAPPING" ] && exit 0
-# The focus moves on screen at once: the full refresh below waits for AeroSpace's answers (about a tenth of a second), and
-# paints what is left (the other pills, the sizes) over this. Only for pills that are already drawn.
-# The focus is asked of AeroSpace, never taken from the event: events race each other and a late one carries a focus that is
-# already gone (the same goes for the run a note brings back, which keeps its first event's environment).
-if [ "$SENDER" = aerospace_workspace_change ]; then
-  FOCUS_PREV="$HOME/.cache/sketchybar/focused"
-  now_focused="$(aerospace list-workspaces --focused 2>/dev/null)"
-  mkdir -p "$(dirname "$FOCUS_PREV")"
-  drawn=" $(cat "$STATE" 2>/dev/null) "
-  prev="$(cat "$FOCUS_PREV" 2>/dev/null)"
-  [ -z "$now_focused" ] || echo "$now_focused" >"$FOCUS_PREV"
-  quick=()
-  case "$drawn" in *" space.$prev "*) quick+=(--set "space.$prev" background.color="$TRANSPARENT" icon.color="$TEXT") ;; esac
-  case "$drawn" in *" ext.$prev "*) quick+=(--set "ext.$prev" background.color="$TRANSPARENT" icon.color="$TEXT") ;; esac
-  [ "$prev" = "$now_focused" ] && quick=()
-  case "$drawn" in *" space.$now_focused "*) quick+=(--set "space.$now_focused" background.color="$MAUVE" icon.color="$BASE") ;; esac
-  case "$drawn" in *" ext.$now_focused "*) quick+=(--set "ext.$now_focused" background.color="$EXT_BLOCK" icon.color="$BASE") ;; esac
-  [ -n "$now_focused" ] && [ "${#quick[@]}" -gt 0 ] && sketchybar "${quick[@]}"
-fi
 # The rc makes the items one by one and this item already ticks: wait until the last one (the other monitor's pill) exists.
 sketchybar --query ext_spaces >/dev/null 2>&1 || exit 0
 
@@ -122,8 +103,35 @@ if ! mkdir "$LOCK" 2>/dev/null; then
 fi
 trap 'rmdir "$LOCK" 2>/dev/null' EXIT
 rm -f "$AGAIN"
+# The focus is asked of AeroSpace, never taken from the event: events race each other, a late one carries a focus that is
+# already gone, and so does the run a note brings back (it keeps its first event's environment).
 real_focused="$(aerospace list-workspaces --focused 2>/dev/null)"
 [ -z "$real_focused" ] || focused="$real_focused"
+# The focus moves on screen at once, before the slow answers below (about a tenth of a second). Every pill of the focused
+# one's group is assigned, never just toggled, so racing runs cannot leave two focused or none; the other group (the other
+# monitor's pill) is left for the full refresh.
+quick=()
+quick_pill=""
+case " $(cat "$STATE" 2>/dev/null) " in
+*" space.$focused "*) quick_pill=space quick_block="$MAUVE" ;;
+*" ext.$focused "*) quick_pill=ext quick_block="$EXT_BLOCK" ;;
+esac
+if [ -n "$quick_pill" ]; then
+  read -r -a drawn_items <"$STATE"
+  for item in "${drawn_items[@]}"; do
+    case "$item" in
+    "$quick_pill.$focused") quick+=(--set "$item" background.color="$quick_block" icon.color="$BASE") ;;
+    "$quick_pill".*) quick+=(--set "$item" background.color="$TRANSPARENT" icon.color="$TEXT") ;;
+    esac
+  done
+  sketchybar "${quick[@]}"
+fi
+# A newer event is already waiting: paint its focus now. The slow part below is for the last event of a burst.
+if [ -e "$AGAIN" ]; then
+  rmdir "$LOCK" 2>/dev/null
+  trap - EXIT
+  exec "$0" "$@"
+fi
 previous=" $(cat "$STATE" 2>/dev/null) "
 occupied=" $(aerospace list-windows --all --format '%{workspace}' 2>/dev/null | sort -u | tr '\n' ' ') "
 cap="$(cat "$CAP" 2>/dev/null)"
@@ -135,6 +143,10 @@ in_list() {
 mac=() mac_must=() ext=() ext_must=()
 visible_ids=""
 rows="$(aerospace list-workspaces --all --format '%{workspace}|%{monitor-appkit-nsscreen-screens-id}|%{workspace-is-visible}|%{workspace-is-focused}' 2>/dev/null)"
+# The focus and the visible workspaces from one answer: asked apart, a switch in between painted the old focus next to the new
+# visible workspace (a ghost of the pill that was just left).
+snapshot_focused="$(awk -F'|' '$4 == "true" { print $1; exit }' <<<"$rows")"
+[ -z "$snapshot_focused" ] || focused="$snapshot_focused"
 # The external monitor's workspaces (eN) stay on the Mac once it is unplugged: they leave the bar with the monitor, unless one
 # has the focus.
 external_present=false
@@ -220,6 +232,12 @@ for item in $previous; do
     vanish+=("$item")
   fi
 done
+# What was worked out is a tenth of a second old: if a newer event came meanwhile, paint that one instead of this.
+if [ -e "$AGAIN" ]; then
+  rmdir "$LOCK" 2>/dev/null
+  trap - EXIT
+  exec "$0" "$@"
+fi
 printf '%s\n' "$shown" >"$STATE"
 
 # New items start squeezed and transparent, then grow; vanishing ones shrink and are dropped once the animation ends.
@@ -249,8 +267,9 @@ for side in space ext; do
   fi
 done
 
-# One call: the squeeze is instant, the colors and sizes animate together so the old and the new focus cross-fade.
-sketchybar "${gone[@]}" "${squeeze[@]}" "${extra[@]}" --animate "$ANIMATION_CURVE" "$ANIMATION_FRAMES" "${now[@]}" "${grow[@]}" "${shrink[@]}"
+# One call: the squeeze and the colors are instant (a fade left the pills half tinted, with no focus drawn, when the focus
+# changed faster than the fade ran), only the sizes animate.
+sketchybar "${gone[@]}" "${squeeze[@]}" "${extra[@]}" "${now[@]}" --animate "$ANIMATION_CURVE" "$ANIMATION_FRAMES" "${grow[@]}" "${shrink[@]}"
 if [ "${#shrink[@]}" -gt 0 ]; then
   sleep "$ANIMATION_SECONDS"
   # Hide only what is still gone: another refresh may have brought the workspace back meanwhile.
