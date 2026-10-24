@@ -227,20 +227,13 @@ if [ "$LINKS_ONLY" = false ]; then
       -o "$HOME/.config/btop/themes/catppuccin_mocha.theme" 2>/dev/null || true
   fi
 
-  # 8. Activar los hooks versionados del repo (pre-commit con el harness)
-  if [ "$DRY_RUN" = true ]; then
-    echo "  [DRY-RUN] git config core.hooksPath scripts/hooks"
-  else
-    git -C "$DOTFILES_DIR" config core.hooksPath scripts/hooks 2>/dev/null || true
-  fi
-
   # 9. Compilar herdr-ctl
   if [ "$DRY_RUN" = true ]; then
     echo "  [DRY-RUN] Validando compilación de herdr-ctl (go vet + build dry-run)..."
     (
       cd "$DOTFILES_DIR/tools/herdr-ctl"
       go vet ./...
-      # Sin `go test`: los tests de herdr-ctl los corre scripts/harness-quick.sh. Mantenerlos aquí acoplaba un test de Go
+      # Sin `go test`: los tests de herdr-ctl los corre scripts/go-checks.sh. Mantenerlos aquí acoplaba un test de Go
       # en rojo (fase roja de TDD) con el dry-run y con los checks de test-zshenv que lo ejecutan.
       go build -o /dev/null .
     )

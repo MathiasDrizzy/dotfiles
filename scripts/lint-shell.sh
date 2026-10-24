@@ -8,7 +8,7 @@ SHELLCHECK_PY_VERSION="0.11.0.1" # ships ShellCheck 0.11.0
 SHFMT_VERSION="v3.14.1"
 
 files=()
-while IFS= read -r f; do files+=("$f"); done < <(git ls-files '*.sh' 'scripts/hooks/*')
+while IFS= read -r f; do files+=("$f"); done < <(git ls-files '*.sh')
 
 echo "==> shellcheck (shellcheck-py ${SHELLCHECK_PY_VERSION})"
 uvx --quiet --from "shellcheck-py==${SHELLCHECK_PY_VERSION}" shellcheck "${files[@]}"

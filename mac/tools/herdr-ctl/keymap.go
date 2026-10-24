@@ -113,8 +113,7 @@ func parseRepoKeys(text string) (map[string]string, []Command) {
 }
 
 // undocumentedActions son acciones que herdr acepta aunque `herdr --default-config` no las liste.
-// VERIFICADO con el caso d2 de scripts/harness-behavior.py: sin estas líneas en el config,
-// prefix+shift+flechas deja de intercambiar cuadros. Si una versión futura las quita, d2 falla.
+// Verificado contra un herdr aislado: sin estas líneas en el config, prefix+shift+flechas deja de intercambiar cuadros.
 var undocumentedActions = map[string]bool{
 	"swap_pane_left": true, "swap_pane_right": true, "swap_pane_up": true, "swap_pane_down": true,
 }

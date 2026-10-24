@@ -240,7 +240,6 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
     'n="$(grep -c "^  \".*|\$HOME/" "$REPO/mac/scripts/check-links.sh")"; [ "$n" -ge 10 ]; o="$(HOME="$H" DOTFILES_BACKUP_DIR="$B/respaldos" "$REPO/mac/scripts/check-links.sh" --strict 2>&1 | strip)"; rc=$?; echo "$o" | grep -q " 0 Faltantes" && echo "$o" | grep -q "$n Symlinks OK" && echo "$o" | grep -q "0 Modificaciones Fuera de Git"'
   check "sin enlaces rotos" '[ "$(broken "$H")" = 0 ]'
   check "~/.zshenv es el enlace a mac/zshenv" '[ -L "$H/.zshenv" ] && [ "$(python3 -c "import os,sys;print(os.path.realpath(sys.argv[1]))" "$H/.zshenv")" = "$(python3 -c "import os,sys;print(os.path.realpath(sys.argv[1]))" "$REPO/mac/zshenv")" ]'
-  check "core.hooksPath quedó en la copia del repo, no en el real" '[ "$(git -C "$REPO" config --get core.hooksPath)" = "scripts/hooks" ]'
   if [ "$own" = 1 ]; then
     check "el ~/.zshenv propio quedó respaldado byte a byte y avisado" 'f="$(find "$B/respaldos" -name .zshenv | head -1)"; [ -n "$f" ] && [ "$(cat "$f")" = "export MI_VAR=propia  # contenido del usuario" ] && echo "$OUT" | strip | grep -q "RESPALDO"'
   else

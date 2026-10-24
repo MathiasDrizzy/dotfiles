@@ -21,3 +21,7 @@ ESTADO.md
 __pycache__/
 *.pyc
 .respaldos/
+
+# gentle-ai local state
+.atl/
+.codegraph/

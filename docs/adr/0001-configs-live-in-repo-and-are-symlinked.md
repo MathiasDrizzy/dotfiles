@@ -32,8 +32,7 @@ exists to forget. A dedicated manager would add a dependency to a setup that has
 * Good: the installer is idempotent and can run with `--links-only` in a temporary `HOME` for tests.
 * Bad: a tool that replaces its config file instead of writing through it breaks the link; `check-links.sh --fix`
   repairs it, keeping a backup.
-* Bad: the repo is public, so nothing machine-specific or secret may live in these files; the quick harness checks
-  for local network details.
+* Bad: the repo is public, so nothing machine-specific or secret may live in these files.
 
 ## More information
 
