@@ -24,6 +24,7 @@ MENU_DRIVER="$CACHE/menu_driver"
 COVER_HEIGHT=40 # points: the cover bar is this tall and starts at the top of the screen
 FADE_FRAMES=5   # the plain cover fades in and out instead of flashing
 REMEMBER_SECONDS=60
+BACKDROP_SECONDS="${BACKDROP_SECONDS:-10}"                                                # ctlcenter backdrop has hung for days at 10% of a core, each later call piling up behind it
 WALLPAPER_INDEX="$HOME/Library/Application Support/com.apple.wallpaper/Store/Index.plist" # macOS rewrites it on every change
 WALLPAPER_SETTLE_SECONDS=10                                                               # the new picture fades in; one taken before it ends still shows the old desktop
 LOCK_TRIES=50
@@ -38,7 +39,7 @@ remember() {
   local tmp bgra scale
   tmp="$(mktemp -d)" || return
   mkdir -p "$CACHE"
-  if scale="$("$CTL" backdrop "$tmp/backdrop.png" "$COVER_HEIGHT" 2>/dev/null)"; then
+  if scale="$(/usr/bin/perl -e 'alarm shift; exec @ARGV' "$BACKDROP_SECONDS" "$CTL" backdrop "$tmp/backdrop.png" "$COVER_HEIGHT" 2>/dev/null)"; then
     mv "$tmp/backdrop.png" "$BACKDROP"
     echo "$scale" >"$BACKDROP_SCALE"
   fi
