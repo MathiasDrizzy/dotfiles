@@ -12,7 +12,5 @@ phase="$(awk -v now="$(date +%s)" -v new="$KNOWN_NEW_MOON" -v month="$SYNODIC_MO
   age = ((now - new) / 86400) % month
   printf "%d", int(age / month * 8 + 0.5) % 8
 }')"
-# The full moon is a filled disc: in the box's dark ink it reads as a hole, so it is drawn light (the other phases keep the dark ink).
-color="$CRUST"
-[ "$phase" -ne 4 ] || color="$TEXT"
-sketchybar --set "$NAME" icon="${MOON_PHASES[$phase]}" icon.color="$color"
+# The glyph's filled part is the lit side, drawn light; the dark side is what the box shows through, so it is not seen.
+sketchybar --set "$NAME" icon="${MOON_PHASES[$phase]}" icon.color="$TEXT"
