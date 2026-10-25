@@ -25,6 +25,9 @@ final class WorkspacesModel {
     @ObservationIgnored private var refreshing = false
     @ObservationIgnored private var refreshAgain = false
     @ObservationIgnored private var fallback: Timer?
+    @ObservationIgnored private var gate = SwapGate()
+    /// A workspace dragged onto another (DragItem).
+    let drag = WorkspaceDragModel()
 
     /// AeroSpace's answers come in milliseconds; past this one it is not answering, and the bar keeps what it has.
     private static let queryTimeout: TimeInterval = 3
@@ -66,8 +69,23 @@ final class WorkspacesModel {
         Task { _ = await runner.run(aerospace, ["workspace", id], timeout: Self.queryTimeout, key: "focus \(id)") }
     }
 
+    /// Swaps the windows of two workspaces. The pills keep what they show meanwhile (the focus parks on an empty
+    /// workspace and the windows move one by one); at the end the focus is painted where the swap left it, and the
+    /// workspaces are read once.
+    func swap(from: String, to: String) async {
+        gate.begin()
+        let outcome = await WorkspaceSwap.run(
+            runner: runner, aerospace: aerospace, from: from, to: to, timeout: Self.queryTimeout)
+        guard gate.end() else { return }
+        if case .swapped(let focus?) = outcome {
+            state.focus(focus)
+            redraw()
+        }
+        refresh()
+    }
+
     private func handle(_ line: String) {
-        guard let event = AeroSpaceEvent.parse(line) else { return }
+        guard gate.allowRefresh(), let event = AeroSpaceEvent.parse(line) else { return }
         if case .focusedWorkspace(let id) = event, !id.isEmpty {
             state.focus(id)
             redraw()
@@ -76,6 +94,7 @@ final class WorkspacesModel {
     }
 
     private func refresh() {
+        guard gate.allowRefresh() else { return }
         if refreshing {
             refreshAgain = true
             return
@@ -89,6 +108,11 @@ final class WorkspacesModel {
             async let windows = runner.run(
                 aerospace, ["list-windows", "--all", "--format", "%{workspace}"], timeout: Self.queryTimeout)
             let (rowsAnswer, windowsAnswer) = await (workspaces, windows)
+            // A swap started meanwhile: what was read is half done, and the swap reads it all again at its end.
+            if gate.swapping {
+                refreshing = false
+                return
+            }
             let taken = state.apply(
                 rows: rowsAnswer.status == 0 ? Workspaces.parseRows(rowsAnswer.stdout) : nil,
                 occupied: windowsAnswer.status == 0 ? Workspaces.parseOccupied(windowsAnswer.stdout) : nil,
@@ -107,16 +131,34 @@ final class WorkspacesModel {
 struct WorkspacesView: View {
     let model: WorkspacesModel
 
+    /// The Mac's pill: its coordinates are the ones a drag follows.
+    nonisolated private static let macSpace = "macPill"
+
     var body: some View {
+        let mac = model.bar.mac
         HStack(spacing: Theme.pillGap) {
-            group(model.bar.mac, hidden: model.bar.hiddenMac, block: Theme.mauve)
+            // A workspace of the Mac's pill can be dragged onto another (as drag.sh, which followed only those): a press
+            // that moves less than 4 points is the click.
+            group(mac, hidden: model.bar.hiddenMac, block: Theme.mauve, draggable: true)
+                .coordinateSpace(name: Self.macSpace)
+                .overlay(alignment: .leading) { DragGhost(drag: model.drag) }
+                .gesture(
+                    DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.macSpace))
+                        .onChanged { model.drag.changed($0, pills: mac) }
+                        .onEnded { _ in model.drag.ended(pills: mac, workspaces: model) }
+                )
             if !model.bar.external.isEmpty {
                 group(model.bar.external, hidden: model.bar.hiddenExternal, block: Theme.blue, mark: true)
             }
         }
+        // The ghost travels over the boxes beside the pills: it is drawn above them.
+        .zIndex(1)
     }
 
-    private func group(_ pills: [Pill], hidden: Int, block: Color, mark: Bool = false) -> some View {
+    @ViewBuilder
+    private func group(_ pills: [Pill], hidden: Int, block: Color, mark: Bool = false, draggable: Bool = false)
+        -> some View
+    {
         // Each slot is 26 points plus 1 of padding on each side, side by side: SketchyBar's items in their bracket.
         HStack(spacing: 0) {
             if mark {
@@ -124,17 +166,29 @@ struct WorkspacesView: View {
                     .padding(.horizontal, 1)
             }
             ForEach(pills, id: \.id) { pill in
-                Text(pill.label)
+                let tint = draggable ? model.drag.tint(pill.id) : nil
+                let slot = Text(pill.label)
                     .font(Theme.textFont)
-                    .foregroundStyle(pill.state == .focused ? Theme.base : Theme.text)
+                    .foregroundStyle(tint?.text ?? (pill.state == .focused ? Theme.base : Theme.text))
                     .frame(width: Theme.slot, height: Theme.pillHeight)
                     .background(
                         RoundedRectangle(cornerRadius: Theme.pillRadius).fill(
-                            pill.state == .focused ? block : (pill.state == .visible ? Theme.surface1 : .clear))
+                            tint?.background
+                                ?? (pill.state == .focused ? block : (pill.state == .visible ? Theme.surface1 : .clear)))
                     )
-                    .padding(.horizontal, 1)
-                    .contentShape(Rectangle())
-                    .onTapGesture { model.focus(pill.id) }
+                if draggable {
+                    slot
+                        .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.macSpace)) } action: {
+                            model.drag.frames[pill.id] = $0
+                        }
+                        .padding(.horizontal, 1)
+                        .contentShape(Rectangle())
+                } else {
+                    slot
+                        .padding(.horizontal, 1)
+                        .contentShape(Rectangle())
+                        .onTapGesture { model.focus(pill.id) }
+                }
             }
             if hidden > 0 {
                 Text("+\(hidden)").font(Theme.textFont).foregroundStyle(Theme.overlay0).padding(.horizontal, 4)
