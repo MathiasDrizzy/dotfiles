@@ -261,7 +261,7 @@ for name in clock date battery vorssaint; do pill "$name"; done
 # workspace brackets are checked here and made again when they lost members.
 heal_bracket() { # bracket, pattern: the bracket must hold every item matching it
   local want have
-  want="$(sketchybar --query bar | jq -r '.items[]' | grep -cE "^${2}$")"
+  want="$(sketchybar --query bar | jq -r '.items[]' | grep -cE "$2")" # unanchored, as SketchyBar matches the pattern
   have="$(sketchybar --query "$1" 2>/dev/null | jq '.bracket | length' 2>/dev/null)"
   [ "$want" = "${have:-0}" ] && return
   sketchybar --remove "$1" >/dev/null 2>&1
