@@ -69,7 +69,7 @@ final class WorkspacesModel {
             return
         }
         refreshing = true
-        let startedAt = state.generation
+        let look = state.beginLook()
         Task {
             let format = "%{workspace}|%{monitor-appkit-nsscreen-screens-id}|%{workspace-is-visible}|%{workspace-is-focused}"
             async let workspaces = runner.run(
@@ -80,7 +80,7 @@ final class WorkspacesModel {
             let taken = state.apply(
                 rows: rowsAnswer.status == 0 ? Workspaces.parseRows(rowsAnswer.stdout) : nil,
                 occupied: windowsAnswer.status == 0 ? Workspaces.parseOccupied(windowsAnswer.stdout) : nil,
-                startedAt: startedAt)
+                look: look)
             if taken { bar = state.bar } else { refreshAgain = true }
             refreshing = false
             if refreshAgain {

@@ -67,9 +67,12 @@ public actor CommandRunner {
         // on the pipe: a child the command left behind could hold it open forever.
         let collected = Collected()
         let reader = pipe.fileHandleForReading
+        // Non-blocking: a read under the lock below never waits for data, so closing never waits for a read.
+        let descriptor = reader.fileDescriptor
+        _ = fcntl(descriptor, F_SETFL, fcntl(descriptor, F_GETFL) | O_NONBLOCK)
         reader.readabilityHandler = { handle in
             // Read under the lock that closing takes: the pipe is never closed in the middle of a read.
-            collected.read { handle.availableData } onEnd: { handle.readabilityHandler = nil }
+            collected.read { Self.readAvailable(descriptor) } onEnd: { handle.readabilityHandler = nil }
         }
         do {
             try process.run()
@@ -98,6 +101,22 @@ public actor CommandRunner {
         )
     }
 
+    /// What the pipe holds now, without waiting: empty data at the end of the output, nil when nothing is there yet.
+    private static func readAvailable(_ descriptor: Int32) -> Data? {
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 16_384)
+        while true {
+            let count = read(descriptor, &buffer, buffer.count)
+            if count > 0 {
+                data.append(buffer, count: count)
+            } else if count == 0 {
+                return data  // the end, after whatever came with it
+            } else {
+                return data.isEmpty ? nil : data  // EAGAIN: nothing more for now
+            }
+        }
+    }
+
     /// Every process below `pid`, children first.
     static func descendants(of pid: pid_t) -> [pid_t] {
         var buffer = [pid_t](repeating: 0, count: 256)
@@ -119,11 +138,10 @@ private final class Collected: @unchecked Sendable {
 
     var data: Data { lock.withLock { bytes } }
 
-    /// One read: `readChunk` runs only while the pipe is open; an empty chunk is the end of the output.
-    func read(_ readChunk: () -> Data, onEnd: () -> Void) {
+    /// One read: `readChunk` runs only while the pipe is open; nil is nothing yet, an empty chunk the end of the output.
+    func read(_ readChunk: () -> Data?, onEnd: () -> Void) {
         lock.withLock {
-            guard !closed else { return }
-            let chunk = readChunk()
+            guard !closed, let chunk = readChunk() else { return }
             if chunk.isEmpty {
                 onEnd()
                 ended.signal()

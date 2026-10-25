@@ -115,19 +115,22 @@ func coreTests() async {
 
     // A look at the workspaces that started before a switch must not paint the old focus back.
     var state = WorkspaceState()
-    state.apply(rows: [row("1", focused: true), row("2")], occupied: ["1", "2"], startedAt: state.generation)
-    let lookStartedAt = state.generation
+    state.apply(rows: [row("1", focused: true), row("2")], occupied: ["1", "2"], look: state.beginLook())
+    let early = state.beginLook()
     state.focus("2")
-    let staleTaken = state.apply(rows: [row("1", focused: true), row("2")], occupied: ["1", "2"], startedAt: lookStartedAt)
+    let staleTaken = state.apply(rows: [row("1", focused: true), row("2")], occupied: ["1", "2"], look: early)
     check("a look that started before a switch is dropped", !staleTaken && state.bar.mac.first(where: { $0.state == .focused })?.id == "2")
-    let burstStartedAt = state.generation
+    let older = state.beginLook()
+    let newer = state.beginLook()
     state.focus("1")
-    state.apply(rows: [row("1", focused: true), row("2")], occupied: ["1", "2", "3"], startedAt: burstStartedAt)
+    state.apply(rows: [row("1", focused: true), row("2")], occupied: ["1", "2", "3"], look: newer)
     check("...but which workspaces hold windows is taken even then", state.occupied == ["1", "2", "3"])
+    state.apply(rows: nil, occupied: ["1"], look: older)
+    check("...and a look that finishes after a newer one does not bring an older answer back", state.occupied == ["1", "2", "3"])
     state.focus("2")
-    let freshTaken = state.apply(rows: [row("1"), row("2", focused: true), row("3")], occupied: ["1", "2", "3"], startedAt: state.generation)
+    let freshTaken = state.apply(rows: [row("1"), row("2", focused: true), row("3")], occupied: ["1", "2", "3"], look: state.beginLook())
     check("...and the next one is taken", freshTaken && ids(state.bar.mac) == ["1", "2", "3"])
-    check("a look AeroSpace did not answer keeps what is known", state.apply(rows: nil, occupied: nil, startedAt: state.generation) && ids(state.bar.mac) == ["1", "2", "3"])
+    check("a look AeroSpace did not answer keeps what is known", state.apply(rows: nil, occupied: nil, look: state.beginLook()) && ids(state.bar.mac) == ["1", "2", "3"])
 
     // A command that started others: on its time limit, they all end.
     let family = "3001\(getpid())"
@@ -135,6 +138,15 @@ func coreTests() async {
     let shell = await runner.run("/bin/sh", ["-c", "sleep \(family) & wait"], timeout: 0.5)
     check("a hung command and the processes it started all end at its limit", shell.timedOut && running("sleep \(family)") == 0,
         "\(running("sleep \(family)")) left after \(Date().timeIntervalSince(familyStart)) s")
+
+    // A command that keeps writing past its limit, through a child: the output is read without blocking, the pipe is
+    // closed under the read lock, and the whole family ends.
+    let chatty = "3004\(getpid())"
+    let chattyStart = Date()
+    let flood = await runner.run("/bin/sh", ["-c", "while :; do echo x; /bin/sleep 0.\(chatty); done & wait"], timeout: 0.5)
+    let chattyTook = Date().timeIntervalSince(chattyStart)
+    check("a command still writing at its limit ends, with its output so far", flood.timedOut && chattyTook < 3, "took \(chattyTook) s")
+    check("...and nothing of it keeps running", await waitUntil(2) { running("sleep 0.\(chatty)") == 0 })
 
     // A command that leaves a child holding its output open: the bar does not wait for that child.
     let orphan = "3002\(getpid())"

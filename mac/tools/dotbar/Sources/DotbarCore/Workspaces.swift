@@ -132,6 +132,10 @@ public struct WorkspaceState: Sendable {
     public private(set) var occupied: Set<String> = []
     /// Bumped by every switch: a look carries the value it started with.
     public private(set) var generation = 0
+    /// Each look is numbered when it starts; the windows are taken only from a look newer than the last one taken, so a
+    /// look that finishes late never brings back an older answer.
+    private var lastLook = 0
+    private var lastOccupiedLook = 0
 
     public init() {}
 
@@ -147,13 +151,27 @@ public struct WorkspaceState: Sendable {
         }
     }
 
-    /// The answer of a look started at `generation`; nil keeps what is known (AeroSpace did not answer). Which workspaces
-    /// hold windows is always taken (a switch does not change it, and a burst of switches must not leave it stale); the
-    /// rows only when no switch came since the look started. Returns whether the rows were taken.
+    /// A look starting now: the switch generation it saw and its number.
+    public struct Look: Sendable {
+        public let generation: Int
+        public let number: Int
+    }
+
+    public mutating func beginLook() -> Look {
+        lastLook += 1
+        return Look(generation: generation, number: lastLook)
+    }
+
+    /// The answer of `look`; nil keeps what is known (AeroSpace did not answer). Which workspaces hold windows is taken
+    /// from the newest look that answered (a switch does not change it, and a burst of switches must not leave it stale);
+    /// the rows only when no switch came since the look started. Returns whether the rows were taken.
     @discardableResult
-    public mutating func apply(rows newRows: [WorkspaceRow]?, occupied newOccupied: Set<String>?, startedAt: Int) -> Bool {
-        if let newOccupied { occupied = newOccupied }
-        guard startedAt == generation else { return false }
+    public mutating func apply(rows newRows: [WorkspaceRow]?, occupied newOccupied: Set<String>?, look: Look) -> Bool {
+        if let newOccupied, look.number > lastOccupiedLook {
+            occupied = newOccupied
+            lastOccupiedLook = look.number
+        }
+        guard look.generation == generation else { return false }
         if let newRows, !newRows.isEmpty { rows = newRows }
         return true
     }
