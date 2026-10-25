@@ -25,7 +25,19 @@ final class BarPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
-/// The bar's content: the items arrive task by task (odd/tasks/swift-bar.md); for now the workspaces.
+/// What the layout needs from the screen and from boxes whose width depends on their content.
+@MainActor
+@Observable
+final class BarLayout {
+    static let shared = BarLayout()
+    var screenWidth: CGFloat = 1470
+    var hasNotch = true
+    var weatherWidth: CGFloat = 0
+}
+
+/// The bar's content, in two zones around the camera housing as SketchyBar laid it out: Apple, the front app and the
+/// workspaces from the left edge, the moon and weather boxes ending at the housing; the track starting right after it,
+/// the status boxes ending 37 points from the right edge. BarFit decides what narrows when it does not all fit.
 struct BarView: View {
     let workspaces: WorkspacesModel
     let status: StatusModel
@@ -35,24 +47,57 @@ struct BarView: View {
     let frontApp: FrontAppModel
     let runner: CommandRunner
 
+    // SketchyBar's measures: the left side starts 23 points in, the boxes before the name's box take 28 + 3 + 45, the
+    // weather box ends 3 points before the housing, the right side ends 37 points before the edge, and the status boxes
+    // (Vorssaint, battery, date, time, Control Center and their gaps) take 320 points before it.
+    private static let leftInset: CGFloat = 23
+    private static let leftFixed: CGFloat = 28 + 3 + 45
+    private static let moonWidth: CGFloat = 25
+    private static let beforeNotch: CGFloat = 3
+    private static let rightInset: CGFloat = 37
+    private static let statusWidth: CGFloat = 320
+
     var body: some View {
-        HStack(spacing: Theme.pillGap) {
-            // SketchyBar's left edge: the Apple block 23 points in, the front app's pill 3 points after it.
-            HStack(spacing: 3) {
-                AppleView(runner: runner)
-                FrontAppView(model: frontApp)
+        let layout = BarLayout.shared
+        let notch = BarFit.notch(screenWidth: layout.screenWidth, hasNotch: layout.hasNotch)
+        let moonLeft = notch.left - Self.beforeNotch - layout.weatherWidth - BarFit.gap - Self.moonWidth
+        // The other monitor's pill adds its gap and its monitor mark to what does not shrink.
+        let externalFixed: CGFloat = workspaces.bar.external.isEmpty ? 0 : BarFit.gap + BarFit.slotStep
+        let room = moonLeft - BarFit.gap - Self.leftInset - Self.leftFixed - BarFit.gap - externalFixed
+        let left = BarFit.left(room: room, natural: workspaces.natural)
+        let chars = BarFit.mediaChars(
+            notchRight: notch.right, vorssaintLeft: layout.screenWidth - Self.rightInset - Self.statusWidth)
+
+        HStack(spacing: 0) {
+            HStack(spacing: Theme.pillGap) {
+                // SketchyBar's left edge: the Apple block 23 points in, the front app's pill 3 points after it.
+                HStack(spacing: 3) {
+                    AppleView(runner: runner)
+                    FrontAppView(model: frontApp)
+                }
+                WorkspacesView(model: workspaces)
+                Spacer(minLength: 0)
+                MoonView(model: moon)
+                WeatherView(model: weather)
             }
-            WorkspacesView(model: workspaces)
-            MoonView(model: moon)
-            WeatherView(model: weather)
-            MediaView(model: media)
-            Spacer()
-            StatusView(model: status)
+            .padding(.leading, Self.leftInset)
+            .padding(.trailing, Self.beforeNotch)
+            .frame(width: notch.left)
+            Color.clear.frame(width: notch.right - notch.left)
+            HStack(spacing: Theme.pillGap) {
+                MediaView(model: media)
+                Spacer(minLength: 0)
+                StatusView(model: status)
+            }
+            .padding(.trailing, Self.rightInset)
+            .frame(width: layout.screenWidth - notch.right)
         }
-        .padding(.leading, 23)
-        // SketchyBar's Control Center box ended 37 points from the screen's right edge (its edge spacer).
-        .padding(.trailing, 37)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .task(id: left) {
+            frontApp.setNameWidth(left.nameWidth)
+            workspaces.cap = left.cap
+        }
+        .task(id: chars) { media.maxLength = chars }
     }
 }
 
@@ -107,6 +152,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func place() {
         guard let screen = NSScreen.screens.first else { return }
         let frame = BarGeometry.frame(on: screen.frame, edge: edge)
+        BarLayout.shared.screenWidth = screen.frame.width
+        BarLayout.shared.hasNotch = screen.safeAreaInsets.top > 0
         if let panel {
             panel.setFrame(frame, display: true)
             return

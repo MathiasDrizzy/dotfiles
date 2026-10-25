@@ -30,6 +30,8 @@ final class MediaModel {
     private(set) var track: NowPlaying?
     /// In the bar at all; false once it has slid closed.
     private(set) var drawn = false
+    /// The characters the track may use (the fit narrows it so the pill stops short of Vorssaint).
+    var maxLength = Media.maxLength
     /// How open the pill is, 0 to 1 (animated).
     private(set) var reveal: CGFloat = 0
     private(set) var textOpacity: Double = 0
@@ -162,7 +164,7 @@ struct MediaView: View {
                         .frame(width: Theme.spotifyWidth)
                         .padding(.leading, 6)
                         .padding(.trailing, 4)
-                    Text(Media.text(track)).font(Theme.textFont)
+                    Text(Media.text(track, maxLength: model.maxLength)).font(Theme.textFont)
                         .foregroundStyle(track.playing ? Theme.text : Theme.overlay0)
                         .lineLimit(1)
                         .fixedSize()

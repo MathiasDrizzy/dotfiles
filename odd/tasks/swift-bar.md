@@ -36,7 +36,7 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 | T4 | S3 battery, date, time, network; S7 | inline | done | 2423141 |
 | T5 | S3 weather, moon; S7 | delegated | done | 8118f3f |
 | T6 | S3 now playing | delegated | done | fde7e9e |
-| T7 | S3 notch fit, other monitor, the "+N" cap | inline | pending | |
+| T7 | S3 notch fit, other monitor, the "+N" cap | inline | done | T7 commit |
 | T8 | S3 Control Center, cover, Vorssaint, drag to swap | inline | pending | |
 | T9 | S4 switch and SketchyBar removal | inline | pending | |
 
@@ -94,3 +94,9 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
   boxes); Control Center icon may use T3's AppGlyph; the user grants Location (dotbar.app first launch) and
   Accessibility (first click on the front app pill) once. Not exercised live: app-menus popup, long-name slide,
   session actions, permission dialogs. Next step: T7, then T8, T9.
+- L13: Native review of the merged T3/T5/T6 approved with warnings, fixed in 3086c72 (when-in-use location counts:
+  on macOS it reads as raw value 3; menu reads have a 3 s overall limit; floods capped at 1 MB and 64 KB per read; the
+  track never runs one over; Open-Meteo gets the place to two decimals). T7 done: BarFit ports fit.sh (the 224 point
+  gap around the housing, 623-847 on the MacBook; the name narrows to 40 then workspaces leave with "+N"; the track gets
+  (Vorssaint - 5 - housing - 70) / 7.2 characters, 8 to 35). The weather box reports its measured width; the bar is
+  two zones around the housing. Side by side with SketchyBar the boxes line up; Vorssaint is T8.

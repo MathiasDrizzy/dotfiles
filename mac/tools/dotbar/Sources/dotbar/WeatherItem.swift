@@ -202,5 +202,7 @@ struct WeatherView: View {
                 }
             }
         }
+        // Its width moves the moon box, and with it the room the left side has (BarFit).
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { BarLayout.shared.weatherWidth = $0 }
     }
 }

@@ -25,6 +25,16 @@ final class FrontAppModel {
     /// The name sits at its box's left padding while it slides, centered otherwise.
     private(set) var sliding = false
     private(set) var offset: CGFloat = 0
+    /// The name's box: APP_NAME_WIDTH, narrower when the fit needs the room.
+    private(set) var nameWidth: CGFloat = Theme.appNameWidth
+
+    func setNameWidth(_ width: CGFloat) {
+        guard width != nameWidth else { return }
+        nameWidth = width
+        generation += 1
+        name = ""
+        update()  // a name that no longer fits slides inside the new width
+    }
     /// The app menus' popup is being filled: a second click meanwhile asks nothing more.
     @ObservationIgnored private var loading = false
     @ObservationIgnored private var generation = 0
@@ -60,7 +70,7 @@ final class FrontAppModel {
         glyph = IconMap.glyph(for: front)
         offset = 0
         let width = (front as NSString).size(withAttributes: [.font: Self.nameFont]).width
-        guard case .slide(let span, let seconds) = NameSlide.plan(textWidth: width, boxWidth: Theme.appNameWidth) else {
+        guard case .slide(let span, let seconds) = NameSlide.plan(textWidth: width, boxWidth: nameWidth) else {
             sliding = false
             return
         }
@@ -217,9 +227,10 @@ struct FrontAppView: View {
                 .frame(width: 28, height: Theme.pillHeight)
                 .background(RoundedRectangle(cornerRadius: Theme.pillRadius).fill(Theme.appBlock))
                 .offset(x: 4)
-            name.frame(width: Theme.appNameWidth, alignment: .leading).clipped().offset(x: 42)
+            name.frame(width: model.nameWidth, alignment: .leading).clipped().offset(x: 42)
         }
-        .frame(width: 139, height: Theme.pillHeight, alignment: .leading)
+        // 45 points of block and arrow before the name's box.
+        .frame(width: 45 + model.nameWidth, height: Theme.pillHeight, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: Theme.pillRadius).fill(
                 open ? Theme.surface1 : (hovered ? Theme.surface0 : Theme.barColor))
@@ -243,7 +254,7 @@ struct FrontAppView: View {
         if model.sliding {
             text.padding(.leading, Theme.appNamePadLeft).offset(x: model.offset)
         } else {
-            text.frame(width: Theme.appNameWidth - Theme.appNamePadLeft - Theme.appNamePadRight)
+            text.frame(width: model.nameWidth - Theme.appNamePadLeft - Theme.appNamePadRight)
                 .padding(.leading, Theme.appNamePadLeft)
         }
     }

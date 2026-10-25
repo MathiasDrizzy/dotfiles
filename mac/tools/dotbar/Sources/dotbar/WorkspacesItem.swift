@@ -11,6 +11,12 @@ import SwiftUI
 @Observable
 final class WorkspacesModel {
     private(set) var bar = WorkspaceBar()
+    /// How many workspaces would show without a cap (the fit reads it).
+    private(set) var natural = 0
+    /// How many slots fit beside the moon box (the fit sets it); nil: all.
+    var cap: Int? {
+        didSet { if cap != oldValue { redraw() } }
+    }
 
     @ObservationIgnored private var state = WorkspaceState()
     @ObservationIgnored private let runner: CommandRunner
@@ -50,6 +56,12 @@ final class WorkspacesModel {
         stream?.stop()
     }
 
+    private func redraw() {
+        let all = state.bar
+        natural = all.mac.count + all.external.count
+        bar = cap == nil ? all : Workspaces.layout(rows: state.rows, occupied: state.occupied, cap: cap)
+    }
+
     func focus(_ id: String) {
         Task { _ = await runner.run(aerospace, ["workspace", id], timeout: Self.queryTimeout, key: "focus \(id)") }
     }
@@ -58,7 +70,7 @@ final class WorkspacesModel {
         guard let event = AeroSpaceEvent.parse(line) else { return }
         if case .focusedWorkspace(let id) = event, !id.isEmpty {
             state.focus(id)
-            bar = state.bar
+            redraw()
         }
         refresh()
     }
@@ -81,7 +93,7 @@ final class WorkspacesModel {
                 rows: rowsAnswer.status == 0 ? Workspaces.parseRows(rowsAnswer.stdout) : nil,
                 occupied: windowsAnswer.status == 0 ? Workspaces.parseOccupied(windowsAnswer.stdout) : nil,
                 look: look)
-            if taken { bar = state.bar } else { refreshAgain = true }
+            if taken { redraw() } else { refreshAgain = true }
             refreshing = false
             if refreshAgain {
                 refreshAgain = false
