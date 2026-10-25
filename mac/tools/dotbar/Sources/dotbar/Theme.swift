@@ -9,6 +9,10 @@ enum Theme {
     static let blue = Color(hex: 0x8aadf4)
     static let surface1 = Color(hex: 0x494d64)
     static let overlay0 = Color(hex: 0x6e738d)
+    static let surface0 = Color(hex: 0x363a4f)
+    static let red = Color(hex: 0xed8796)
+    static let yellow = Color(hex: 0xeed49f)
+    static let pink = Color(hex: 0xf5bde6)
     /// A box at rest: solid, the color the boxes show on screen.
     static let barColor = Color(hex: 0x242639)
 
@@ -17,11 +21,17 @@ enum Theme {
     static let pillGap: CGFloat = 5
     /// A workspace slot: 26 points (the icon width of the SketchyBar items).
     static let slot: CGFloat = 26
+    /// The room a Nerd Font icon at ICON_SIZE takes.
+    static let iconWidth: CGFloat = 17
 
     static let fontName = "JetBrainsMono Nerd Font"
     /// TEXT_SIZE and ICON_SIZE of icons.sh.
     static let textFont = Font.custom(fontName, size: 12).bold()
     static let iconFont = Font.custom(fontName, size: 15)
+    /// The label font of the items by default (Medium), the clock's is the bold textFont.
+    static let mediumFont = Font.custom("JetBrainsMono NF Medium", size: 12)
+    /// sketchybar-app-font: app icons and ligatures like ":widget:".
+    static let appIconFont = Font.custom("sketchybar-app-font", size: 15)
 }
 
 extension Color {

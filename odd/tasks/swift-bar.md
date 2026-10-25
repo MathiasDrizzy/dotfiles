@@ -33,7 +33,7 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 | T1 | S2, S5 | inline | done | f5785b7 |
 | T2 | S3 workspaces, S2, S6 | inline | done | ff98d3e |
 | T3 | S3 front app, Apple menu | inline | pending | |
-| T4 | S3 battery, date, time, network; S7 | inline | pending | |
+| T4 | S3 battery, date, time, network; S7 | inline | done | T4 commit |
 | T5 | S3 weather, moon; S7 | inline | pending | |
 | T6 | S3 now playing | inline | pending | |
 | T7 | S3 notch fit, other monitor, the "+N" cap | inline | pending | |
@@ -77,3 +77,14 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
   (19 = 19, 20 = 20). 33 checks pass; live burst ends on the real focus, 0.4% CPU, one child; nothing left on quit.
 - L8 (2026-10-25, user, verbatim): "el clima y hora como lo estas haciendo con swift si lo puedes hacer nativo en vez de
   hacer hooks o automatizaciones como lo tenemos hazlo" -> S7, for T4 and T5.
+- L9 (2026-10-25, user, verbatim): "no tengo apple developer de pago" -> the temperature comes from Open-Meteo through
+  URLSession (WeatherKit needs a paid account); the place from CoreLocation and CLGeocoder.
+- L10: T4 done. Clock and date redraw when the minute changes (and on wake); battery from IOKit's power source
+  notification; network from NWPathMonitor; no process, no polling. Side by side with SketchyBar: same boxes (71, 108,
+  65, 28 points), glyphs, colors and labels. Two Command Line Tools limits found: SwiftUI's @State is a macro whose
+  plugin ships only with Xcode (view state lives in @Observable models; Hover keeps the box under the pointer), and
+  SwiftUI cuts a Nerd glyph at its character's edge (NerdIcon draws it whole). Checks split per area: Support.swift,
+  CoreTests.swift, one function per area called from main.swift. 46 checks pass.
+- L11 (2026-10-25, user, verbatim): "hazlo todo, procesede a hacer todos los pasos , ocupa sub agentes, gentle-ai,
+  codegraph, context7 etc.. todo lo que tengas en tu alcance" -> T3, T5 and T6 go to three writers in parallel, each in
+  its own worktree (they build Swift; one tree would lock); the parent merges, wires the bar and does T7-T9.

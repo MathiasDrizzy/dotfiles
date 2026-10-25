@@ -28,13 +28,17 @@ final class BarPanel: NSPanel {
 /// The bar's content: the items arrive task by task (odd/tasks/swift-bar.md); for now the workspaces.
 struct BarView: View {
     let workspaces: WorkspacesModel
+    let status: StatusModel
 
     var body: some View {
         HStack(spacing: Theme.pillGap) {
             WorkspacesView(model: workspaces)
             Spacer()
+            StatusView(model: status)
         }
-        .padding(.horizontal, 8)
+        .padding(.leading, 8)
+        // SketchyBar's Control Center box ended 37 points from the screen's right edge (its edge spacer).
+        .padding(.trailing, 37)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -51,9 +55,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let edge: BarEdge = CommandLine.arguments.contains("--bottom") ? .bottom : .top
     private let runner = CommandRunner()
     private lazy var workspaces = WorkspacesModel(runner: runner, aerospace: aerospacePath())
+    private let status = StatusModel()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         workspaces.start()
+        status.start()
         place()
         // Screens come and go (a monitor plugged in, the lid closed): the bar follows the main display.
         NotificationCenter.default.addObserver(
@@ -66,6 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// The long-lived commands end with the bar; left alone, a stream would only notice at its next event.
     func shutdown() {
         workspaces.stop()
+        status.stop()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -80,7 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         let panel = BarPanel(frame: frame)
-        panel.contentView = NSHostingView(rootView: BarView(workspaces: workspaces))
+        panel.contentView = NSHostingView(rootView: BarView(workspaces: workspaces, status: status))
         panel.orderFrontRegardless()
         self.panel = panel
     }
