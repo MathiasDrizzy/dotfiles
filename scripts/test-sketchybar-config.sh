@@ -371,10 +371,15 @@ installer_ok() {
   grep -q 'brew install felixkratz/formulae/sketchybar' "$ROOT/mac/install.sh" &&
     grep -q 'brew install ungive/media-control/media-control' "$ROOT/mac/install.sh" &&
     grep -q "ctlcenter.swift" "$ROOT/mac/install.sh" && [ -f "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" ] || return 1
-  # Every plugin is linked one by one: a new plugin missing here is simply not there after an install.
-  for f in sketchybarrc colors.sh icons.sh "$SB"/plugins/*.sh; do
-    grep -q "config/sketchybar/${f#"$SB"/}|" "$ROOT/mac/scripts/check-links.sh" || return 1
-  done
+  # Every file of the bar is linked one by one: a new one missing here is simply not there after an install (helpers.sh
+  # was, every plugin sourcing it lost its time limits, and the workspace pills vanished). Listed from the folder itself,
+  # so a file added later is covered without touching this check.
+  while IFS= read -r f; do
+    grep -q "\"config/sketchybar/${f#"$SB"/}|" "$ROOT/mac/scripts/check-links.sh" || {
+      echo "not linked by check-links.sh: ${f#"$SB"/}" >&2
+      return 1
+    }
+  done < <(find "$SB" -type f ! -name '.DS_Store')
 }
 
 check "all scripts parse" syntax_ok
