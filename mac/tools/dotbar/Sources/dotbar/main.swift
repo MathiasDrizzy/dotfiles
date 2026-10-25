@@ -32,9 +32,16 @@ struct BarView: View {
     let moon: MoonModel
     let weather: WeatherModel
     let media: MediaModel
+    let frontApp: FrontAppModel
+    let runner: CommandRunner
 
     var body: some View {
         HStack(spacing: Theme.pillGap) {
+            // SketchyBar's left edge: the Apple block 23 points in, the front app's pill 3 points after it.
+            HStack(spacing: 3) {
+                AppleView(runner: runner)
+                FrontAppView(model: frontApp)
+            }
             WorkspacesView(model: workspaces)
             MoonView(model: moon)
             WeatherView(model: weather)
@@ -42,7 +49,7 @@ struct BarView: View {
             Spacer()
             StatusView(model: status)
         }
-        .padding(.leading, 8)
+        .padding(.leading, 23)
         // SketchyBar's Control Center box ended 37 points from the screen's right edge (its edge spacer).
         .padding(.trailing, 37)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -65,6 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let moon = MoonModel()
     private let weather = WeatherModel()
     private lazy var media = MediaModel(runner: runner, mediaControl: mediaControlPath())
+    private let frontApp = FrontAppModel()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         workspaces.start()
@@ -72,6 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         moon.start()
         weather.start()
         media.start()
+        frontApp.start()
         place()
         // Screens come and go (a monitor plugged in, the lid closed): the bar follows the main display.
         NotificationCenter.default.addObserver(
@@ -88,6 +97,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         moon.stop()
         weather.stop()
         media.stop()
+        frontApp.stop()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -103,7 +113,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let panel = BarPanel(frame: frame)
         panel.contentView = NSHostingView(
-            rootView: BarView(workspaces: workspaces, status: status, moon: moon, weather: weather, media: media))
+            rootView: BarView(
+                workspaces: workspaces, status: status, moon: moon, weather: weather, media: media,
+                frontApp: frontApp, runner: runner))
         panel.orderFrontRegardless()
         self.panel = panel
     }

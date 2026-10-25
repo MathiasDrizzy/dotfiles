@@ -32,10 +32,10 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 |----|-------|-------|--------|--------|
 | T1 | S2, S5 | inline | done | f5785b7 |
 | T2 | S3 workspaces, S2, S6 | inline | done | ff98d3e |
-| T3 | S3 front app, Apple menu | inline | pending | |
+| T3 | S3 front app, Apple menu | delegated | done | bb77619 |
 | T4 | S3 battery, date, time, network; S7 | inline | done | 2423141 |
-| T5 | S3 weather, moon; S7 | inline | pending | |
-| T6 | S3 now playing | inline | pending | |
+| T5 | S3 weather, moon; S7 | delegated | done | 8118f3f |
+| T6 | S3 now playing | delegated | done | fde7e9e |
 | T7 | S3 notch fit, other monitor, the "+N" cap | inline | pending | |
 | T8 | S3 Control Center, cover, Vorssaint, drag to swap | inline | pending | |
 | T9 | S4 switch and SketchyBar removal | inline | pending | |
@@ -88,3 +88,9 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 - L11 (2026-10-25, user, verbatim): "hazlo todo, procesede a hacer todos los pasos , ocupa sub agentes, gentle-ai,
   codegraph, context7 etc.. todo lo que tengas en tu alcance" -> T3, T5 and T6 go to three writers in parallel, each in
   its own worktree (they build Swift; one tree would lock); the parent merges, wires the bar and does T7-T9.
+- L12: T3, T5 and T6 delivered by parallel writers and merged into feat/swift-bar (6efecc5, 95994e2 and the T3 merge);
+  all checks pass together. Open items for the parent: T7 places moon/weather left of the notch and media right of it,
+  the "+N" cap, and a bar-wide 1 point text offset (SwiftUI centers text higher than SketchyBar; T3 nudged its own
+  boxes); Control Center icon may use T3's AppGlyph; the user grants Location (dotbar.app first launch) and
+  Accessibility (first click on the front app pill) once. Not exercised live: app-menus popup, long-name slide,
+  session actions, permission dialogs. Next step: T7, then T8, T9.
