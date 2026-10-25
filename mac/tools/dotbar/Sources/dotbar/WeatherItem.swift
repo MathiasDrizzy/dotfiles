@@ -155,8 +155,11 @@ final class Locator: NSObject, CLLocationManagerDelegate {
         if allowed { manager.requestLocation() }
     }
 
+    /// The app asks for "when in use" (its Info.plist says so). On macOS that grant reads as `.authorized` (3), the
+    /// value iOS calls when-in-use, which Swift marks deprecated here: compared by its raw value. Both count.
     private var allowed: Bool {
-        manager.authorizationStatus == .authorizedAlways
+        let status = manager.authorizationStatus
+        return status == .authorizedAlways || status.rawValue == 3
     }
 
     private func follow() {

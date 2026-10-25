@@ -19,7 +19,7 @@ func weatherTests() async {
     let url = OpenMeteo.url(latitude: -33.437800, longitude: -70.650500).absoluteString
     check(
         "the request asks for the current temperature at the place",
-        url == "https://api.open-meteo.com/v1/forecast?latitude=-33.437800&longitude=-70.650500&current=temperature_2m", url)
+        url == "https://api.open-meteo.com/v1/forecast?latitude=-33.44&longitude=-70.65&current=temperature_2m", url)
 
     // The label.
     check("the label is the commune and the temperature", WeatherText.label(commune: "Providencia", temperature: 25) == "Providencia 25°C")

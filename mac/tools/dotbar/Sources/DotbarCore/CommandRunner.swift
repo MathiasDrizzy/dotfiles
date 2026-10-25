@@ -101,11 +101,12 @@ public actor CommandRunner {
         )
     }
 
-    /// What the pipe holds now, without waiting: empty data at the end of the output, nil when nothing is there yet.
+    /// What the pipe holds now, without waiting: empty data at the end of the output, nil when nothing is there yet. At most
+    /// 64 KB per call, so a command flooding its output never holds the lock that closing the pipe takes for long.
     private static func readAvailable(_ descriptor: Int32) -> Data? {
         var data = Data()
         var buffer = [UInt8](repeating: 0, count: 16_384)
-        while true {
+        while data.count < 65_536 {
             let count = read(descriptor, &buffer, buffer.count)
             if count > 0 {
                 data.append(buffer, count: count)
@@ -115,6 +116,7 @@ public actor CommandRunner {
                 return data.isEmpty ? nil : data  // EAGAIN: nothing more for now
             }
         }
+        return data
     }
 
     /// Every process below `pid`, children first.
@@ -145,11 +147,14 @@ private final class Collected: @unchecked Sendable {
             if chunk.isEmpty {
                 onEnd()
                 ended.signal()
-            } else {
-                bytes.append(chunk)
+            } else if bytes.count < Self.keep {
+                bytes.append(chunk.prefix(Self.keep - bytes.count))
             }
         }
     }
+
+    /// The bar reads short answers; past a megabyte the rest of a flood is dropped instead of filling memory.
+    private static let keep = 1_048_576
 
     func waitForEnd(upTo seconds: TimeInterval) { _ = ended.wait(timeout: .now() + seconds) }
 

@@ -169,13 +169,29 @@ enum AXMenuBar {
         return children(list)
     }
 
+    /// A whole read of titles is over in 3 seconds, each title at most half a second: an app that hangs answers no call,
+    /// and one wait per menu made a popup take 20 seconds while every click on the pill was ignored.
+    private static let readSeconds: TimeInterval = 3
+    private static let titleSeconds: Float = 0.5
+
+    private static func titles(_ elements: [AXUIElement]) -> [String?] {
+        let deadline = Date().addingTimeInterval(readSeconds)
+        var result: [String?] = []
+        for element in elements {
+            guard Date() < deadline else { break }
+            AXUIElementSetMessagingTimeout(element, titleSeconds)
+            result.append(title(element))
+        }
+        return result
+    }
+
     static func topTitles(pid: pid_t) -> [String?] {
         // The first item is the Apple menu whatever its title says; the bar draws its own.
-        Array(barItems(pid).dropFirst().map(title))
+        titles(Array(barItems(pid).dropFirst()))
     }
 
     static func itemTitles(pid: pid_t, menu: String) -> [String?] {
-        items(pid, menu).map(title)
+        titles(items(pid, menu))
     }
 
     static func press(pid: pid_t, menu: String, item: String) {

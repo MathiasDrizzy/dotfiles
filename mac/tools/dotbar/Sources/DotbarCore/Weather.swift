@@ -5,8 +5,9 @@ public enum OpenMeteo {
     public static func url(latitude: Double, longitude: Double) -> URL {
         var parts = URLComponents(string: "https://api.open-meteo.com/v1/forecast")!
         parts.queryItems = [
-            URLQueryItem(name: "latitude", value: String(latitude)),
-            URLQueryItem(name: "longitude", value: String(longitude)),
+            // About a kilometer is all a temperature needs: no more of where you are goes to another service.
+            URLQueryItem(name: "latitude", value: String(format: "%.2f", latitude)),
+            URLQueryItem(name: "longitude", value: String(format: "%.2f", longitude)),
             URLQueryItem(name: "current", value: "temperature_2m"),
         ]
         return parts.url!

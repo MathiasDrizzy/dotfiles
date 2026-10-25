@@ -75,6 +75,9 @@ public enum Media {
                 title = String(title.prefix(max(0, maxLength - artist.count - 1))) + "…"
             } else if artist.count > half {
                 artist = String(artist.prefix(max(0, maxLength - title.count - 1))) + "…"
+            } else {
+                // Both at most half and still one over (an odd limit, both at half): the artist gives way.
+                artist = String(artist.prefix(max(0, maxLength - title.count - 1))) + "…"
             }
         }
         return artist.isEmpty ? title : "\(title) \(dot) \(artist)"
