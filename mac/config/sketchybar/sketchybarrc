@@ -15,6 +15,19 @@ source "$CONFIG_DIR/colors.sh"
 # shellcheck source=icons.sh
 source "$CONFIG_DIR/icons.sh"
 
+# One build at a time. SketchyBar empties the bar and runs this file again on every reload, and hotload reloads on any
+# change to its files: a reload that came while the previous build was still adding items mixed the two, and a bracket
+# made from a pattern (spaces) kept only the items that existed at that moment, so the workspace pill lost its box. The
+# newer build stops the older one and clears whatever it had added.
+RC_PID="$HOME/.cache/sketchybar/rc_pid"
+mkdir -p "$(dirname "$RC_PID")"
+rc_old="$(cat "$RC_PID" 2>/dev/null)"
+if [ -n "$rc_old" ] && [ "$rc_old" != $$ ] && ps -p "$rc_old" -o command= 2>/dev/null | grep -q sketchybarrc; then
+  kill "$rc_old" 2>/dev/null
+fi
+echo $$ >"$RC_PID"
+sketchybar --remove '/.*/' >/dev/null 2>&1
+
 # The bar itself is transparent: every item sits in a solid box of its own below, so there is a clear gap around the
 # camera housing. notch_width keeps the two sides apart on the built-in display, clear of the camera housing. The bar spans the whole top strip (the
 # cover's size) and never changes: a resize redraws every box and the bar shook for half a second.
