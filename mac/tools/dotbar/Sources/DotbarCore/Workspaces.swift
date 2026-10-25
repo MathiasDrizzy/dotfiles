@@ -147,13 +147,14 @@ public struct WorkspaceState: Sendable {
         }
     }
 
-    /// The answer of a look started at `generation`; nil keeps what is known (AeroSpace did not answer). Returns whether
-    /// it was taken.
+    /// The answer of a look started at `generation`; nil keeps what is known (AeroSpace did not answer). Which workspaces
+    /// hold windows is always taken (a switch does not change it, and a burst of switches must not leave it stale); the
+    /// rows only when no switch came since the look started. Returns whether the rows were taken.
     @discardableResult
     public mutating func apply(rows newRows: [WorkspaceRow]?, occupied newOccupied: Set<String>?, startedAt: Int) -> Bool {
+        if let newOccupied { occupied = newOccupied }
         guard startedAt == generation else { return false }
         if let newRows, !newRows.isEmpty { rows = newRows }
-        if let newOccupied { occupied = newOccupied }
         return true
     }
 }

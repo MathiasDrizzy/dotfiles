@@ -120,6 +120,11 @@ func coreTests() async {
     state.focus("2")
     let staleTaken = state.apply(rows: [row("1", focused: true), row("2")], occupied: ["1", "2"], startedAt: lookStartedAt)
     check("a look that started before a switch is dropped", !staleTaken && state.bar.mac.first(where: { $0.state == .focused })?.id == "2")
+    let burstStartedAt = state.generation
+    state.focus("1")
+    state.apply(rows: [row("1", focused: true), row("2")], occupied: ["1", "2", "3"], startedAt: burstStartedAt)
+    check("...but which workspaces hold windows is taken even then", state.occupied == ["1", "2", "3"])
+    state.focus("2")
     let freshTaken = state.apply(rows: [row("1"), row("2", focused: true), row("3")], occupied: ["1", "2", "3"], startedAt: state.generation)
     check("...and the next one is taken", freshTaken && ids(state.bar.mac) == ["1", "2", "3"])
     check("a look AeroSpace did not answer keeps what is known", state.apply(rows: nil, occupied: nil, startedAt: state.generation) && ids(state.bar.mac) == ["1", "2", "3"])
@@ -145,17 +150,20 @@ func coreTests() async {
 
     // A stream started twice, or stopped and started at once, runs one process.
     let once = LineStream("/bin/sleep", ["3003\(getpid())"], restartDelay: 0.2) { _ in }
+    let streamed = "sleep 3003\(getpid())"
     once.start()
     once.start()
-    try? await Task.sleep(for: .seconds(0.3))
-    check("a stream started twice runs one process", running("sleep 3003\(getpid())") == 1 && once.starts == 1)
+    _ = await waitUntil(3) { running(streamed) == 1 }
+    try? await Task.sleep(for: .seconds(0.3))  // room for a second process, if one were coming
+    check("a stream started twice runs one process", running(streamed) == 1 && once.starts == 1)
     once.stop()
     once.start()
-    try? await Task.sleep(for: .seconds(0.6))
-    check("stopped and started at once, it still runs one", running("sleep 3003\(getpid())") == 1, "\(running("sleep 3003\(getpid())"))")
-    once.stop()
+    // The old process ends and the new one starts: wait for exactly one, then make sure it stays one.
+    let one = await waitUntil(3) { running(streamed) == 1 && once.starts == 2 }
     try? await Task.sleep(for: .seconds(0.4))
-    check("stopped, nothing of it runs", running("sleep 3003\(getpid())") == 0)
+    check("stopped and started at once, it still runs one", one && running(streamed) == 1, "\(running(streamed))")
+    once.stop()
+    check("stopped, nothing of it runs", await waitUntil(3) { running(streamed) == 0 })
 
     // The battery box: battery.sh's levels and colors.
     check("80% and up is full and green", BatteryStyle(percent: 80, onPower: false) == .full && BatteryStyle.full.color == 0xa6da95)

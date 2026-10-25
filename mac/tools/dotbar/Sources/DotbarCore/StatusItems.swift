@@ -85,7 +85,7 @@ public enum MoonPhase {
     }
 
     /// The weather-icons glyphs of icons.sh's MOON_PHASES, drawn in the light ink (the lit side shows, the dark side is
-    /// the box).
+    /// the box). Copied as they are, for parity: icons.sh has the same glyph at 5 and 7.
     public static let glyphs = [
         "\u{E38D}", "\u{E3D8}", "\u{E3DC}", "\u{E3DF}", "\u{E39B}", "\u{E3D1}", "\u{E3CE}", "\u{E3D1}",
     ]

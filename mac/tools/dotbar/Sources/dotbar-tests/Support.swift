@@ -24,3 +24,14 @@ func running(_ pattern: String) -> Int {
     return String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
         .split(separator: "\n").count
 }
+
+/// Waits until `condition` holds, polling every 50 ms, at most `seconds`: a check that waits for a process to start or end
+/// on a loaded machine instead of guessing a fixed pause. Returns whether it held in time.
+func waitUntil(_ seconds: Double, _ condition: () -> Bool) async -> Bool {
+    let deadline = Date().addingTimeInterval(seconds)
+    while Date() < deadline {
+        if condition() { return true }
+        try? await Task.sleep(for: .milliseconds(50))
+    }
+    return condition()
+}

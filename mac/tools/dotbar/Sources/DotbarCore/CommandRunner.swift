@@ -68,13 +68,8 @@ public actor CommandRunner {
         let collected = Collected()
         let reader = pipe.fileHandleForReading
         reader.readabilityHandler = { handle in
-            let chunk = handle.availableData
-            if chunk.isEmpty {
-                handle.readabilityHandler = nil
-                collected.finish()
-            } else {
-                collected.append(chunk)
-            }
+            // Read under the lock that closing takes: the pipe is never closed in the middle of a read.
+            collected.read { handle.availableData } onEnd: { handle.readabilityHandler = nil }
         }
         do {
             try process.run()
@@ -95,7 +90,7 @@ public actor CommandRunner {
         // The rest of the output, if it is coming; then the pipe is let go either way.
         collected.waitForEnd(upTo: 0.5)
         reader.readabilityHandler = nil
-        try? reader.close()
+        collected.close { try? reader.close() }
         return Output(
             status: timedOut ? -1 : process.terminationStatus,
             stdout: String(decoding: collected.data, as: UTF8.self),
@@ -114,17 +109,36 @@ public actor CommandRunner {
     }
 }
 
-/// The output a read handler fills while the command runs; every access holds the lock.
+/// The output a read handler fills while the command runs; every access holds the lock, and so does closing the pipe, so
+/// a read never meets a closed pipe.
 private final class Collected: @unchecked Sendable {
     private let lock = NSLock()
     private var bytes = Data()
+    private var closed = false
     private let ended = DispatchSemaphore(value: 0)
 
     var data: Data { lock.withLock { bytes } }
 
-    func append(_ chunk: Data) { lock.withLock { bytes.append(chunk) } }
-
-    func finish() { ended.signal() }
+    /// One read: `readChunk` runs only while the pipe is open; an empty chunk is the end of the output.
+    func read(_ readChunk: () -> Data, onEnd: () -> Void) {
+        lock.withLock {
+            guard !closed else { return }
+            let chunk = readChunk()
+            if chunk.isEmpty {
+                onEnd()
+                ended.signal()
+            } else {
+                bytes.append(chunk)
+            }
+        }
+    }
 
     func waitForEnd(upTo seconds: TimeInterval) { _ = ended.wait(timeout: .now() + seconds) }
+
+    func close(_ closePipe: () -> Void) {
+        lock.withLock {
+            closed = true
+            closePipe()
+        }
+    }
 }
