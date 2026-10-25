@@ -32,12 +32,14 @@ func stayTests() async {
     _ = rule.handle(.focus(workspace: "2", hasWindow: false), at: at(1))
     check("a drag swap is moving windows: left alone", rule.handle(.workspace(previous: "2"), at: at(1.2)) == .none)
 
+    // Workspace 2 was already empty (the user went there, so it was asked); later its bare desktop is clicked again and
+    // the focus moves off it within the window: not a window closing.
     rule = StayRule()
-    _ = rule.handle(.focus(workspace: "2", hasWindow: false), at: at(0))
-    _ = rule.handle(.workspace(previous: "9"), at: at(0.5))
-    _ = rule.handle(.focus(workspace: "2", hasWindow: false), at: at(10))
+    rule.asked(at: at(0))
+    _ = rule.handle(.focus(workspace: "2", hasWindow: false), at: at(0.2))
+    _ = rule.handle(.focus(workspace: "2", hasWindow: false), at: at(5))
     check("a workspace already empty (its bare desktop clicked) is not a window closing",
-        rule.handle(.workspace(previous: "2"), at: at(10.5)) == .none)
+        rule.handle(.workspace(previous: "2"), at: at(5.5)) == .none)
 
     rule = StayRule()
     _ = rule.handle(.focus(workspace: StayRule.park, hasWindow: false), at: at(1))

@@ -43,12 +43,25 @@ public enum BarFit {
     /// `room` is what the name and the workspace slots may use together: the strip left of the moon box, less every box
     /// of fixed width. `natural` is how many workspaces would show without a cap.
     public static func left(room: CGFloat, natural: Int) -> Left {
+        guard natural > 0 else { return Left(nameWidth: max(minNameWidth, min(nameWidth, room.rounded(.down))), cap: nil) }
         let slots = CGFloat(natural) * slotStep
         guard room < nameWidth + slots else { return Left(nameWidth: nameWidth, cap: nil) }
         let name = room - slots
         if name >= minNameWidth { return Left(nameWidth: name.rounded(.down), cap: nil) }
         let cap = Int(((room - minNameWidth - spareForMore) / slotStep).rounded(.down))
         return Left(nameWidth: minNameWidth, cap: max(1, cap))
+    }
+
+    /// The room the name and the workspace slots share: from the left inset to the moon box, less the boxes of fixed
+    /// width before the name (Apple, the gap, the green block and arrow), the gap before the workspaces, and, with
+    /// another monitor, its pill's gap and monitor mark (its workspaces are slots like the Mac's).
+    public static func leftRoom(
+        notchLeft: CGFloat, weatherWidth: CGFloat, leftInset: CGFloat, fixedBeforeName: CGFloat, external: Bool
+    ) -> CGFloat {
+        let moonWidth: CGFloat = 25
+        let beforeNotch: CGFloat = 3
+        let moonLeft = notchLeft - beforeNotch - weatherWidth - gap - moonWidth
+        return moonLeft - gap - leftInset - fixedBeforeName - gap - (external ? gap + slotStep : 0)
     }
 
     /// The characters the track may use, between the housing and Vorssaint.

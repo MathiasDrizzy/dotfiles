@@ -52,7 +52,6 @@ struct BarView: View {
     // (Vorssaint, battery, date, time, Control Center and their gaps) take 320 points before it.
     private static let leftInset: CGFloat = 23
     private static let leftFixed: CGFloat = 28 + 3 + 45
-    private static let moonWidth: CGFloat = 25
     private static let beforeNotch: CGFloat = 3
     private static let rightInset: CGFloat = 37
     private static let statusWidth: CGFloat = 320
@@ -60,10 +59,9 @@ struct BarView: View {
     var body: some View {
         let layout = BarLayout.shared
         let notch = BarFit.notch(screenWidth: layout.screenWidth, hasNotch: layout.hasNotch)
-        let moonLeft = notch.left - Self.beforeNotch - layout.weatherWidth - BarFit.gap - Self.moonWidth
-        // The other monitor's pill adds its gap and its monitor mark to what does not shrink.
-        let externalFixed: CGFloat = workspaces.bar.external.isEmpty ? 0 : BarFit.gap + BarFit.slotStep
-        let room = moonLeft - BarFit.gap - Self.leftInset - Self.leftFixed - BarFit.gap - externalFixed
+        let room = BarFit.leftRoom(
+            notchLeft: notch.left, weatherWidth: layout.weatherWidth, leftInset: Self.leftInset,
+            fixedBeforeName: Self.leftFixed, external: !workspaces.bar.external.isEmpty)
         let left = BarFit.left(room: room, natural: workspaces.natural)
         let chars = BarFit.mediaChars(
             notchRight: notch.right, vorssaintLeft: layout.screenWidth - Self.rightInset - Self.statusWidth)
