@@ -42,6 +42,8 @@ final class CoverModel {
 
     @ObservationIgnored private let edge: BarEdge
     @ObservationIgnored private var holds: Set<String> = []
+    /// Holds that end on their own (a popover closed by the user, not by the bar): checked each time the cover asks.
+    @ObservationIgnored private var holdChecks: [String: () -> Bool] = [:]
     @ObservationIgnored private var atTop = false
     @ObservationIgnored private var monitors: [Any] = []
     @ObservationIgnored private var observers: [(NotificationCenter, NSObjectProtocol)] = []
@@ -98,14 +100,16 @@ final class CoverModel {
     }
 
     /// Keeps the cover on for `reason` (the Control Center driver, a menu being opened) until `release`.
-    func hold(_ reason: String) {
+    func hold(_ reason: String, while stillNeeded: (() -> Bool)? = nil) {
         holds.insert(reason)
+        holdChecks[reason] = stillNeeded
         shown = true
     }
 
     /// Lets go of `reason`; the cover comes off once nothing else needs it.
     func release(_ reason: String) {
         holds.remove(reason)
+        holdChecks[reason] = nil
         settleSoon(after: Self.releaseDelay)
     }
 
@@ -133,8 +137,15 @@ final class CoverModel {
     }
 
     private func needed() -> Bool {
-        Self.pointerAtTop() || !holds.isEmpty || ScreenWindows.popupOpen(bundles: Self.popupBundles)
+        for (reason, check) in holdChecks where !check() {
+            holds.remove(reason)
+            holdChecks[reason] = nil
+        }
+        return Self.pointerAtTop() || !holds.isEmpty || ScreenWindows.popupOpen(bundles: Self.popupBundles)
     }
+
+    /// Past the waiter's two minutes, something still needs the cover (a panel left open): look again this often.
+    private static let recheckAfterCap: TimeInterval = 10
 
     /// One waiter at a time (cover.sh settle): it hides the cover once nothing has needed it for a few checks, or after two
     /// minutes if nothing needs it then.
@@ -154,7 +165,11 @@ final class CoverModel {
         settleTimer?.invalidate()
         settleTimer = nil
         settle = nil
-        if !needed() { shown = false }
+        if needed() {
+            settleSoon(after: Self.recheckAfterCap)
+        } else {
+            shown = false
+        }
     }
 
     // MARK: The wallpaper

@@ -41,6 +41,13 @@ func stayTests() async {
     check("a workspace already empty (its bare desktop clicked) is not a window closing",
         rule.handle(.workspace(previous: "2"), at: at(5.5)) == .none)
 
+    // The original scenario too: empty at the start, focus moved off it, then its bare desktop clicked much later.
+    rule = StayRule()
+    _ = rule.handle(.focus(workspace: "2", hasWindow: false), at: at(0))
+    _ = rule.handle(.workspace(previous: "9"), at: at(0.5))
+    _ = rule.handle(.focus(workspace: "2", hasWindow: false), at: at(10))
+    check("...and a workspace left empty long ago is not taken back either", rule.handle(.workspace(previous: "2"), at: at(10.5)) == .none)
+
     rule = StayRule()
     _ = rule.handle(.focus(workspace: StayRule.park, hasWindow: false), at: at(1))
     check("the swap's parking workspace is never returned to", rule.handle(.workspace(previous: StayRule.park), at: at(1.2)) == .none)

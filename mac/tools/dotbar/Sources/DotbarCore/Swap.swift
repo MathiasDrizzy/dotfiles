@@ -26,6 +26,9 @@ public enum WorkspaceSwap {
         case nothing
         /// The windows of a workspace could not be read (no answer in time): nothing moved.
         case unread
+        /// A command failed or timed out partway: it stopped there and left the parking workspace; the bar reads the
+        /// workspaces again instead of painting a swap that did not happen.
+        case failed
     }
 
     public static func plan(from: String, to: String, focused: String, fromWindows: [String], toWindows: [String]) -> Plan {
@@ -63,7 +66,14 @@ public enum WorkspaceSwap {
             from: from, to: to, focused: focus, fromWindows: parseWindowIDs(fromWindows.stdout),
             toWindows: parseWindowIDs(toWindows.stdout))
         for command in plan.commands {
-            _ = await runner.run(aerospace, command, timeout: timeout)
+            let answer = await runner.run(aerospace, command, timeout: timeout)
+            guard answer.status == 0 else {
+                // Moving more windows blind would only make it worse: stop, and do not leave the focus parked.
+                if !focus.isEmpty, command != ["workspace", focus] {
+                    _ = await runner.run(aerospace, ["workspace", focus], timeout: timeout)
+                }
+                return .failed
+            }
         }
         return .swapped(focus: plan.focus)
     }

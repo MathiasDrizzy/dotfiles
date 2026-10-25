@@ -44,8 +44,12 @@ final class VorssaintModel {
 
     /// A popover open this long before the click counts for it (drag.sh's PRESS_MAX_SECONDS).
     private static let pressMaxSeconds: TimeInterval = 2
-    /// An empty spot of the bar, left of the Apple logo (points, origin top-left): the click outside that closes it.
-    private nonisolated static let dismissPoint = CGPoint(x: 8, y: 20)
+    /// An empty spot of the bar, left of the Apple logo, wherever the bar is (points, origin top-left): the click outside
+    /// that closes it lands on the bar itself, never on a window.
+    @MainActor private static var dismissPoint: CGPoint {
+        let bar = BarLayout.shared.barFrameTopLeft
+        return CGPoint(x: bar.minX + 8, y: bar.minY + bar.height / 2)
+    }
     /// A popover reads the pointer when it handles the click, not the click's own spot (ctlcenter dismiss).
     private nonisolated static let dismissHoldMicroseconds: UInt32 = 25_000
     /// A popover is a window above the normal level, taller than the menu bar.
@@ -128,7 +132,8 @@ final class VorssaintModel {
                     return
                 }
             case .dismiss:
-                _ = await Self.offMain { Self.dismiss(at: Self.dismissPoint) }
+                let point = Self.dismissPoint
+                _ = await Self.offMain { Self.dismiss(at: point) }
             case .none:
                 break
             }

@@ -100,6 +100,8 @@ func swapTests() async {
         "list-windows --workspace 3 --format %{window-id}") echo 31 ;;
         "list-windows --workspace 9 --format %{window-id}") exit 1 ;;
         "list-windows --workspace 7 --format %{window-id}") /bin/sleep 4.317 ;;
+        "list-windows --workspace 5 --format %{window-id}") echo 51 ;;
+        "move-node-to-workspace --window-id 51 1") exit 1 ;;
         esac
         exit 0
         """
@@ -134,6 +136,17 @@ func swapTests() async {
         hung == .unread && Date().timeIntervalSince(started) < 3 && logged().allSatisfy { $0.hasPrefix("list-") },
         "\(hung)")
     check("...and leaves no process behind", await waitUntil(3) { running("sleep 4.317") == 0 })
+
+    try? FileManager.default.removeItem(atPath: log)
+    let broken = await WorkspaceSwap.run(runner: CommandRunner(), aerospace: stub, from: "1", to: "5", timeout: 3)
+    let brokenMoves = logged().filter { !$0.hasPrefix("list-") }
+    check("a move that fails stops the swap and says so", broken == .failed, "\(broken)")
+    check(
+        "...without moving more, and the focus leaves the parking workspace",
+        brokenMoves == [
+            "workspace swap-park", "move-node-to-workspace --window-id 11 5", "move-node-to-workspace --window-id 12 5",
+            "move-node-to-workspace --window-id 51 1", "workspace 1",
+        ], "\(brokenMoves)")
 
     try? FileManager.default.removeItem(atPath: log)
     let same = await WorkspaceSwap.run(runner: CommandRunner(), aerospace: stub, from: "3", to: "3", timeout: 3)

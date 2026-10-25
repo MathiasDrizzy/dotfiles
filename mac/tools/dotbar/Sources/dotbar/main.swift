@@ -33,6 +33,8 @@ final class BarLayout {
     var screenWidth: CGFloat = 1470
     var hasNotch = true
     var weatherWidth: CGFloat = 0
+    /// The bar's frame in the event system's points (origin top-left of the main display).
+    var barFrameTopLeft = CGRect(x: 0, y: 0, width: 1470, height: 40)
 }
 
 /// The bar's content, in two zones around the camera housing as SketchyBar laid it out: Apple, the front app and the
@@ -129,7 +131,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         workspaces.onAsked = { [weak self] in self?.stay.asked() }
         workspaces.onSwapping = { [weak self] swapping in self?.stay.setSwapping(swapping) }
         VorssaintModel.shared.onMenu = { [weak self] open in
-            if open { self?.cover.hold("vorssaint") } else { self?.cover.release("vorssaint") }
+            // The user may close the popover without the bar: the hold ends as soon as it is gone.
+            if open {
+                self?.cover.hold("vorssaint", while: { VorssaintModel.popoverShown() })
+            } else {
+                self?.cover.release("vorssaint")
+            }
         }
         workspaces.start()
         stay.start()
@@ -173,6 +180,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let frame = BarGeometry.frame(on: screen.frame, edge: edge)
         BarLayout.shared.screenWidth = screen.frame.width
         BarLayout.shared.hasNotch = screen.safeAreaInsets.top > 0
+        let mainHeight = NSScreen.screens.first?.frame.height ?? screen.frame.height
+        BarLayout.shared.barFrameTopLeft = CGRect(
+            x: frame.minX, y: mainHeight - frame.maxY, width: frame.width, height: frame.height)
         if let panel {
             panel.setFrame(frame, display: true)
             return
