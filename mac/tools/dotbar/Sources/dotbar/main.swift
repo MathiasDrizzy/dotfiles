@@ -46,6 +46,8 @@ struct BarView: View {
     let media: MediaModel
     let frontApp: FrontAppModel
     let runner: CommandRunner
+    let cover: CoverModel
+    let controlCenter: ControlCenterModel
 
     // SketchyBar's measures: the left side starts 23 points in, the boxes before the name's box take 28 + 3 + 45, the
     // weather box ends 3 points before the housing, the right side ends 37 points before the edge, and the status boxes
@@ -87,12 +89,14 @@ struct BarView: View {
             HStack(spacing: Theme.pillGap) {
                 MediaView(model: media)
                 Spacer(minLength: 0)
-                StatusView(model: status)
+                StatusView(model: status, controlCenter: controlCenter)
             }
             .padding(.trailing, Self.rightInset)
             .frame(width: layout.screenWidth - notch.right)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // The cover is behind every box (the rc's first bracket).
+        .background { CoverView(model: cover) }
         .task(id: left) {
             frontApp.setNameWidth(left.nameWidth)
             workspaces.cap = left.cap
@@ -118,6 +122,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let weather = WeatherModel()
     private lazy var media = MediaModel(runner: runner, mediaControl: mediaControlPath())
     private let frontApp = FrontAppModel()
+    private lazy var cover = CoverModel(edge: edge)
+    private lazy var controlCenter = ControlCenterModel(runner: runner, cover: cover)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         workspaces.start()
@@ -126,6 +132,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         weather.start()
         media.start()
         frontApp.start()
+        cover.start()
+        controlCenter.start()
         place()
         // Screens come and go (a monitor plugged in, the lid closed): the bar follows the main display.
         NotificationCenter.default.addObserver(
@@ -143,6 +151,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         weather.stop()
         media.stop()
         frontApp.stop()
+        controlCenter.stop()
+        cover.stop()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -162,7 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.contentView = NSHostingView(
             rootView: BarView(
                 workspaces: workspaces, status: status, moon: moon, weather: weather, media: media,
-                frontApp: frontApp, runner: runner))
+                frontApp: frontApp, runner: runner, cover: cover, controlCenter: controlCenter))
         panel.orderFrontRegardless()
         self.panel = panel
     }
