@@ -36,7 +36,7 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 | T4 | S3 battery, date, time, network; S7 | inline | done | 2423141 |
 | T5 | S3 weather, moon; S7 | delegated | done | 8118f3f |
 | T6 | S3 now playing | delegated | done | fde7e9e |
-| T7 | S3 notch fit, other monitor, the "+N" cap | inline | done | T7 commit |
+| T7 | S3 notch fit, other monitor, the "+N" cap | inline | done | aeae6b4 |
 | T8 | S3 Control Center, cover, Vorssaint, drag to swap | inline | pending | |
 | T9 | S4 switch and SketchyBar removal | inline | pending | |
 
