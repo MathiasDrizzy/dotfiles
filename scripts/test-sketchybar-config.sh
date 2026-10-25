@@ -376,8 +376,11 @@ installer_ok() {
   # so a file added later is covered without touching this check. Only files git tracks count (a stray scratch file is
   # not part of the bar), the match is literal, and an empty list fails rather than passing on nothing.
   local tracked
-  tracked="$(git -C "$ROOT" ls-files -- mac/config/sketchybar)"
-  [ -n "$tracked" ] || return 1
+  tracked="$(git -C "$ROOT" -c core.quotePath=off ls-files -- mac/config/sketchybar)"
+  [ -n "$tracked" ] || {
+    echo "no tracked bar files: the link check needs a git checkout of the repo" >&2
+    return 1
+  }
   while IFS= read -r f; do
     grep -qF "\"${f#mac/}|" "$ROOT/mac/scripts/check-links.sh" || {
       echo "not linked by check-links.sh: ${f#mac/}" >&2
