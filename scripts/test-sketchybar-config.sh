@@ -373,13 +373,17 @@ installer_ok() {
     grep -q "ctlcenter.swift" "$ROOT/mac/install.sh" && [ -f "$ROOT/mac/tools/ctlcenter/ctlcenter.swift" ] || return 1
   # Every file of the bar is linked one by one: a new one missing here is simply not there after an install (helpers.sh
   # was, every plugin sourcing it lost its time limits, and the workspace pills vanished). Listed from the folder itself,
-  # so a file added later is covered without touching this check.
+  # so a file added later is covered without touching this check. Only files git tracks count (a stray scratch file is
+  # not part of the bar), the match is literal, and an empty list fails rather than passing on nothing.
+  local tracked
+  tracked="$(git -C "$ROOT" ls-files -- mac/config/sketchybar)"
+  [ -n "$tracked" ] || return 1
   while IFS= read -r f; do
-    grep -q "\"config/sketchybar/${f#"$SB"/}|" "$ROOT/mac/scripts/check-links.sh" || {
-      echo "not linked by check-links.sh: ${f#"$SB"/}" >&2
+    grep -qF "\"${f#mac/}|" "$ROOT/mac/scripts/check-links.sh" || {
+      echo "not linked by check-links.sh: ${f#mac/}" >&2
       return 1
     }
-  done < <(find "$SB" -type f ! -name '.DS_Store')
+  done <<<"$tracked"
 }
 
 check "all scripts parse" syntax_ok
