@@ -28,7 +28,7 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 | ID | Specs | Route | Status | Commit |
 |----|-------|-------|--------|--------|
 | T1 | S2, S5 | inline | done | f5785b7 |
-| T2 | S3 workspaces, S2, S6 | inline | done | T2 commit |
+| T2 | S3 workspaces, S2, S6 | inline | done | ff98d3e |
 | T3 | S3 front app, Apple menu | inline | pending | |
 | T4 | S3 battery, date, time, network | inline | pending | |
 | T5 | S3 weather, moon | inline | pending | |
