@@ -25,3 +25,6 @@ __pycache__/
 # gentle-ai local state
 .atl/
 .codegraph/
+
+# Swift build output
+mac/tools/dotbar/.build/
