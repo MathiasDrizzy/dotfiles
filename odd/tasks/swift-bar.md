@@ -33,7 +33,7 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 | T1 | S2, S5 | inline | done | f5785b7 |
 | T2 | S3 workspaces, S2, S6 | inline | done | ff98d3e |
 | T3 | S3 front app, Apple menu | inline | pending | |
-| T4 | S3 battery, date, time, network; S7 | inline | done | T4 commit |
+| T4 | S3 battery, date, time, network; S7 | inline | done | 2423141 |
 | T5 | S3 weather, moon; S7 | inline | pending | |
 | T6 | S3 now playing | inline | pending | |
 | T7 | S3 notch fit, other monitor, the "+N" cap | inline | pending | |
