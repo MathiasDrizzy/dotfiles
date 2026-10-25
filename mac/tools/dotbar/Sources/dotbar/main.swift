@@ -29,14 +29,21 @@ final class BarPanel: NSPanel {
 struct BarView: View {
     let workspaces: WorkspacesModel
     let status: StatusModel
+    let frontApp: FrontAppModel
+    let runner: CommandRunner
 
     var body: some View {
         HStack(spacing: Theme.pillGap) {
+            // SketchyBar's left edge: the Apple block 23 points in, the front app's pill 3 points after it.
+            HStack(spacing: 3) {
+                AppleView(runner: runner)
+                FrontAppView(model: frontApp)
+            }
             WorkspacesView(model: workspaces)
             Spacer()
             StatusView(model: status)
         }
-        .padding(.leading, 8)
+        .padding(.leading, 23)
         // SketchyBar's Control Center box ended 37 points from the screen's right edge (its edge spacer).
         .padding(.trailing, 37)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -56,10 +63,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let runner = CommandRunner()
     private lazy var workspaces = WorkspacesModel(runner: runner, aerospace: aerospacePath())
     private let status = StatusModel()
+    private let frontApp = FrontAppModel()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         workspaces.start()
         status.start()
+        frontApp.start()
         place()
         // Screens come and go (a monitor plugged in, the lid closed): the bar follows the main display.
         NotificationCenter.default.addObserver(
@@ -73,6 +82,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func shutdown() {
         workspaces.stop()
         status.stop()
+        frontApp.stop()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -87,7 +97,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         let panel = BarPanel(frame: frame)
-        panel.contentView = NSHostingView(rootView: BarView(workspaces: workspaces, status: status))
+        panel.contentView = NSHostingView(rootView: BarView(workspaces: workspaces, status: status, frontApp: frontApp, runner: runner))
         panel.orderFrontRegardless()
         self.panel = panel
     }
