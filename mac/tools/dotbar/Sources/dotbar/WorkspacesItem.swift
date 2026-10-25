@@ -65,7 +65,13 @@ final class WorkspacesModel {
         bar = cap == nil ? all : Workspaces.layout(rows: state.rows, occupied: state.occupied, cap: cap)
     }
 
+    /// A click on a pill asked for this switch (stay must not undo it).
+    @ObservationIgnored var onAsked: (() -> Void)?
+    /// A swap is moving windows (stay must not take an emptied workspace for a closed window).
+    @ObservationIgnored var onSwapping: ((Bool) -> Void)?
+
     func focus(_ id: String) {
+        onAsked?()
         Task { _ = await runner.run(aerospace, ["workspace", id], timeout: Self.queryTimeout, key: "focus \(id)") }
     }
 
@@ -74,8 +80,10 @@ final class WorkspacesModel {
     /// workspaces are read once.
     func swap(from: String, to: String) async {
         gate.begin()
+        onSwapping?(true)
         let outcome = await WorkspaceSwap.run(
             runner: runner, aerospace: aerospace, from: from, to: to, timeout: Self.queryTimeout)
+        onSwapping?(false)
         guard gate.end() else { return }
         if case .swapped(let focus?) = outcome {
             state.focus(focus)

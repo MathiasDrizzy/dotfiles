@@ -37,7 +37,7 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 | T5 | S3 weather, moon; S7 | delegated | done | 8118f3f |
 | T6 | S3 now playing | delegated | done | fde7e9e |
 | T7 | S3 notch fit, other monitor, the "+N" cap | inline | done | aeae6b4 |
-| T8 | S3 Control Center, cover, Vorssaint, drag to swap | inline | pending | |
+| T8 | S3 Control Center, cover, Vorssaint, drag to swap | delegated | done | 4fb3413, 7923ddf, 34c8aca |
 | T9 | S4 switch and SketchyBar removal | inline | pending | |
 
 - T1: Swift package `mac/tools/dotbar` (library + app + tests); a non-activating panel above the menu bar on the main
@@ -100,3 +100,11 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
   gap around the housing, 623-847 on the MacBook; the name narrows to 40 then workspaces leave with "+N"; the track gets
   (Vorssaint - 5 - housing - 70) / 7.2 characters, 8 to 35). The weather box reports its measured width; the bar is
   two zones around the housing. Side by side with SketchyBar the boxes line up; Vorssaint is T8.
+- L14: T8 done by three writers and merged: Control Center click and the cover (4fb3413: fn+C posted natively, the
+  controlcenter.sh driver in DotbarCore, the cover is the wallpaper strip from desktopImageURL, no Screen Recording),
+  Vorssaint (7923ddf: the menu extra pressed through Accessibility, closed with a click outside, the battery, date and
+  time boxes widen so Vorssaint sits over its extra), drag to swap (34c8aca: ghost pill, tints, glide, the swap plan
+  through time-limited aerospace calls, refreshes skipped meanwhile). stay.sh's rule (9652da3, 873a205) is wired: a
+  pill click marks a switch as asked, a swap pauses it; Vorssaint's popover holds the cover. 254 checks pass. Live, the
+  integrated bar matches SketchyBar box by box (only the temperature source differs), 0% CPU, 57 MB, two aerospace
+  streams and one media stream as children, nothing left after quit. Next step: T9.

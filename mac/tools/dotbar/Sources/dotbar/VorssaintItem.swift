@@ -35,6 +35,8 @@ final class VorssaintModel {
     @ObservationIgnored private var aligning = false
     /// The popover was on screen when the pointer came over the box, or when the last drive ended.
     @ObservationIgnored private var sawOpen = false
+    /// Its popover opened or closed: the cover keeps the native menu bar hidden while it is open.
+    @ObservationIgnored var onMenu: ((Bool) -> Void)?
     /// When a press on the box found the popover open.
     @ObservationIgnored private var pressSawOpen: Date?
     @ObservationIgnored private var monitor: Any?
@@ -138,6 +140,7 @@ final class VorssaintModel {
         driver = nil
         driving = nil
         sawOpen = visible
+        onMenu?(visible)
     }
 
     /// Moves the box over the extra: the battery, date and time boxes widen evenly so its center sits over the extra's.

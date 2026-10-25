@@ -138,10 +138,11 @@ struct IconLabelBox: View {
     }
 }
 
-/// The right side, left to right: Vorssaint, battery, date, time and the Control Center button (its click comes with
-/// T8). The battery, date and time boxes widen from their least widths so Vorssaint's box sits over its menu bar extra.
+/// The right side, left to right: Vorssaint, battery, date, time and the Control Center button. The battery, date and
+/// time boxes widen from their least widths so Vorssaint's box sits over its menu bar extra.
 struct StatusView: View {
     let model: StatusModel
+    let controlCenter: ControlCenterModel
 
     var body: some View {
         let spread = VorssaintModel.shared.shares
@@ -160,9 +161,10 @@ struct StatusView: View {
             IconLabelBox(
                 id: "clock", icon: "\u{F0954}", iconColor: Theme.yellow, label: ClockText.time(model.now), labelFont: Theme.textFont,
                 width: Theme.leastSpreadWidths[2] + spread[2])
-            // Red while there is no network: what control.sh showed for a Wi-Fi without an address.
-            BarBox(id: "control", width: 28) {
-                Text(":widget:").font(Theme.appIconFont).foregroundStyle(model.online ? Theme.mauve : Theme.red)
+            // Red while there is no network: what control.sh showed for a Wi-Fi without an address. AppGlyph centers the
+            // ligature's ink as SketchyBar did (a Text centers its advance, 3.5 points off).
+            BarBox(id: "control", width: 28, action: { controlCenter.click() }) {
+                AppGlyph(glyph: ":widget:", color: model.online ? Theme.mauve : Theme.red)
             }
         }
     }

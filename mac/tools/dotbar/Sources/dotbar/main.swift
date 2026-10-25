@@ -46,6 +46,8 @@ struct BarView: View {
     let media: MediaModel
     let frontApp: FrontAppModel
     let runner: CommandRunner
+    let cover: CoverModel
+    let controlCenter: ControlCenterModel
 
     // SketchyBar's measures: the left side starts 23 points in, the boxes before the name's box take 28 + 3 + 45, the
     // weather box ends 3 points before the housing, the right side ends 37 points before the edge, and the status boxes
@@ -86,12 +88,14 @@ struct BarView: View {
             HStack(spacing: Theme.pillGap) {
                 MediaView(model: media)
                 Spacer(minLength: 0)
-                StatusView(model: status)
+                StatusView(model: status, controlCenter: controlCenter)
             }
             .padding(.trailing, Self.rightInset)
             .frame(width: layout.screenWidth - notch.right)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // The cover is behind every box (the rc's first bracket).
+        .background { CoverView(model: cover) }
         .task(id: left) {
             frontApp.setNameWidth(left.nameWidth)
             workspaces.cap = left.cap
@@ -112,20 +116,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let edge: BarEdge = CommandLine.arguments.contains("--bottom") ? .bottom : .top
     private let runner = CommandRunner()
     private lazy var workspaces = WorkspacesModel(runner: runner, aerospace: aerospacePath())
+    private lazy var stay = StayModel(runner: runner, aerospace: aerospacePath())
     private let status = StatusModel()
     private let moon = MoonModel()
     private let weather = WeatherModel()
     private lazy var media = MediaModel(runner: runner, mediaControl: mediaControlPath())
     private let frontApp = FrontAppModel()
+    private lazy var cover = CoverModel(edge: edge)
+    private lazy var controlCenter = ControlCenterModel(runner: runner, cover: cover)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        workspaces.onAsked = { [weak self] in self?.stay.asked() }
+        workspaces.onSwapping = { [weak self] swapping in self?.stay.setSwapping(swapping) }
+        VorssaintModel.shared.onMenu = { [weak self] open in
+            if open { self?.cover.hold("vorssaint") } else { self?.cover.release("vorssaint") }
+        }
         workspaces.start()
+        stay.start()
         status.start()
         moon.start()
         weather.start()
         media.start()
         frontApp.start()
         VorssaintModel.shared.start()
+        cover.start()
+        controlCenter.start()
         place()
         // Screens come and go (a monitor plugged in, the lid closed): the bar follows the main display.
         NotificationCenter.default.addObserver(
@@ -138,12 +153,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// The long-lived commands end with the bar; left alone, a stream would only notice at its next event.
     func shutdown() {
         workspaces.stop()
+        stay.stop()
         status.stop()
         moon.stop()
         weather.stop()
         media.stop()
         frontApp.stop()
         VorssaintModel.shared.stop()
+        controlCenter.stop()
+        cover.stop()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -163,7 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.contentView = NSHostingView(
             rootView: BarView(
                 workspaces: workspaces, status: status, moon: moon, weather: weather, media: media,
-                frontApp: frontApp, runner: runner))
+                frontApp: frontApp, runner: runner, cover: cover, controlCenter: controlCenter))
         panel.orderFrontRegardless()
         self.panel = panel
     }
