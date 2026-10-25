@@ -165,6 +165,18 @@ check "an event that arrives during a refresh is drawn when it ends" 3 "$(lit)"
 sleep 3 # runs that started while it was slow are still finishing
 check "...and leaves no lock or note behind" "" "$(residue)"
 
+# Reloads that overlap (hotload on a checkout that touches several files): every workspace bracket keeps all its items.
+for _ in 1 2 3; do
+  sketchybar --reload >/dev/null 2>&1
+  sleep 0.2
+done
+sleep 6
+members() { sketchybar --query "$1" 2>/dev/null | jq '.bracket | length'; }
+items_like() { sketchybar --query bar | jq -r '.items[]' | grep -cE "^$1$"; }
+check "overlapping reloads leave the workspace bracket whole" "$(items_like 'space\..*')" "$(members spaces)"
+check "...and the other monitor's bracket whole" "$(items_like 'ext\..*')" "$(members ext_spaces)"
+check "...and no build left running" 0 "$(pgrep -lf "$CONFIG_DIR/sketchybarrc" | grep -vc -- '--config')" # the bar itself names its rc too
+
 # cover.sh remember: ctlcenter backdrop hung for days at 10% of a core. It gets a time limit and is gone after it.
 SLEEPER="300$$" # a duration no other process has (the fixed prefix and this PID), matched to the end of the command line
 cat >"$HOME/.local/bin/ctlcenter" <<EOF2

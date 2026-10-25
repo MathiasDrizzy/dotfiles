@@ -23,9 +23,11 @@ RC_PID="$HOME/.cache/sketchybar/rc_pid"
 mkdir -p "$(dirname "$RC_PID")"
 rc_old="$(cat "$RC_PID" 2>/dev/null)"
 if [ -n "$rc_old" ] && [ "$rc_old" != $$ ] && ps -p "$rc_old" -o command= 2>/dev/null | grep -q sketchybarrc; then
+  pkill -P "$rc_old" 2>/dev/null # its sketchybar call in flight too, or it lands after the clear below
   kill "$rc_old" 2>/dev/null
 fi
 echo $$ >"$RC_PID"
+trap '[ "$(cat "$RC_PID" 2>/dev/null)" = $$ ] && rm -f "$RC_PID"' EXIT # only our own: a newer build owns it otherwise
 sketchybar --remove '/.*/' >/dev/null 2>&1
 
 # The bar itself is transparent: every item sits in a solid box of its own below, so there is a clear gap around the
@@ -253,6 +255,21 @@ sketchybar --add item clock right \
   --subscribe vorssaint mouse.entered mouse.exited
 
 for name in clock date battery vorssaint; do pill "$name"; done
+
+# A bracket made from a pattern takes the items that exist when it is made. Two builds started within milliseconds of
+# each other (hotload on a checkout that touches several files) can still interleave past the guard at the top, so the
+# workspace brackets are checked here and made again when they lost members.
+heal_bracket() { # bracket, pattern: the bracket must hold every item matching it
+  local want have
+  want="$(sketchybar --query bar | jq -r '.items[]' | grep -cE "^${2}$")"
+  have="$(sketchybar --query "$1" 2>/dev/null | jq '.bracket | length' 2>/dev/null)"
+  [ "$want" = "${have:-0}" ] && return
+  sketchybar --remove "$1" >/dev/null 2>&1
+  sketchybar --add bracket "$1" "/${2}/"
+  pill "$1"
+}
+heal_bracket spaces 'space\..*'
+heal_bracket ext_spaces 'ext\..*'
 
 sketchybar --hotload on
 sketchybar --update
