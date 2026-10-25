@@ -138,24 +138,28 @@ struct IconLabelBox: View {
     }
 }
 
-/// The right side, left to right: battery, date, time and the Control Center button (its click comes with T8).
+/// The right side, left to right: Vorssaint, battery, date, time and the Control Center button (its click comes with
+/// T8). The battery, date and time boxes widen from their least widths so Vorssaint's box sits over its menu bar extra.
 struct StatusView: View {
     let model: StatusModel
 
     var body: some View {
+        let spread = VorssaintModel.shared.shares
         HStack(spacing: Theme.pillGap) {
+            VorssaintView(model: VorssaintModel.shared)
             if let battery = model.battery {
                 IconLabelBox(
                     id: "battery", icon: battery.style.glyph, iconColor: Color(hex: battery.style.color), label: "\(battery.percent)%",
-                    width: 65,
+                    width: Theme.leastSpreadWidths[0] + spread[0],
                     action: { open("x-apple.systempreferences:com.apple.Battery-Settings.extension") })
             }
             IconLabelBox(
-                id: "date", icon: "\u{F00F0}", iconColor: Theme.red, label: ClockText.date(model.now), width: 108,
+                id: "date", icon: "\u{F00F0}", iconColor: Theme.red, label: ClockText.date(model.now),
+                width: Theme.leastSpreadWidths[1] + spread[1],
                 action: { NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Calendar.app")) })
             IconLabelBox(
                 id: "clock", icon: "\u{F0954}", iconColor: Theme.yellow, label: ClockText.time(model.now), labelFont: Theme.textFont,
-                width: 71)
+                width: Theme.leastSpreadWidths[2] + spread[2])
             // Red while there is no network: what control.sh showed for a Wi-Fi without an address.
             BarBox(id: "control", width: 28) {
                 Text(":widget:").font(Theme.appIconFont).foregroundStyle(model.online ? Theme.mauve : Theme.red)

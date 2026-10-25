@@ -49,12 +49,12 @@ struct BarView: View {
 
     // SketchyBar's measures: the left side starts 23 points in, the boxes before the name's box take 28 + 3 + 45, the
     // weather box ends 3 points before the housing, the right side ends 37 points before the edge, and the status boxes
-    // (Vorssaint, battery, date, time, Control Center and their gaps) take 320 points before it.
+    // (Vorssaint, battery, date, time, Control Center and their gaps) take 283 points before it, plus what the battery,
+    // date and time boxes widen by to put Vorssaint's box over its menu bar extra.
     private static let leftInset: CGFloat = 23
     private static let leftFixed: CGFloat = 28 + 3 + 45
     private static let beforeNotch: CGFloat = 3
     private static let rightInset: CGFloat = 37
-    private static let statusWidth: CGFloat = 320
 
     var body: some View {
         let layout = BarLayout.shared
@@ -64,7 +64,8 @@ struct BarView: View {
             fixedBeforeName: Self.leftFixed, external: !workspaces.bar.external.isEmpty)
         let left = BarFit.left(room: room, natural: workspaces.natural)
         let chars = BarFit.mediaChars(
-            notchRight: notch.right, vorssaintLeft: layout.screenWidth - Self.rightInset - Self.statusWidth)
+            notchRight: notch.right,
+            vorssaintLeft: layout.screenWidth - Self.rightInset - Theme.leastStatusWidth - VorssaintModel.shared.spread)
 
         HStack(spacing: 0) {
             HStack(spacing: Theme.pillGap) {
@@ -124,6 +125,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         weather.start()
         media.start()
         frontApp.start()
+        VorssaintModel.shared.start()
         place()
         // Screens come and go (a monitor plugged in, the lid closed): the bar follows the main display.
         NotificationCenter.default.addObserver(
@@ -141,6 +143,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         weather.stop()
         media.stop()
         frontApp.stop()
+        VorssaintModel.shared.stop()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
