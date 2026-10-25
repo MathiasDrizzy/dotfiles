@@ -3,6 +3,7 @@
 import Foundation
 
 await coreTests()
+await weatherTests()
 
 print(failures == 0 ? "dotbar-tests: PASS" : "dotbar-tests: \(failures) FAILED")
 exit(failures == 0 ? 0 : 1)
