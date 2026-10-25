@@ -31,12 +31,14 @@ struct BarView: View {
     let status: StatusModel
     let moon: MoonModel
     let weather: WeatherModel
+    let media: MediaModel
 
     var body: some View {
         HStack(spacing: Theme.pillGap) {
             WorkspacesView(model: workspaces)
             MoonView(model: moon)
             WeatherView(model: weather)
+            MediaView(model: media)
             Spacer()
             StatusView(model: status)
         }
@@ -62,12 +64,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let status = StatusModel()
     private let moon = MoonModel()
     private let weather = WeatherModel()
+    private lazy var media = MediaModel(runner: runner, mediaControl: mediaControlPath())
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         workspaces.start()
         status.start()
         moon.start()
         weather.start()
+        media.start()
         place()
         // Screens come and go (a monitor plugged in, the lid closed): the bar follows the main display.
         NotificationCenter.default.addObserver(
@@ -83,6 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         status.stop()
         moon.stop()
         weather.stop()
+        media.stop()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -97,7 +102,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         let panel = BarPanel(frame: frame)
-        panel.contentView = NSHostingView(rootView: BarView(workspaces: workspaces, status: status, moon: moon, weather: weather))
+        panel.contentView = NSHostingView(
+            rootView: BarView(workspaces: workspaces, status: status, moon: moon, weather: weather, media: media))
         panel.orderFrontRegardless()
         self.panel = panel
     }
