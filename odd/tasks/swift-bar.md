@@ -20,6 +20,9 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
   sketchybar" (launch at login, SketchyBar and its config and plugins deleted, installer, docs) as the last task.
 - S6. "recuerda hacer la barra con la misma estetica": the same look as today's bar, box by box (sizes, colors, fonts,
   glyphs, gaps, radii), checked side by side by screenshot.
+- S7. "el clima y hora como lo estas haciendo con swift si lo puedes hacer nativo en vez de hacer hooks o automatizaciones
+  como lo tenemos hazlo": the weather, the place and the time come from native APIs (no Shortcuts shortcut, no
+  CoreLocationCLI, no curl).
 - S5. Every task ships with its tests (unit tests for the logic; a visual check by screenshot for drawing) and passes
   the existing repo checks.
 
@@ -30,17 +33,18 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 | T1 | S2, S5 | inline | done | f5785b7 |
 | T2 | S3 workspaces, S2, S6 | inline | done | ff98d3e |
 | T3 | S3 front app, Apple menu | inline | pending | |
-| T4 | S3 battery, date, time, network | inline | pending | |
-| T5 | S3 weather, moon | inline | pending | |
+| T4 | S3 battery, date, time, network; S7 | inline | pending | |
+| T5 | S3 weather, moon; S7 | inline | pending | |
 | T6 | S3 now playing | inline | pending | |
-| T7 | S3 notch fit, other monitor | inline | pending | |
+| T7 | S3 notch fit, other monitor, the "+N" cap | inline | pending | |
 | T8 | S3 Control Center, cover, Vorssaint, drag to swap | inline | pending | |
 | T9 | S4 switch and SketchyBar removal | inline | pending | |
 
 - T1: Swift package `mac/tools/dotbar` (library + app + tests); a non-activating panel above the menu bar on the main
   display, transparent, 40 pt tall, full width; a development flag to draw it at the bottom next to SketchyBar; the
   time-limited command runner of S2 with tests.
-- T2: AeroSpace from its `subscribe` stream (no polling); pills and their states; click; the "+N" cap.
+- T2: AeroSpace from its `subscribe` stream (no polling); pills and their states; click. The "+N" cap is computed in the
+  core but drawn from T7, which measures the room it depends on.
 - T3-T8: one area of S3 each, ported from the matching plugin.
 - T9: launch agent, SketchyBar disabled, install.sh and its test, README.
 
@@ -65,3 +69,11 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
   side with SketchyBar: same sizes, colors and font; a switch shows within 250 ms; after 24 switches 120 ms apart the
   focus drawn is the real one, 0.4% CPU, one child process. Quitting (SIGTERM) stops the stream: nothing is left.
   Next step: T3 (Apple menu and front app).
+- L7: Native review of T1-T2 approved with warnings, all fixed: the runner waits on dispatch threads, never on Swift's
+  cooperative ones; output is read by a handler (no thread blocked on a pipe a leftover child holds open; no unlocked
+  access); on its limit the command and every process below it end; the stream runs one process whatever the order of
+  start, stop and its end; a look at the workspaces that started before a switch is dropped (WorkspaceState). The "+N"
+  cap moved to T7 (the review found it was never drawn). The rc bracket check stays unanchored: live counts matched
+  (19 = 19, 20 = 20). 33 checks pass; live burst ends on the real focus, 0.4% CPU, one child; nothing left on quit.
+- L8 (2026-10-25, user, verbatim): "el clima y hora como lo estas haciendo con swift si lo puedes hacer nativo en vez de
+  hacer hooks o automatizaciones como lo tenemos hazlo" -> S7, for T4 and T5.

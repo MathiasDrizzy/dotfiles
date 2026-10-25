@@ -137,5 +137,49 @@ let startsAtStop = stream.starts
 try? await Task.sleep(for: .seconds(0.6))
 check("a stopped stream stays stopped", stream.starts == startsAtStop)
 
+// A look at the workspaces that started before a switch must not paint the old focus back.
+var state = WorkspaceState()
+state.apply(rows: [row("1", focused: true), row("2")], occupied: ["1", "2"], startedAt: state.generation)
+let lookStartedAt = state.generation
+state.focus("2")
+let staleTaken = state.apply(rows: [row("1", focused: true), row("2")], occupied: ["1", "2"], startedAt: lookStartedAt)
+check("a look that started before a switch is dropped", !staleTaken && state.bar.mac.first(where: { $0.state == .focused })?.id == "2")
+let freshTaken = state.apply(rows: [row("1"), row("2", focused: true), row("3")], occupied: ["1", "2", "3"], startedAt: state.generation)
+check("...and the next one is taken", freshTaken && ids(state.bar.mac) == ["1", "2", "3"])
+check("a look AeroSpace did not answer keeps what is known", state.apply(rows: nil, occupied: nil, startedAt: state.generation) && ids(state.bar.mac) == ["1", "2", "3"])
+
+// A command that started others: on its time limit, they all end.
+let family = "3001\(getpid())"
+let familyStart = Date()
+let shell = await runner.run("/bin/sh", ["-c", "sleep \(family) & wait"], timeout: 0.5)
+check("a hung command and the processes it started all end at its limit", shell.timedOut && running("sleep \(family)") == 0,
+    "\(running("sleep \(family)")) left after \(Date().timeIntervalSince(familyStart)) s")
+
+// A command that leaves a child holding its output open: the bar does not wait for that child.
+let orphan = "3002\(getpid())"
+let orphanStart = Date()
+let quick = await runner.run("/bin/sh", ["-c", "echo done; sleep \(orphan) &"], timeout: 5)
+let orphanTook = Date().timeIntervalSince(orphanStart)
+check("a child left holding the output open does not hold the bar", quick.stdout == "done\n" && orphanTook < 2, "took \(orphanTook) s")
+let cleanup = Process()
+cleanup.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+cleanup.arguments = ["-f", "sleep \(orphan)$"]
+try? cleanup.run()
+cleanup.waitUntilExit()
+
+// A stream started twice, or stopped and started at once, runs one process.
+let once = LineStream("/bin/sleep", ["3003\(getpid())"], restartDelay: 0.2) { _ in }
+once.start()
+once.start()
+try? await Task.sleep(for: .seconds(0.3))
+check("a stream started twice runs one process", running("sleep 3003\(getpid())") == 1 && once.starts == 1)
+once.stop()
+once.start()
+try? await Task.sleep(for: .seconds(0.6))
+check("stopped and started at once, it still runs one", running("sleep 3003\(getpid())") == 1, "\(running("sleep 3003\(getpid())"))")
+once.stop()
+try? await Task.sleep(for: .seconds(0.4))
+check("stopped, nothing of it runs", running("sleep 3003\(getpid())") == 0)
+
 print(failures == 0 ? "dotbar-tests: PASS" : "dotbar-tests: \(failures) FAILED")
 exit(failures == 0 ? 0 : 1)

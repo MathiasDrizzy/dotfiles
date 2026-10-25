@@ -123,3 +123,37 @@ public enum AeroSpaceEvent: Equatable, Sendable {
         }
     }
 }
+
+/// What the bar knows about the workspaces, and the rule for who wins: a switch from the event stream is painted at once,
+/// and a look at the workspaces that started before that switch arrives too late to undo it (it is dropped; the next
+/// look, asked for by the switch, brings the rest).
+public struct WorkspaceState: Sendable {
+    public private(set) var rows: [WorkspaceRow] = []
+    public private(set) var occupied: Set<String> = []
+    /// Bumped by every switch: a look carries the value it started with.
+    public private(set) var generation = 0
+
+    public init() {}
+
+    public var bar: WorkspaceBar { Workspaces.layout(rows: rows, occupied: occupied) }
+
+    /// A switch to `id`: it is the visible workspace of its monitor now, and the one there before is not.
+    public mutating func focus(_ id: String) {
+        generation += 1
+        guard let monitor = rows.first(where: { $0.id == id })?.monitor else { return }
+        rows = rows.map { row in
+            let visible = row.id == id || (row.monitor != monitor && row.visible)
+            return WorkspaceRow(id: row.id, monitor: row.monitor, visible: visible, focused: row.id == id)
+        }
+    }
+
+    /// The answer of a look started at `generation`; nil keeps what is known (AeroSpace did not answer). Returns whether
+    /// it was taken.
+    @discardableResult
+    public mutating func apply(rows newRows: [WorkspaceRow]?, occupied newOccupied: Set<String>?, startedAt: Int) -> Bool {
+        guard startedAt == generation else { return false }
+        if let newRows, !newRows.isEmpty { rows = newRows }
+        if let newOccupied { occupied = newOccupied }
+        return true
+    }
+}

@@ -5,14 +5,14 @@ import SwiftUI
 
 /// The AeroSpace workspaces: one `aerospace subscribe` stream for the life of the bar, and a fresh look at the workspaces
 /// after each event (one at a time; an event that arrives meanwhile asks for one more). A workspace switch is painted at
-/// once from the event itself: the stream delivers events in order, so an old focus never comes back after a new one.
+/// once from the event itself, and a look that started before it is dropped (WorkspaceState), so an old focus never comes
+/// back after a new one.
 @MainActor
 @Observable
 final class WorkspacesModel {
     private(set) var bar = WorkspaceBar()
 
-    @ObservationIgnored private var rows: [WorkspaceRow] = []
-    @ObservationIgnored private var occupied: Set<String> = []
+    @ObservationIgnored private var state = WorkspaceState()
     @ObservationIgnored private let runner: CommandRunner
     @ObservationIgnored private let aerospace: String
     @ObservationIgnored private var stream: LineStream?
@@ -57,19 +57,10 @@ final class WorkspacesModel {
     private func handle(_ line: String) {
         guard let event = AeroSpaceEvent.parse(line) else { return }
         if case .focusedWorkspace(let id) = event, !id.isEmpty {
-            paintFocus(id)
+            state.focus(id)
+            bar = state.bar
         }
         refresh()
-    }
-
-    /// The new focus right away: it is the visible workspace of its monitor now, and the old one there is not.
-    private func paintFocus(_ id: String) {
-        guard let monitor = rows.first(where: { $0.id == id })?.monitor else { return }
-        rows = rows.map { row in
-            let visible = row.id == id || (row.monitor != monitor && row.visible)
-            return WorkspaceRow(id: row.id, monitor: row.monitor, visible: visible, focused: row.id == id)
-        }
-        bar = Workspaces.layout(rows: rows, occupied: occupied)
     }
 
     private func refresh() {
@@ -78,6 +69,7 @@ final class WorkspacesModel {
             return
         }
         refreshing = true
+        let startedAt = state.generation
         Task {
             let format = "%{workspace}|%{monitor-appkit-nsscreen-screens-id}|%{workspace-is-visible}|%{workspace-is-focused}"
             async let workspaces = runner.run(
@@ -85,12 +77,11 @@ final class WorkspacesModel {
             async let windows = runner.run(
                 aerospace, ["list-windows", "--all", "--format", "%{workspace}"], timeout: Self.queryTimeout)
             let (rowsAnswer, windowsAnswer) = await (workspaces, windows)
-            if rowsAnswer.status == 0 {
-                let parsed = Workspaces.parseRows(rowsAnswer.stdout)
-                if !parsed.isEmpty { rows = parsed }
-            }
-            if windowsAnswer.status == 0 { occupied = Workspaces.parseOccupied(windowsAnswer.stdout) }
-            bar = Workspaces.layout(rows: rows, occupied: occupied)
+            let taken = state.apply(
+                rows: rowsAnswer.status == 0 ? Workspaces.parseRows(rowsAnswer.stdout) : nil,
+                occupied: windowsAnswer.status == 0 ? Workspaces.parseOccupied(windowsAnswer.stdout) : nil,
+                startedAt: startedAt)
+            if taken { bar = state.bar } else { refreshAgain = true }
             refreshing = false
             if refreshAgain {
                 refreshAgain = false

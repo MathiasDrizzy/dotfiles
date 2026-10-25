@@ -2,7 +2,8 @@ import Foundation
 
 /// A long-lived command whose output is read line by line (`aerospace subscribe`, `media-control stream`): one process for
 /// the life of the bar instead of one per tick. When it ends (the app it talks to restarted), it is started again after
-/// `restartDelay`; `stop()` ends it for good.
+/// `restartDelay`; `stop()` ends it for good. Only one process runs at a time, whatever the order of start, stop and the
+/// end of the previous one.
 public final class LineStream: @unchecked Sendable {
     private let executable: String
     private let arguments: [String]
@@ -10,7 +11,9 @@ public final class LineStream: @unchecked Sendable {
     private let onLine: @Sendable (String) -> Void
     private let lock = NSLock()
     private var process: Process?
-    private var stopped = false
+    private var running = false
+    /// Bumped by every start and stop: a restart scheduled under an older generation is dropped.
+    private var generation = 0
     private var startCount = 0
 
     public init(
@@ -26,20 +29,29 @@ public final class LineStream: @unchecked Sendable {
     /// How many times the command was started; the tests count restarts.
     public var starts: Int { lock.withLock { startCount } }
 
+    /// Starts the stream; a stream already running is left as it is.
     public func start() {
-        lock.withLock { stopped = false }
-        launch()
+        let current = lock.withLock { () -> Int? in
+            guard !running else { return nil }
+            running = true
+            generation += 1
+            return generation
+        }
+        if let current { launch(current) }
     }
 
     public func stop() {
-        let running = lock.withLock { () -> Process? in
-            stopped = true
-            return process
+        let old = lock.withLock { () -> Process? in
+            running = false
+            generation += 1
+            let old = process
+            process = nil
+            return old
         }
-        running?.terminate()
+        old?.terminate()
     }
 
-    private func launch() {
+    private func launch(_ current: Int) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
@@ -56,30 +68,41 @@ public final class LineStream: @unchecked Sendable {
             }
             for line in pending.append(chunk) { onLine(line) }
         }
-        process.terminationHandler = { [weak self] _ in
-            guard let self else { return }
-            let again = self.lock.withLock { () -> Bool in
-                self.process = nil
-                return !self.stopped
-            }
-            guard again else { return }
-            DispatchQueue.global().asyncAfter(deadline: .now() + self.restartDelay) { [weak self] in
-                guard let self, self.lock.withLock({ !self.stopped }) else { return }
-                self.launch()
-            }
+        process.terminationHandler = { [weak self] ended in
+            self?.ended(ended, generation: current)
         }
-        let launched = lock.withLock { () -> Bool in
-            guard !stopped else { return false }
+        // Published and started under the lock: a stop() in between either comes before (nothing starts) or after
+        // (it sees the process and ends it).
+        let started = lock.withLock { () -> Bool in
+            guard running, generation == current else { return false }
+            do {
+                try process.run()
+            } catch {
+                return false
+            }
             self.process = process
             startCount += 1
             return true
         }
-        guard launched else { return }
-        do {
-            try process.run()
-        } catch {
-            // Not installed yet, or not executable: try again later, like a stream that ended.
-            process.terminationHandler?(process)
+        if !started {
+            pipe.fileHandleForReading.readabilityHandler = nil
+            scheduleRestart(current)
+        }
+    }
+
+    private func ended(_ ended: Process, generation current: Int) {
+        lock.withLock {
+            if process === ended { process = nil }
+        }
+        scheduleRestart(current)
+    }
+
+    /// Starts it again after the delay, unless it was stopped or started afresh meanwhile.
+    private func scheduleRestart(_ current: Int) {
+        DispatchQueue.global().asyncAfter(deadline: .now() + restartDelay) { [weak self] in
+            guard let self else { return }
+            let again = self.lock.withLock { self.running && self.generation == current && self.process == nil }
+            if again { self.launch(current) }
         }
     }
 }
