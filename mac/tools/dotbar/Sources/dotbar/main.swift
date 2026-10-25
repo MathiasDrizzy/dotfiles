@@ -1,5 +1,5 @@
-// dotbar: the top bar as one native app (odd/tasks/swift-bar.md). For now (T1) the bar's window with one box, to prove
-// it sits above the menu bar on every Space without taking the focus.
+// dotbar: the top bar as one native app (odd/tasks/swift-bar.md): a panel above the menu bar on every Space that never
+// takes the focus, with the items built task by task.
 //   dotbar            the bar at the top of the main display
 //   dotbar --bottom   at the bottom, next to SketchyBar while dotbar is being built
 import AppKit
@@ -25,17 +25,13 @@ final class BarPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
-/// The bar's content. T1 draws one box in the bar's colors; the items come in the next tasks.
+/// The bar's content: the items arrive task by task (odd/tasks/swift-bar.md); for now the workspaces.
 struct BarView: View {
+    let workspaces: WorkspacesModel
+
     var body: some View {
-        HStack {
-            Text("dotbar")
-                .font(.custom("JetBrainsMono Nerd Font", size: 12).bold())
-                .foregroundStyle(Color(red: 0xca / 255, green: 0xd3 / 255, blue: 0xf5 / 255))
-                .padding(.horizontal, 10)
-                .frame(height: 26)
-                .background(
-                    RoundedRectangle(cornerRadius: 5).fill(Color(red: 0x24 / 255, green: 0x26 / 255, blue: 0x39 / 255)))
+        HStack(spacing: Theme.pillGap) {
+            WorkspacesView(model: workspaces)
             Spacer()
         }
         .padding(.horizontal, 8)
@@ -43,12 +39,21 @@ struct BarView: View {
     }
 }
 
+/// Where AeroSpace's command line is: a login agent starts the bar with a bare PATH.
+func aerospacePath() -> String {
+    let candidates = ["/opt/homebrew/bin/aerospace", "/usr/local/bin/aerospace"]
+    return candidates.first { FileManager.default.isExecutableFile(atPath: $0) } ?? candidates[0]
+}
+
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panel: BarPanel?
     private let edge: BarEdge = CommandLine.arguments.contains("--bottom") ? .bottom : .top
+    private let runner = CommandRunner()
+    private lazy var workspaces = WorkspacesModel(runner: runner, aerospace: aerospacePath())
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        workspaces.start()
         place()
         // Screens come and go (a monitor plugged in, the lid closed): the bar follows the main display.
         NotificationCenter.default.addObserver(
@@ -56,6 +61,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.place() }
         }
+    }
+
+    /// The long-lived commands end with the bar; left alone, a stream would only notice at its next event.
+    func shutdown() {
+        workspaces.stop()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        shutdown()
     }
 
     private func place() {
@@ -66,7 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         let panel = BarPanel(frame: frame)
-        panel.contentView = NSHostingView(rootView: BarView())
+        panel.contentView = NSHostingView(rootView: BarView(workspaces: workspaces))
         panel.orderFrontRegardless()
         self.panel = panel
     }
@@ -76,4 +90,15 @@ let app = NSApplication.shared
 app.setActivationPolicy(.accessory) // no Dock icon, no menu bar of its own
 let delegate = AppDelegate()
 app.delegate = delegate
+// `kill`, a login agent stopping it, Ctrl-C: stop the streams, then quit.
+let signalSources = [SIGTERM, SIGINT].map { number -> DispatchSourceSignal in
+    signal(number, SIG_IGN)
+    let source = DispatchSource.makeSignalSource(signal: number, queue: .main)
+    source.setEventHandler {
+        MainActor.assumeIsolated { delegate.shutdown() }
+        exit(0)
+    }
+    source.resume()
+    return source
+}
 app.run()

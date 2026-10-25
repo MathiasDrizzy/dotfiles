@@ -16,8 +16,10 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
   swap); left of the notch: moon phase, weather (commune and temperature); right of the notch: now playing (Spotify);
   right: Vorssaint, battery, date, time, Control Center; the cover that keeps the native menu bar hidden; nothing ever
   overlaps another box or the camera housing.
-- S4. SketchyBar keeps running until dotbar reaches parity; the switch (launch at login, SketchyBar off, installer,
-  docs) is the last task. Assumption: the user wants the switch only at parity.
+- S4. SketchyBar keeps running until dotbar reaches parity; then it is removed: "al tenerla al 100% vamos a borrar
+  sketchybar" (launch at login, SketchyBar and its config and plugins deleted, installer, docs) as the last task.
+- S6. "recuerda hacer la barra con la misma estetica": the same look as today's bar, box by box (sizes, colors, fonts,
+  glyphs, gaps, radii), checked side by side by screenshot.
 - S5. Every task ships with its tests (unit tests for the logic; a visual check by screenshot for drawing) and passes
   the existing repo checks.
 
@@ -25,15 +27,15 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 
 | ID | Specs | Route | Status | Commit |
 |----|-------|-------|--------|--------|
-| T1 | S2, S5 | inline | done | feat(dotbar) T1 commit |
-| T2 | S3 workspaces, S2 | inline | pending | |
+| T1 | S2, S5 | inline | done | f5785b7 |
+| T2 | S3 workspaces, S2, S6 | inline | done | T2 commit |
 | T3 | S3 front app, Apple menu | inline | pending | |
 | T4 | S3 battery, date, time, network | inline | pending | |
 | T5 | S3 weather, moon | inline | pending | |
 | T6 | S3 now playing | inline | pending | |
 | T7 | S3 notch fit, other monitor | inline | pending | |
 | T8 | S3 Control Center, cover, Vorssaint, drag to swap | inline | pending | |
-| T9 | S4 switch | inline | pending | |
+| T9 | S4 switch and SketchyBar removal | inline | pending | |
 
 - T1: Swift package `mac/tools/dotbar` (library + app + tests); a non-activating panel above the menu bar on the main
   display, transparent, 40 pt tall, full width; a development flag to draw it at the bottom next to SketchyBar; the
@@ -54,3 +56,12 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
   command ended by its limit with nothing left running; five callers sharing one process; the key free again after).
   Visual check: the panel drew its box over the front window at the bottom, the app in front stayed in front, 0% CPU
   and about 45 MB idle. Next step: T2 (AeroSpace workspaces from its subscribe stream).
+- L5 (2026-10-25, user, verbatim): "recuerda hacer la barra con la misma estetica, al tenerla al 100% vamos a borrar
+  sketchybar." S4 now ends with SketchyBar removed, and S6 pins the same look.
+- L6: T2 done. AeroSpace's `subscribe` stream (one process for the bar's life) drives the pills; a switch is painted from
+  the event, then the workspaces are read again (one read at a time, one more if events came meanwhile), plus a 5 s
+  fallback for windows closed elsewhere. 25 checks pass (layout ported from aerospace.sh: occupied, visible, the other
+  monitor, unplugged monitor, the cap; event parsing; the stream reads lines, restarts, stays stopped). Live, side by
+  side with SketchyBar: same sizes, colors and font; a switch shows within 250 ms; after 24 switches 120 ms apart the
+  focus drawn is the real one, 0.4% CPU, one child process. Quitting (SIGTERM) stops the stream: nothing is left.
+  Next step: T3 (Apple menu and front app).

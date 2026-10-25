@@ -75,5 +75,67 @@ let later = await shared.run("/bin/sh", ["-c", "echo again"], timeout: 2, key: "
 let launchesAfter = await shared.launchCount
 check("once it finished, the key runs again", later.stdout == "again\n" && launchesAfter == 2)
 
+// Workspaces: what AeroSpace reports, then which pills show and how.
+func row(_ id: String, _ monitor: Int = 1, visible: Bool = false, focused: Bool = false) -> WorkspaceRow {
+    WorkspaceRow(id: id, monitor: monitor, visible: visible || focused, focused: focused)
+}
+func ids(_ pills: [Pill]) -> [String] { pills.map(\.id) }
+
+check(
+    "AeroSpace's workspace list is read",
+    Workspaces.parseRows("1|1|true|true\n2|1|false|false\ne1|2|true|false\n")
+        == [row("1", focused: true), row("2"), row("e1", 2, visible: true)])
+check("lines that are not a workspace are skipped", Workspaces.parseRows("garbage\n|1|true|true\n").isEmpty)
+check("the occupied workspaces are read", Workspaces.parseOccupied("1\n2\n2\n\n") == ["1", "2"])
+
+var bar = Workspaces.layout(rows: [row("1", focused: true), row("2"), row("3")], occupied: ["1", "2"])
+check("the focused and occupied workspaces show, an empty one does not", ids(bar.mac) == ["1", "2"] && bar.external.isEmpty)
+check("the focused one is drawn as focused", bar.mac.first?.state == .focused && bar.mac.last?.state == .plain)
+
+bar = Workspaces.layout(rows: [row("1", focused: true), row("e1", 2, visible: true), row("e2", 2)], occupied: [])
+check(
+    "the other monitor's visible workspace shows in its own pill, eN drawn as N",
+    ids(bar.external) == ["e1"] && bar.external.first?.label == "1" && bar.external.first?.state == .visible)
+
+bar = Workspaces.layout(rows: [row("1", focused: true), row("e1")], occupied: ["e1"])
+check("once the monitor is unplugged its workspaces leave the bar, windows or not", ids(bar.mac) == ["1"])
+bar = Workspaces.layout(rows: [row("1"), row("e1", focused: true)], occupied: [])
+check("...unless one of them has the focus", ids(bar.mac) == ["e1"])
+
+let crowded = [row("1", focused: true), row("2"), row("5"), row("6"), row("e1", 2, visible: true), row("e2", 2)]
+bar = Workspaces.layout(rows: crowded, occupied: ["2", "5", "6", "e2"], cap: 3)
+check(
+    "over the cap the group with more optional workspaces gives them up, the Mac's on a tie",
+    ids(bar.mac) == ["1"] && ids(bar.external) == ["e1", "e2"] && bar.hiddenMac == 3 && bar.hiddenExternal == 0,
+    "mac \(ids(bar.mac)) ext \(ids(bar.external)) hidden \(bar.hiddenMac)/\(bar.hiddenExternal)")
+bar = Workspaces.layout(rows: [row("1", focused: true), row("e1", 2, visible: true)], occupied: [], cap: 1)
+check("the focused and visible workspaces always stay", ids(bar.mac) == ["1"] && ids(bar.external) == ["e1"])
+
+check(
+    "a workspace switch is read from the event stream",
+    AeroSpaceEvent.parse(#"{"_event":"focused-workspace-changed","prevWorkspace":"3","workspace":"2"}"#)
+        == .focusedWorkspace("2"))
+check("other events are told apart", AeroSpaceEvent.parse(#"{"_event":"mode-changed","mode":"main"}"#) == .other)
+check("a line that is not an event is ignored", AeroSpaceEvent.parse("not json") == nil)
+
+// A long-lived stream: lines arrive one by one, and it starts again when the command ends.
+final class Lines: @unchecked Sendable {
+    let lock = NSLock()
+    var all: [String] = []
+}
+let received = Lines()
+let stream = LineStream("/bin/sh", ["-c", "echo one; echo two"], restartDelay: 0.2) { line in
+    received.lock.withLock { received.all.append(line) }
+}
+stream.start()
+try? await Task.sleep(for: .seconds(1))
+stream.stop()
+let got = received.lock.withLock { received.all }
+check("a stream's lines are read one by one", Array(got.prefix(2)) == ["one", "two"], "\(got)")
+check("a stream that ends is started again", stream.starts >= 2, "\(stream.starts) starts")
+let startsAtStop = stream.starts
+try? await Task.sleep(for: .seconds(0.6))
+check("a stopped stream stays stopped", stream.starts == startsAtStop)
+
 print(failures == 0 ? "dotbar-tests: PASS" : "dotbar-tests: \(failures) FAILED")
 exit(failures == 0 ? 0 : 1)
