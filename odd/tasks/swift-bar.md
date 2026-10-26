@@ -30,15 +30,15 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 
 | ID | Specs | Route | Status | Commit |
 |----|-------|-------|--------|--------|
-| T1 | S2, S5 | inline | done | f5785b7 |
-| T2 | S3 workspaces, S2, S6 | inline | done | ff98d3e |
-| T3 | S3 front app, Apple menu | delegated | done | bb77619 |
-| T4 | S3 battery, date, time, network; S7 | inline | done | 2423141 |
-| T5 | S3 weather, moon; S7 | delegated | done | 8118f3f |
-| T6 | S3 now playing | delegated | done | fde7e9e |
-| T7 | S3 notch fit, other monitor, the "+N" cap | inline | done | aeae6b4 |
-| T8 | S3 Control Center, cover, Vorssaint, drag to swap | delegated | done | 4fb3413, 7923ddf, 34c8aca |
-| T9 | S4 switch and SketchyBar removal | inline | done | 7052e8d |
+| T1 | S2, S5 | inline | done | 686e408 |
+| T2 | S3 workspaces, S2, S6 | inline | done | c44db3f |
+| T3 | S3 front app, Apple menu | delegated | done | 4d6813e |
+| T4 | S3 battery, date, time, network; S7 | inline | done | 020fd91 |
+| T5 | S3 weather, moon; S7 | delegated | done | a1f0e3c |
+| T6 | S3 now playing | delegated | done | be0c3db |
+| T7 | S3 notch fit, other monitor, the "+N" cap | inline | done | 8631201 |
+| T8 | S3 Control Center, cover, Vorssaint, drag to swap | delegated | done | d7aca87, 206d46f, eec7af3 |
+| T9 | S4 switch and SketchyBar removal | inline | done | 1fc33a0 |
 
 - T1: Swift package `mac/tools/dotbar` (library + app + tests); a non-activating panel above the menu bar on the main
   display, transparent, 40 pt tall, full width; a development flag to draw it at the bottom next to SketchyBar; the
@@ -88,23 +88,23 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 - L11 (2026-10-25, user, verbatim): "hazlo todo, procesede a hacer todos los pasos , ocupa sub agentes, gentle-ai,
   codegraph, context7 etc.. todo lo que tengas en tu alcance" -> T3, T5 and T6 go to three writers in parallel, each in
   its own worktree (they build Swift; one tree would lock); the parent merges, wires the bar and does T7-T9.
-- L12: T3, T5 and T6 delivered by parallel writers and merged into feat/swift-bar (6efecc5, 95994e2 and the T3 merge);
+- L12: T3, T5 and T6 delivered by parallel writers and merged into feat/swift-bar (35bb468, 2c15935 and the T3 merge);
   all checks pass together. Open items for the parent: T7 places moon/weather left of the notch and media right of it,
   the "+N" cap, and a bar-wide 1 point text offset (SwiftUI centers text higher than SketchyBar; T3 nudged its own
   boxes); Control Center icon may use T3's AppGlyph; the user grants Location (dotbar.app first launch) and
   Accessibility (first click on the front app pill) once. Not exercised live: app-menus popup, long-name slide,
   session actions, permission dialogs. Next step: T7, then T8, T9.
-- L13: Native review of the merged T3/T5/T6 approved with warnings, fixed in 3086c72 (when-in-use location counts:
+- L13: Native review of the merged T3/T5/T6 approved with warnings, fixed in 95d9967 (when-in-use location counts:
   on macOS it reads as raw value 3; menu reads have a 3 s overall limit; floods capped at 1 MB and 64 KB per read; the
   track never runs one over; Open-Meteo gets the place to two decimals). T7 done: BarFit ports fit.sh (the 224 point
   gap around the housing, 623-847 on the MacBook; the name narrows to 40 then workspaces leave with "+N"; the track gets
   (Vorssaint - 5 - housing - 70) / 7.2 characters, 8 to 35). The weather box reports its measured width; the bar is
   two zones around the housing. Side by side with SketchyBar the boxes line up; Vorssaint is T8.
-- L14: T8 done by three writers and merged: Control Center click and the cover (4fb3413: fn+C posted natively, the
+- L14: T8 done by three writers and merged: Control Center click and the cover (d7aca87: fn+C posted natively, the
   controlcenter.sh driver in DotbarCore, the cover is the wallpaper strip from desktopImageURL, no Screen Recording),
-  Vorssaint (7923ddf: the menu extra pressed through Accessibility, closed with a click outside, the battery, date and
-  time boxes widen so Vorssaint sits over its extra), drag to swap (34c8aca: ghost pill, tints, glide, the swap plan
-  through time-limited aerospace calls, refreshes skipped meanwhile). stay.sh's rule (9652da3, 873a205) is wired: a
+  Vorssaint (206d46f: the menu extra pressed through Accessibility, closed with a click outside, the battery, date and
+  time boxes widen so Vorssaint sits over its extra), drag to swap (eec7af3: ghost pill, tints, glide, the swap plan
+  through time-limited aerospace calls, refreshes skipped meanwhile). stay.sh's rule (d8ad1bd, 871f186) is wired: a
   pill click marks a switch as asked, a swap pauses it; Vorssaint's popover holds the cover. 254 checks pass. Live, the
   integrated bar matches SketchyBar box by box (only the temperature source differs), 0% CPU, 57 MB, two aerospace
   streams and one media stream as children, nothing left after quit. Next step: T9.
@@ -150,3 +150,9 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
   TopStrip.coverDelay (0.15 s) and a crossing leaves the bar untouched (56 noise pixels against the desktop); the cover
   also draws macOS's top shade (MenuBarShade), matching an empty Space within 0.1%. Left: with windows under the bar,
   a cover held on purpose is still a little lighter where their shadows reach. dotbar-tests PASS.
+- L23 (2026-10-26, user, verbatim): "arregla lo puendiente, verifica como no puede fallar mas, si es necesario y que no
+  pase mas los fallos, revisa la documentacion si es necesario", then "Mergear y subir". gentle-ai's selectorless review
+  base is the merge-base with origin/HEAD (v4.2.0; upstream-first lands after it, gentle-ai 9b66648b), so the unpushed
+  range was always past the budget. Before publishing, the unpushed history was scrubbed with git filter-repo: test
+  coordinates within meters of the user's home and its commune were replaced by Plaza de Armas and Providencia (no
+  published commit changed; the commit hashes above were remapped). dotbar-tests PASS.

@@ -14,7 +14,7 @@ func boundaryTests() async {
     let url = OpenMeteo.url(latitude: -33.437830, longitude: -70.650480).absoluteString
     check(
         "Open-Meteo gets the place to about a kilometer, not the exact fix",
-        url.contains("latitude=-33.44") && url.contains("longitude=-70.65") && !url.contains("363198"), url)
+        url.contains("latitude=-33.44") && url.contains("longitude=-70.65") && !url.contains("437830"), url)
 
     let flood = await CommandRunner().run("/usr/bin/yes", ["flood"], timeout: 1)
     check(
