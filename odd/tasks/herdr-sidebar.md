@@ -67,3 +67,8 @@ in reviewed slices). Delivery: single PR-sized slices on main. Test runner: `go 
 - L7 (2026-10-26, user, verbatim): "y el que esta solo? aparece raro, no sera mejor dejarlo tambien como esta
   desarrollo de tuis, osea con su arbol aunque sea solo, para seguir una linea". A space with one repository is now a
   tree of one (`└ dotfiles`, its branch and state below), the same shape as a space with several.
+- L8 (2026-10-26, user, verbatim): "recuerda que esto deber hacerlo general para todos, no harcodees nombres." and
+  "como que la linea no es continua poque? se ve raro asi que sea continua del mismo color". Checked: no repository,
+  space or agent name is written in the code; they come from git's top level, herdr and Claude. herdr joins a row's
+  tokens with " · " (src/ui/sidebar/tokens.rs `separator`), so the tree line cannot be a token of its own: both the
+  name and branch rows are dimmed and the line is one color.
