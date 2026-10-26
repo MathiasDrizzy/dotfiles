@@ -13,6 +13,7 @@ dotfiles/
 │   ├── scripts/                # check-links.sh, herdr-reload.sh, terminal-popup.sh
 │   └── tools/herdr-ctl/        # Go tool: cheatsheet, agent bus, keys-check
 ├── scripts/
+│   ├── check-repo.sh           # public-repo hygiene, syntax, modes, TOML, config tests
 │   ├── go-checks.sh            # herdr-ctl: vet, test -race, golangci-lint, govulncheck
 │   ├── lint-shell.sh           # shellcheck and shfmt
 │   └── test-install-full.sh    # full install in a sandbox
@@ -127,6 +128,7 @@ afocus <agent>          # jump to its pane                 (herdr-ctl focus)
 ## Development and testing
 
 ```bash
+scripts/check-repo.sh                     # public-repo hygiene, script syntax and modes, TOML, config tests
 scripts/lint-shell.sh                     # shellcheck and shfmt
 scripts/go-checks.sh                      # herdr-ctl: vet, test -race, golangci-lint, govulncheck
 scripts/test-install-full.sh              # full install in a sandbox with a temporary HOME
@@ -134,7 +136,8 @@ scripts/test-install-full.sh              # full install in a sandbox with a tem
 ```
 
 * Development runs under the gentle-ai harness (ODD workflow, Engram memory, CodeGraph); the repo keeps no git hooks of its own.
-* The repo is **public**: no local-network IPs, hostnames, passwords or tokens.
+* The repo is **public**: no local-network IPs, hostnames, passwords, tokens or precise coordinates (fixtures use Plaza de Armas, `-33.437800, -70.650500`); `scripts/check-repo.sh` checks it in CI.
+* CI runs every check above on each push to `main`. Push reviewed work often: gentle-ai reviews the commits not yet on `origin/main`, and a long unpushed range outgrows its review budget.
 
 ## Documentation
 

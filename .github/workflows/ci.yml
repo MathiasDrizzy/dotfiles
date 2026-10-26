@@ -29,11 +29,23 @@ jobs:
           go-version-file: mac/tools/herdr-ctl/go.mod
           cache-dependency-path: mac/tools/herdr-ctl/go.sum
 
+      - name: Repository checks (public-repo hygiene, syntax, modes, TOML, config tests)
+        run: scripts/check-repo.sh
+
+      # The sandboxed install has no network: herdr-ctl's modules must be in the Go cache before it builds.
+      - name: Download Go modules
+        working-directory: mac/tools/herdr-ctl
+        run: go mod download
+
       - name: Full install in a sandbox
         run: scripts/test-install-full.sh
 
       - name: Go checks (vet, test -race, golangci-lint, govulncheck)
         run: scripts/go-checks.sh
+
+      - name: dotbar tests
+        working-directory: mac/tools/dotbar
+        run: swift run dotbar-tests
 
   lint:
     name: Lint shell scripts

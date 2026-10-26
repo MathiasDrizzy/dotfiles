@@ -156,3 +156,8 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
   range was always past the budget. Before publishing, the unpushed history was scrubbed with git filter-repo: test
   coordinates within meters of the user's home and its commune were replaced by Plaza de Armas and Providencia (no
   published commit changed; the commit hashes above were remapped). dotbar-tests PASS.
+- L24 (2026-10-26): CI on main failed after the push: removing the legacy harness had also dropped its CI step, which
+  built herdr-ctl (filling the Go module cache the network-less sandbox install needs) and ran the public-repo hygiene,
+  syntax, mode, TOML and config tests. scripts/check-repo.sh brings those back (hygiene now also rejects precise
+  coordinates); CI downloads the Go modules before the sandbox install and runs dotbar-tests. The orphaned
+  test-aerospace-config had caught the commented-out border: it now checks the border is off and ready to uncomment.

@@ -63,12 +63,13 @@ check "on-window-detected callbacks have the documented shape" callbacks
 # Resizing a window with the mouse made AeroSpace report a monitor change, and the callback threw the pointer to the middle of the screen.
 not_warping_pointer() { ! grep -q "^on-focused-monitor-changed" "$CFG"; }
 check "a focused-monitor change never moves the pointer (it jumped mid-resize)" not_warping_pointer
+# The border is turned off for now (the user's choice): its start stays in the config, commented out, ready to come back.
 has_borders() {
-  grep -q "^after-startup-command = \\[" "$CFG" && grep -q "exec-and-forget borders .*style=round" "$CFG" &&
-    grep -q "inactive_color=0x00000000" "$CFG" &&
+  ! grep -q "^after-startup-command" "$CFG" && grep -q "^# after-startup-command = \\[" "$CFG" &&
+    grep -q "^#.*exec-and-forget borders .*style=round" "$CFG" && grep -q "inactive_color=0x00000000" "$CFG" &&
     grep -q 'brew install felixkratz/formulae/borders' "$ROOT/mac/install.sh"
 }
-check "only the focused window gets a subtle round border (borders, installed by install.sh)" has_borders
+check "the focused window's round border is off, ready to uncomment (borders, installed by install.sh)" has_borders
 check "install.sh and check-links.sh link the config and install the cask" installer_links
 # Vorssaint lives in its menu: a settings window it opens tiled the workspace and squeezed the windows under its menu.
 vorssaint_floats() { grep -q "{ if = 'test %{app-bundle-id} = com.vorssaint.utils', run = 'layout floating' }" "$CFG"; }
