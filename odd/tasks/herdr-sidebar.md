@@ -88,3 +88,11 @@ in reviewed slices). Delivery: single PR-sized slices on main. Test runner: `go 
   9374d25 (approved) warned that a subscription herdr drops at once was retried with no wait: every disconnect now
   waits, doubling, and only a connection that held a minute starts over; CI is kept 55 s (under the minute's pass);
   reports for closed panes and spaces are forgotten.
+- L11 (2026-10-26, user, verbatim): "en herdr hay como un fondo de color cuando seleccionas space, que se confunde porque
+  no se ve ademas es cuadrado y feo, se podra eliminar y dejar otra cosa como selector?" `active_row_bg = "reset"`
+  removes the filled block behind the active space; the active space stays the bold bright one. selection_bg (the
+  cursor row while navigating) is left at herdr's default so the cursor stays visible. Also from the same message:
+  "cuando cambio de un space a otro, el borde de color empieza a parpadear": not reproduced. Switching herdr spaces by
+  CLI four times, recorded at 60 fps on the screen edge (Ghostty in front; its title carries the space's name and
+  changes at each switch): the JankyBorders border held 4 px, the same place and color in all 303 frames, and its
+  windows did not change.

@@ -6,6 +6,9 @@ auto_switch = false
 
 [theme.custom]
 panel_bg = "reset"
+# No filled block behind the active space (it was a flat gray rectangle that hid the text): the active space is the
+# bold, bright one. selection_bg stays at herdr's default: it only fills the row under the cursor while navigating.
+active_row_bg = "reset"
 # Neutral gray separators (visible over the bluish Ghostty background)
 surface0 = "#6b6b75"
 surface1 = "#6b6b75"
