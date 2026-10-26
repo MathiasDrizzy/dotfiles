@@ -96,3 +96,12 @@ in reviewed slices). Delivery: single PR-sized slices on main. Test runner: `go 
   CLI four times, recorded at 60 fps on the screen edge (Ghostty in front; its title carries the space's name and
   changes at each switch): the JankyBorders border held 4 px, the same place and color in all 303 frames, and its
   windows did not change.
+- L12 (2026-10-26, user, verbatim): "esta ok la seleccion de space, pero de agents no esta activada creo porque no se pone
+  en blanco como el space" and "revisa cual es la mejor opcion de hacerlo y que no gaste muchos recursos y que nunca
+  falle". Cause (herdr 0.9.5, src/client/shell/agent_sidebar.rs and src/ui/sidebar.rs): an agent's `focused` is its
+  pane's focus flag, and only the `workspace` token takes the focus style (bold text color; the rest of the time
+  subtext0); every other token kind, the session title included, is gray whatever the focus. Chosen: the space's name
+  leads each agent, the title and model sit below it, all herdr tokens (no helper, no events, nothing to go stale).
+  Rejected: a watcher that marks the focused agent in a custom token with a zero-width character and a style rule
+  (one more event to follow, and agent names vanish if the watcher is down). A reload gave herdr's 26-column sidebar
+  back, which cut the rows: ui.sidebar_min_width = 30 (a sidebar dragged wider keeps its width).

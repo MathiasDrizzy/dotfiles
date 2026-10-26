@@ -115,12 +115,13 @@ spaces
     main · ✚1
 
 agents
-✱ dotfiles · opus 5.5
+✱ Config mac
+  dotfiles · opus 5.5
   trabajando · ctx 62%
   5h 51% · sem 61%
 ```
 
-A space shows, for each repository its panes are in (as a tree, one repository or up to three: each name on a line, its branch and state on the next), its branch, the commits not pushed (`↑`), the files changed (`✚`) and the branch's last CI run (`✓` passed, `✗` failed, `…` running). An agent shows its model, its state, the context it has used, and the account's 5-hour and weekly usage, the same numbers as Claude's `/usage` (every session reports what its own last response saw, so the newest reading wins: the later 5-hour window, or more used in the same one); a window at 75% or more also shows when it comes back. `herdr-ctl statusline` is Claude Code's status line (`"statusLine": {"type": "command", "command": "$HOME/.local/bin/herdr-ctl statusline", "refreshInterval": 30}` in `~/.claude/settings.json`): it reports each session's model, context and usage to its herdr pane. `herdr-ctl spaces-watch`, kept running by the `dev.dotfiles.herdr-spaces` launch agent that `install.sh` loads, follows herdr's events (a tab that opens or closes changes the tree within half a second), makes one pass a minute for CI and for shells that changed folder, reports each space's git and CI state, and hands the newest usage to every agent; while the 5-hour or weekly window is used up, idle agents read "sin tokens". `herdr-ctl spaces-sync` runs one pass by hand.
+A space shows, for each repository its panes are in (as a tree, one repository or up to three: each name on a line, its branch and state on the next), its branch, the commits not pushed (`↑`), the files changed (`✚`) and the branch's last CI run (`✓` passed, `✗` failed, `…` running). An agent shows the name of its space (bold white while its pane is focused: herdr paints only that token by focus), its session's name and model, its state, the context it has used, and the account's 5-hour and weekly usage, the same numbers as Claude's `/usage` (every session reports what its own last response saw, so the newest reading wins: the later 5-hour window, or more used in the same one); a window at 75% or more also shows when it comes back. `herdr-ctl statusline` is Claude Code's status line (`"statusLine": {"type": "command", "command": "$HOME/.local/bin/herdr-ctl statusline", "refreshInterval": 30}` in `~/.claude/settings.json`): it reports each session's model, context and usage to its herdr pane. `herdr-ctl spaces-watch`, kept running by the `dev.dotfiles.herdr-spaces` launch agent that `install.sh` loads, follows herdr's events (a tab that opens or closes changes the tree within half a second), makes one pass a minute for CI and for shells that changed folder, reports each space's git and CI state, and hands the newest usage to every agent; while the 5-hour or weekly window is used up, idle agents read "sin tokens". `herdr-ctl spaces-sync` runs one pass by hand.
 
 ## herdr-ctl (Go, `mac/tools/herdr-ctl`)
 
