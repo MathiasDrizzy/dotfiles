@@ -18,8 +18,40 @@ func weatherTests() async {
     check("garbage is no temperature", OpenMeteo.temperature(in: Data("<html>".utf8)) == nil)
     let url = OpenMeteo.url(latitude: -33.437800, longitude: -70.650500).absoluteString
     check(
-        "the request asks for the current temperature at the place",
-        url == "https://api.open-meteo.com/v1/forecast?latitude=-33.44&longitude=-70.65&current=temperature_2m", url)
+        "the request asks for the current temperature, sky and daylight at the place",
+        url == "https://api.open-meteo.com/v1/forecast?latitude=-33.44&longitude=-70.65&current=temperature_2m,weather_code,is_day",
+        url)
+
+    // The sky: Open-Meteo's WMO weather code and whether it is day, drawn as a weather-icons glyph.
+    func sky(_ fields: String) -> Data {
+        Data(#"{"current":{"time":"2026-10-25T16:00","temperature_2m":24.6,\#(fields)}}"#.utf8)
+    }
+    check("the sky is read", OpenMeteo.sky(in: sky(#""weather_code":61,"is_day":1"#)) == Sky(code: 61, isDay: true))
+    check("...at night too", OpenMeteo.sky(in: sky(#""weather_code":0,"is_day":0"#)) == Sky(code: 0, isDay: false))
+    check("without a weather code there is no sky", OpenMeteo.sky(in: sky(#""is_day":1"#)) == nil)
+    check("a missing is_day counts as day", OpenMeteo.sky(in: sky(#""weather_code":3"#)) == Sky(code: 3, isDay: true))
+    check("an answer without a sky still has its temperature", OpenMeteo.temperature(in: sky(#""is_day":1"#)) == 25)
+    let glyphs: [(String, Int, Bool, String)] = [
+        ("a clear day is the sun", 0, true, "\u{E30D}"),
+        ("a clear night is the moon", 0, false, "\u{E32B}"),
+        ("a partly cloudy day is the sun behind a cloud", 2, true, "\u{E302}"),
+        ("a partly cloudy night is the moon behind a cloud", 1, false, "\u{E379}"),
+        ("an overcast sky is a cloud", 3, true, "\u{E312}"),
+        ("fog is fog", 48, true, "\u{E313}"),
+        ("drizzle is a sprinkle", 53, true, "\u{E31B}"),
+        ("rain is rain", 63, true, "\u{E318}"),
+        ("freezing rain is rain and snow", 67, true, "\u{E316}"),
+        ("rain showers are showers", 81, false, "\u{E319}"),
+        ("snow is snow", 75, true, "\u{E31A}"),
+        ("snow showers are snow", 86, true, "\u{E31A}"),
+        ("a thunderstorm is a thunderstorm", 95, true, "\u{E31D}"),
+        ("...with hail too", 99, false, "\u{E31D}"),
+    ]
+    for (name, code, isDay, glyph) in glyphs {
+        check(name, WeatherIcon.glyph(for: Sky(code: code, isDay: isDay)) == glyph)
+    }
+    check("an unknown code is the thermometer", WeatherIcon.glyph(for: Sky(code: 42, isDay: true)) == "\u{F2C7}")
+    check("no sky yet is the thermometer", WeatherIcon.glyph(for: nil) == "\u{F2C7}")
 
     // The label.
     check("the label is the commune and the temperature", WeatherText.label(commune: "Providencia", temperature: 25) == "Providencia 25°C")

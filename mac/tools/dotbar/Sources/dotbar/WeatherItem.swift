@@ -13,6 +13,8 @@ import SwiftUI
 final class WeatherModel {
     /// "Providencia 25°C"; nil until a temperature was read once. Offline, it keeps the last text.
     private(set) var label: String?
+    /// The sky's glyph; the thermometer until a sky was read once. Offline, it keeps the last one.
+    private(set) var icon = WeatherIcon.thermometer
 
     @ObservationIgnored private let store = PlaceStore.standard
     @ObservationIgnored private let locator = Locator()
@@ -123,6 +125,7 @@ final class WeatherModel {
                 let temperature = OpenMeteo.temperature(in: data)
             {
                 label = WeatherText.label(commune: place.commune, temperature: temperature)
+                if let sky = OpenMeteo.sky(in: data) { icon = WeatherIcon.glyph(for: sky) }
             }
         } while gate.end()
     }
@@ -185,17 +188,20 @@ final class Locator: NSObject, CLLocationManagerDelegate {
 extension Theme {
     /// The weather item's icon: ICON_SIZE in Bold (sketchybarrc's icon.font="$NERD_FONT:Bold:$ICON_SIZE").
     static let boldIconFont = Font.custom(fontName, size: 15).bold()
+    /// The weather-icons glyphs are drawn smaller in their em than the thermometer (the moon box uses 22 for the same
+    /// reason): at 19 a cloud is as tall as the thermometer was.
+    static let skyFont = Font.custom(fontName, size: 19).bold()
 }
 
-/// The weather box (sketchybarrc's weather item): the pink thermometer with 5 points on each side, then the label with 5
-/// after it; as wide as its text, like SketchyBar's. Not clickable, so no hover tint.
+/// The weather box (sketchybarrc's weather item): the sky's pink glyph (the thermometer until it is known) with 5 points
+/// on each side, then the label with 5 after it; as wide as its text, like SketchyBar's. Not clickable, so no hover tint.
 struct WeatherView: View {
     let model: WeatherModel
 
     var body: some View {
         BarBox(id: "weather") {
             HStack(spacing: 0) {
-                Text("\u{F2C7}").font(Theme.boldIconFont).foregroundStyle(Theme.pink).fixedSize()
+                Text(model.icon).font(model.icon == WeatherIcon.thermometer ? Theme.boldIconFont : Theme.skyFont).foregroundStyle(Theme.pink).fixedSize()
                     .padding(.horizontal, 5)
                 if let label = model.label {
                     Text(label).font(Theme.mediumFont).foregroundStyle(Theme.text).fixedSize().padding(.trailing, 5)

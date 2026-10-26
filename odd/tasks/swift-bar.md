@@ -130,3 +130,8 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
   `stay-on-workspace-when-app-quits = true`, so the `stay` default now turns off both dotbar helpers (its subscribe
   stream and `ctlcenter stay`); JankyBorders is commented out of aerospace.toml. dotbar-tests PASS; one AeroSpace, one
   dotbar and one subscribe stream remain.
+- L19 (2026-10-26, user, verbatim): "la pildora del tiempo se podra cambiar el emogi? tipo en vez de utilizar un
+  termostato utilizar emogis de si esta lloviendo, si esta soleado, si esta nublado etc.." then "si dale, hazlo con los
+  íconos de la fuente". The weather box reads Open-Meteo's weather_code and is_day in the same request and draws the
+  Nerd Font's weather-icons glyph in pink (thermometer until a sky is known). The moon box was checked: today's age is
+  15.1 days, so the full moon it shows is right. dotbar-tests PASS; checked live (overcast: a cloud).

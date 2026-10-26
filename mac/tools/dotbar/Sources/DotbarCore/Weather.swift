@@ -1,6 +1,7 @@
 import Foundation
 
-/// The temperature, from Open-Meteo: no key, no account (WeatherKit needs a paid developer account), one small JSON.
+/// The temperature and the sky, from Open-Meteo: no key, no account (WeatherKit needs a paid developer account), one
+/// small JSON.
 public enum OpenMeteo {
     public static func url(latitude: Double, longitude: Double) -> URL {
         var parts = URLComponents(string: "https://api.open-meteo.com/v1/forecast")!
@@ -8,9 +9,19 @@ public enum OpenMeteo {
             // About a kilometer is all a temperature needs: no more of where you are goes to another service.
             URLQueryItem(name: "latitude", value: String(format: "%.2f", latitude)),
             URLQueryItem(name: "longitude", value: String(format: "%.2f", longitude)),
-            URLQueryItem(name: "current", value: "temperature_2m"),
+            URLQueryItem(name: "current", value: "temperature_2m,weather_code,is_day"),
         ]
         return parts.url!
+    }
+
+    /// `current.weather_code` and `current.is_day`; no code is no sky (the box shows the thermometer). A missing
+    /// `is_day` counts as day.
+    public static func sky(in data: Data) -> Sky? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let current = root["current"] as? [String: Any],
+            let code = current["weather_code"] as? NSNumber
+        else { return nil }
+        return Sky(code: code.intValue, isDay: (current["is_day"] as? NSNumber)?.intValue != 0)
     }
 
     /// `current.temperature_2m`, rounded as weather.sh's jq `round` did: to the nearest degree, a half away from zero.
@@ -22,6 +33,39 @@ public enum OpenMeteo {
         else { return nil }
         let rounded = value.doubleValue.rounded(.toNearestOrAwayFromZero)
         return rounded.isFinite ? Int(rounded) : nil
+    }
+}
+
+/// The sky now: a WMO weather code (https://open-meteo.com/en/docs, "WMO Weather interpretation codes") and daylight.
+public struct Sky: Equatable, Sendable {
+    public let code: Int
+    public let isDay: Bool
+
+    public init(code: Int, isDay: Bool) {
+        self.code = code
+        self.isDay = isDay
+    }
+}
+
+/// The weather box's icon: the Nerd Font's weather-icons glyph for the sky, the thermometer until one is known.
+public enum WeatherIcon {
+    public static let thermometer = "\u{F2C7}"
+
+    public static func glyph(for sky: Sky?) -> String {
+        guard let sky else { return thermometer }
+        switch sky.code {
+        case 0: return sky.isDay ? "\u{E30D}" : "\u{E32B}"  // day_sunny, night_clear
+        case 1, 2: return sky.isDay ? "\u{E302}" : "\u{E379}"  // day_cloudy, night_alt_partly_cloudy
+        case 3: return "\u{E312}"  // cloudy
+        case 45, 48: return "\u{E313}"  // fog
+        case 51, 53, 55, 56, 57: return "\u{E31B}"  // sprinkle
+        case 61, 63, 65: return "\u{E318}"  // rain
+        case 66, 67: return "\u{E316}"  // rain_mix
+        case 80, 81, 82: return "\u{E319}"  // showers
+        case 71, 73, 75, 77, 85, 86: return "\u{E31A}"  // snow
+        case 95, 96, 99: return "\u{E31D}"  // thunderstorm
+        default: return thermometer
+        }
     }
 }
 
