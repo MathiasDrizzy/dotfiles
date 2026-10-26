@@ -124,3 +124,9 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
   permisos necesarios y para siempre a la barra aunque se reinicie, borra sketchybar esta mucho mejor y perfecta que
   esa". dotbar installed on this Mac; the planet is centered by its ink (InkCenteredIcon); bundle.sh signs with a local
   self-signed certificate (scripts/signing-identity.sh) so the permissions survive rebuilds; SketchyBar uninstalled.
+- L18 (2026-10-26, user, verbatim): "dale soluciona lo que tengas que solucionar, borra lo que tienes que borrar para no
+  dejar redundancia de procesos, revisa que pruebas hiciste y si dejaste procesos abiertos o procesos que esten dos
+  veces". AeroSpace now runs the patched fork build (PR nikitabobko/AeroSpace#2352) with
+  `stay-on-workspace-when-app-quits = true`, so the `stay` default now turns off both dotbar helpers (its subscribe
+  stream and `ctlcenter stay`); JankyBorders is commented out of aerospace.toml. dotbar-tests PASS; one AeroSpace, one
+  dotbar and one subscribe stream remain.

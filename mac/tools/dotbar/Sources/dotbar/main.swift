@@ -145,10 +145,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         workspaces.start()
-        stay.start()
-        // `defaults write dev.dotfiles.dotbar stay -bool false` turns it off: no Finder brought forward at each switch (an
-        // app in front blinks), but quitting a workspace's last app may flicker through another workspace again.
-        if UserDefaults.standard.object(forKey: "stay") as? Bool ?? true { finderBehind.start() }
+        // `defaults write dev.dotfiles.dotbar stay -bool false` turns both stay helpers off, for an AeroSpace that keeps
+        // the workspace itself (`stay-on-workspace-when-app-quits`): no extra subscribe stream and no Finder brought
+        // forward at each switch (an app in front blinks).
+        if UserDefaults.standard.object(forKey: "stay") as? Bool ?? true {
+            stay.start()
+            finderBehind.start()
+        }
         status.start()
         moon.start()
         weather.start()
