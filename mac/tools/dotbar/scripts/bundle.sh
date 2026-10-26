@@ -23,6 +23,10 @@ mkdir -p "$APP/Contents/MacOS"
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
 cp "$BIN" "$APP/Contents/MacOS/dotbar"
 /usr/bin/plutil -lint "$APP/Contents/Info.plist" >/dev/null
-codesign -s - --force --identifier dev.dotfiles.dotbar "$APP"
+# Signed with the local certificate, every build keeps the permissions macOS granted (see signing-identity.sh); where it
+# cannot be made (no login keychain), ad hoc, and the permissions are asked again after each build.
+IDENTITY="$("$ROOT/scripts/signing-identity.sh" 2>/dev/null)" || IDENTITY="-"
+codesign -s "$IDENTITY" --force --identifier dev.dotfiles.dotbar "$APP" 2>/dev/null ||
+  codesign -s - --force --identifier dev.dotfiles.dotbar "$APP"
 codesign --verify "$APP"
 echo "$APP"

@@ -255,11 +255,37 @@ struct VorssaintView: View {
 
     var body: some View {
         BarBox(id: "vorssaint", width: VorssaintAlign.boxWidth, action: { model.click() }) {
-            NerdIcon(Theme.vorssaintGlyph, color: Theme.mauve)
+            InkCenteredIcon(glyph: Theme.vorssaintGlyph, color: Theme.mauve)
         }
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { model.anchor = $0 }
         .onChange(of: Hover.shared.box == "vorssaint") { _, inside in
             if inside { model.sample() }
         }
+    }
+}
+
+/// A Nerd Font glyph centered by its ink, not by its character: the planet's ink sits off its character's center, and
+/// centered as text it showed to one side of its box. A space after it keeps SwiftUI from cutting the ink at the
+/// character's edge (as NerdIcon does).
+struct InkCenteredIcon: View {
+    let glyph: String
+    let color: Color
+
+    @MainActor private static var shifts: [String: CGFloat] = [:]
+
+    var body: some View {
+        Text(glyph + " ").font(Theme.iconFont).foregroundStyle(color).fixedSize().offset(x: Self.shift(glyph))
+    }
+
+    /// From the center of the text (glyph and space) to the center of the glyph's ink.
+    @MainActor private static func shift(_ glyph: String) -> CGFloat {
+        if let known = shifts[glyph] { return known }
+        guard let font = NSFont(name: Theme.fontName, size: 15) else { return 0 }
+        let whole = CTLineCreateWithAttributedString(NSAttributedString(string: glyph + " ", attributes: [.font: font]))
+        let ink = CTLineCreateWithAttributedString(NSAttributedString(string: glyph, attributes: [.font: font]))
+        let shift = (CGFloat(CTLineGetTypographicBounds(whole, nil, nil, nil)) / 2 - CTLineGetImageBounds(ink, nil).midX)
+            .rounded()
+        shifts[glyph] = shift
+        return shift
     }
 }

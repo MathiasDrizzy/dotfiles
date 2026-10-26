@@ -120,3 +120,7 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
   nativamente los botones de vorssaint o la barra de mission control. temina lo que estamas haciendo." Done on this Mac:
   SketchyBar and its helpers stopped, menu bar auto-hide off (the native bar shows). dotbar is not installed on this
   Mac yet: the user keeps the native bar until they ask for dotbar.
+- L17 (2026-10-26, user, verbatim): "no esta centrado vorssaint,revisa bien el tema de los permisos que se le den los
+  permisos necesarios y para siempre a la barra aunque se reinicie, borra sketchybar esta mucho mejor y perfecta que
+  esa". dotbar installed on this Mac; the planet is centered by its ink (InkCenteredIcon); bundle.sh signs with a local
+  self-signed certificate (scripts/signing-identity.sh) so the permissions survive rebuilds; SketchyBar uninstalled.
