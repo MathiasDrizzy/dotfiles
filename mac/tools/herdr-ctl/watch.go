@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"syscall"
 	"time"
@@ -150,6 +151,7 @@ func subscribe() (net.Conn, *bufio.Reader, error) {
 // The full pass (git, gh: seconds at times) runs in a goroutine of its own, so a focus change is answered in
 // milliseconds even while it runs.
 func runSpacesWatch() {
+	defer runtime.KeepAlive(watcherLock) // holds the single-instance lock for as long as the watcher runs
 	s := newSyncer(watchCIInterval)
 	events := make(chan struct{}, 1)
 	focus := make(chan struct{}, 1)
