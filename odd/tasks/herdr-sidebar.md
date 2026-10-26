@@ -81,3 +81,10 @@ in reviewed slices). Delivery: single PR-sized slices on main. Test runner: `go 
   reports that change nothing, asks gh at most once a minute per branch, and reconnects after 5 s doubling to 60 s.
   Measured: a tab with another repository showed in the tree in 2.1 s and left it 1.65 s after closing (was up to
   60 s); idle, 0.09 s CPU a minute and 11 MB.
+- L10 (2026-10-26): the lazyfinder agent reported (for the user) that a Claude pane in the lazyfinder repo was labeled
+  "lazyfinder", the label its plugin finds the sidebar by, so `toggle` closed the user's tab three times; the user then
+  showed a sidebar labeled "lazymark › lazyfinder". Both came from Auto Title naming panes: HERDR_AUTO_TITLE_PANES=false,
+  the Claude pane's label cleared; the mislabeled sidebar (wF:p8) left to the lazyfinder side as asked. The review of
+  9374d25 (approved) warned that a subscription herdr drops at once was retried with no wait: every disconnect now
+  waits, doubling, and only a connection that held a minute starts over; CI is kept 55 s (under the minute's pass);
+  reports for closed panes and spaces are forgotten.

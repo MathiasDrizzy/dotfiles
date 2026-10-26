@@ -26,8 +26,19 @@ var watchedEvents = []string{
 const (
 	watchSettle     = 400 * time.Millisecond // events come in bursts (a tab and its panes): one pass for the burst
 	watchFullPass   = time.Minute            // CI, and shells that changed folder, between events
-	watchCIInterval = time.Minute
+	watchCIInterval = 55 * time.Second       // under the full pass, so each full pass refreshes CI
+	watchHeld       = time.Minute            // a connection that lasted this long counts as working
 )
+
+// afterDisconnect is how long to wait after a connection ends, and the next attempt number. Every end waits, longer
+// each time, so herdr dropping the subscription at once is never answered in a loop; only a connection that held for
+// a minute starts the count again.
+func afterDisconnect(attempt int, lived time.Duration) (time.Duration, int) {
+	if lived >= watchHeld {
+		attempt = 0
+	}
+	return reconnectDelay(attempt), attempt + 1
+}
 
 // reconnectDelay waits longer after each failed attempt, up to a minute: a stopped herdr is never asked in a loop.
 func reconnectDelay(attempt int) time.Duration {
@@ -109,13 +120,14 @@ func runSpacesWatch() {
 	reconnected := make(chan struct{}, 1)
 	go func() {
 		for attempt := 0; ; {
+			var delay time.Duration
 			conn, reader, err := subscribe()
 			if err != nil {
-				time.Sleep(reconnectDelay(attempt))
-				attempt++
+				delay, attempt = afterDisconnect(attempt, 0)
+				time.Sleep(delay)
 				continue
 			}
-			attempt = 0
+			connected := time.Now()
 			select {
 			case reconnected <- struct{}{}:
 			default:
@@ -130,6 +142,8 @@ func runSpacesWatch() {
 				}
 			}
 			_ = conn.Close()
+			delay, attempt = afterDisconnect(attempt, time.Since(connected))
+			time.Sleep(delay)
 		}
 	}()
 	full := time.NewTicker(watchFullPass)

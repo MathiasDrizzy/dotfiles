@@ -475,6 +475,16 @@ func newSyncer(ciInterval time.Duration) *syncer {
 	return &syncer{ci: newCICache(ciInterval), published: map[string]string{}}
 }
 
+// forgetExcept drops what was reported for spaces and panes this pass did not see: closed ones never come back, and
+// the memory of them would only grow.
+func (s *syncer) forgetExcept(seen map[string]bool) {
+	for key := range s.published {
+		if !seen[key] {
+			delete(s.published, key)
+		}
+	}
+}
+
 // report runs a herdr report unless the same one already went out.
 func (s *syncer) report(key string, args []string) error {
 	sig := strings.Join(args, "\x00")
@@ -499,7 +509,9 @@ func (s *syncer) pass(now time.Time) error {
 		return err
 	}
 	var failures []string
+	seen := map[string]bool{}
 	for ws, dirs := range workspaceRepos(res.Panes, repoRoot) {
+		seen["ws "+ws] = true
 		repos := []RepoState{}
 		for _, dir := range dirs {
 			g, ok := readGitState(dir, func(branch string) string {
@@ -520,11 +532,13 @@ func (s *syncer) pass(now time.Time) error {
 		text, labels := l.format(now), labelsFor(&l, now)
 		// The labels too: an idle session's status line may not run again before its window resets.
 		for _, pane := range agentPanes(res.Panes) {
+			seen["pane "+pane] = true
 			if err := s.report("pane "+pane, paneReportArgs(pane, map[string]string{"limits": text}, labels)); err != nil {
 				failures = append(failures, err.Error())
 			}
 		}
 	}
+	s.forgetExcept(seen)
 	if len(failures) > 0 {
 		return fmt.Errorf("%s", strings.Join(failures, "; "))
 	}

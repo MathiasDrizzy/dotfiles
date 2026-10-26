@@ -307,3 +307,32 @@ func TestCIIsAskedAtMostOncePerInterval(t *testing.T) {
 		t.Fatalf("after a minute and for another branch: %d calls, want 3", calls)
 	}
 }
+
+func TestADroppedConnectionNeverReconnectsInALoop(t *testing.T) {
+	// herdr accepting the subscription and dropping it at once must still be waited out, longer each time.
+	attempt := 0
+	delays := []time.Duration{}
+	for i := 0; i < 4; i++ {
+		var d time.Duration
+		d, attempt = afterDisconnect(attempt, 100*time.Millisecond)
+		delays = append(delays, d)
+	}
+	if want := []time.Duration{5 * time.Second, 10 * time.Second, 20 * time.Second, 40 * time.Second}; !reflect.DeepEqual(delays, want) {
+		t.Fatalf("quick drops waited %v, want %v", delays, want)
+	}
+	if d, next := afterDisconnect(attempt, 2*time.Minute); d != 5*time.Second || next != 1 {
+		t.Fatalf("after a connection that held: wait %v next %d, want 5s and 1", d, next)
+	}
+	if watchCIInterval >= watchFullPass {
+		t.Fatalf("CI is kept %v, not less than the %v between full passes: a pass would skip its refresh", watchCIInterval, watchFullPass)
+	}
+}
+
+func TestReportsForClosedPanesAreForgotten(t *testing.T) {
+	s := newSyncer(time.Minute)
+	s.published = map[string]string{"ws w2": "a", "pane w2:p1": "b", "pane wF:p9": "c"}
+	s.forgetExcept(map[string]bool{"ws w2": true, "pane w2:p1": true})
+	if want := map[string]string{"ws w2": "a", "pane w2:p1": "b"}; !reflect.DeepEqual(s.published, want) {
+		t.Fatalf("published = %v, want %v", s.published, want)
+	}
+}
