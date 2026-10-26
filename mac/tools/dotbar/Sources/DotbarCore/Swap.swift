@@ -74,8 +74,9 @@ public enum WorkspaceSwap {
                 for move in moved.reversed() {
                     let back = await runner.run(
                         aerospace, ["move-node-to-workspace", "--window-id", move.window, move.back], timeout: timeout)
-                    // AeroSpace not answering (the usual failure) would make every move back wait its whole limit.
-                    guard back.status == 0 else { break }
+                    // AeroSpace not answering (the usual failure) would make every move back wait its whole limit; a
+                    // window that cannot go back (closed meanwhile) does not keep the others from going back.
+                    if back.timedOut { break }
                 }
                 if !focus.isEmpty, command != ["workspace", focus] {
                     _ = await runner.run(aerospace, ["workspace", focus], timeout: timeout)
