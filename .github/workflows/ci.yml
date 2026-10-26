@@ -47,10 +47,10 @@ jobs:
         working-directory: mac/tools/dotbar
         run: swift run dotbar-tests
 
-  # shellcheck and shfmt need no macOS: Linux runners are plentiful, the macOS queue sometimes cancels a job unstarted.
+  # These are macOS dotfiles: every job runs on macOS, as the scripts do.
   lint:
     name: Lint shell scripts
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     timeout-minutes: 10
     steps:
       - name: Check out the repository
