@@ -9,8 +9,6 @@ extension Theme {
     static let appBlock = Color(hex: 0xa6da95)
     /// APP_NAME_WIDTH: "Google Chrome" fits; a longer name slides inside it.
     static let appNameWidth: CGFloat = 94
-    /// The arrow after the block (pl-right_hard_divider) at ARROW_BLOCK_SIZE: as tall as the block.
-    static let arrowFont = Font.custom(fontName, size: 19.5).bold()
     /// The label paddings of front_app.name.
     static let appNamePadLeft: CGFloat = 4
     static let appNamePadRight: CGFloat = 8
@@ -51,7 +49,7 @@ final class FrontAppModel {
         observer = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.update() }
+            MainActor.assumeIsolated { self?.updateSoon() }
         }
     }
 
@@ -59,6 +57,17 @@ final class FrontAppModel {
         if let observer { NSWorkspace.shared.notificationCenter.removeObserver(observer) }
         generation += 1
     }
+
+    /// `ctlcenter stay` brings Finder forward for a few milliseconds whenever an app comes to the front alone: read the app
+    /// in front once activations have stopped for a moment, or the name flashed "Finder" at every workspace switch.
+    private func updateSoon() {
+        pending?.cancel()
+        let work = DispatchWorkItem { [weak self] in MainActor.assumeIsolated { self?.update() } }
+        pending = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.settleSeconds, execute: work)
+    }
+    @ObservationIgnored private var pending: DispatchWorkItem?
+    private static let settleSeconds = 0.12
 
     /// The app in front now, not the one the notification names: a helper that brings Finder forward for a few milliseconds
     /// (stay.sh) sends two notifications, and the last one handled must show the real front app.
@@ -218,15 +227,11 @@ struct FrontAppView: View {
     var body: some View {
         let open = Popups.shared.open == .front
         let hovered = Hover.shared.box == "front_pill"
-        // SketchyBar's items, measured on its bar: the block 4 points in, the arrow from 29, the name's box from 42 to 136,
-        // 3 points before the pill's end.
+        // The block and its arrow are one shape as tall as the pill and flush with its left edge (a glyph arrow stood out
+        // of the block and the pill showed around it); the name's box from 42, 3 points before the pill's end.
         ZStack(alignment: .leading) {
-            Text("\u{E0B0} ").font(Theme.arrowFont).foregroundStyle(Theme.appBlock).fixedSize()
-                .offset(x: 28.5)
-            AppGlyph(glyph: model.glyph, color: Theme.base)
-                .frame(width: 28, height: Theme.pillHeight)
-                .background(RoundedRectangle(cornerRadius: Theme.pillRadius).fill(Theme.appBlock))
-                .offset(x: 4)
+            AppBlockShape().fill(Theme.appBlock).frame(width: 41, height: Theme.pillHeight)
+            AppGlyph(glyph: model.glyph, color: Theme.base).frame(width: 30, height: Theme.pillHeight)
             name.frame(width: model.nameWidth, alignment: .leading).clipped().offset(x: 42)
         }
         // 45 points of block and arrow before the name's box.
@@ -280,5 +285,28 @@ struct AppGlyph: View {
         let shift = CGFloat(CTLineGetTypographicBounds(line, nil, nil, nil)) / 2 - CTLineGetImageBounds(line, nil).midX
         shifts[glyph] = shift
         return shift
+    }
+}
+
+/// The front app's green block and its arrow: rounded on the left like the pill, then a point at the pill's middle.
+struct AppBlockShape: Shape {
+    var radius: CGFloat = Theme.pillRadius
+    var arrow: CGFloat = 11
+
+    func path(in rect: CGRect) -> Path {
+        let body = rect.maxX - arrow
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + radius, y: rect.minY))
+        path.addLine(to: CGPoint(x: body, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        path.addLine(to: CGPoint(x: body, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX + radius, y: rect.maxY))
+        path.addArc(tangent1End: CGPoint(x: rect.minX, y: rect.maxY), tangent2End: CGPoint(x: rect.minX, y: rect.maxY - radius),
+                    radius: radius)
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + radius))
+        path.addArc(tangent1End: CGPoint(x: rect.minX, y: rect.minY), tangent2End: CGPoint(x: rect.minX + radius, y: rect.minY),
+                    radius: radius)
+        path.closeSubpath()
+        return path
     }
 }
