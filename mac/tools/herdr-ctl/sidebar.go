@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -37,6 +38,8 @@ func commandOutput(limit time.Duration, dir, name string, args ...string) (strin
 	defer cancel()
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = dir
+	// SIGTERM first, so git and gh remove their lock files; SIGKILL only if they ignore it for a second.
+	cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGTERM) }
 	cmd.WaitDelay = time.Second
 	var stderr strings.Builder
 	cmd.Stderr = &stderr
@@ -304,7 +307,8 @@ func agentPanes(panes []PaneInfo) []string {
 }
 
 func gitOutput(dir string, args ...string) (string, error) {
-	return commandOutput(gitTimeout, dir, "git", args...)
+	// --no-optional-locks: a background read never takes .git/index.lock from the user's own commit, add or checkout.
+	return commandOutput(gitTimeout, dir, "git", append([]string{"--no-optional-locks"}, args...)...)
 }
 
 // readGitState asks git and gh about one repository; anything it cannot read is left empty, never guessed.
