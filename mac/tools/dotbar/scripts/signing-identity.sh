@@ -10,7 +10,8 @@ set -euo pipefail
 NAME="dotbar Local Signing"
 KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 
-if security find-certificate -c "$NAME" "$KEYCHAIN" >/dev/null 2>&1; then
+# An identity is the certificate with its private key: a certificate left without its key cannot sign.
+if security find-identity -p codesigning "$KEYCHAIN" 2>/dev/null | grep -qF "\"$NAME\""; then
   echo "$NAME"
   exit 0
 fi

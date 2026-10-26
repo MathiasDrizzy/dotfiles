@@ -72,8 +72,10 @@ public enum WorkspaceSwap {
                 // Moving more windows blind would only make it worse: stop, put back what moved (last first), so no
                 // workspace is left half swapped, and do not leave the focus parked.
                 for move in moved.reversed() {
-                    _ = await runner.run(
+                    let back = await runner.run(
                         aerospace, ["move-node-to-workspace", "--window-id", move.window, move.back], timeout: timeout)
+                    // AeroSpace not answering (the usual failure) would make every move back wait its whole limit.
+                    guard back.status == 0 else { break }
                 }
                 if !focus.isEmpty, command != ["workspace", focus] {
                     _ = await runner.run(aerospace, ["workspace", focus], timeout: timeout)

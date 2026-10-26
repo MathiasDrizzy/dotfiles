@@ -108,6 +108,8 @@ final class CoverModel {
         holdChecks[reason] = stillNeeded
         holdSince[reason] = Date()
         shown = true
+        // Checked once the grace is over, not only at the next event: a popover closed meanwhile lets the cover go.
+        if stillNeeded != nil { settleSoon(after: Self.holdGrace + 0.1) }
     }
 
     /// Lets go of `reason`; the cover comes off once nothing else needs it.

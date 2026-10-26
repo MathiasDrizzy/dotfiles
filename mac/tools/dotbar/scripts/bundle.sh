@@ -26,7 +26,9 @@ cp "$BIN" "$APP/Contents/MacOS/dotbar"
 # Signed with the local certificate, every build keeps the permissions macOS granted (see signing-identity.sh); where it
 # cannot be made (no login keychain), ad hoc, and the permissions are asked again after each build.
 IDENTITY="$("$ROOT/scripts/signing-identity.sh" 2>/dev/null)" || IDENTITY="-"
-codesign -s "$IDENTITY" --force --identifier dev.dotfiles.dotbar "$APP" 2>/dev/null ||
+if ! codesign -s "$IDENTITY" --force --identifier dev.dotfiles.dotbar "$APP" 2>/dev/null; then
+  echo "dotbar: signed ad hoc: macOS will ask for its permissions again" >&2
   codesign -s - --force --identifier dev.dotfiles.dotbar "$APP"
+fi
 codesign --verify "$APP"
 echo "$APP"
