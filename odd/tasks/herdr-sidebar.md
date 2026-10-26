@@ -56,3 +56,11 @@ in reviewed slices). Delivery: single PR-sized slices on main. Test runner: `go 
   test tab with micro read `dotfiles › micro`. herdr-ctl was signed ad hoc as `a.out`, so every build looked new to
   macOS; it is now signed with the local certificate as dev.dotfiles.herdr-ctl (install.sh too). No tccd entry named
   it, so the exact prompt the user saw is not confirmed.
+- L6 (2026-10-26, user, verbatim): "hay algunas que no se actualizan por ejemplo lazymark ... como que aveces se
+  actualizan y aveces no, es claude y solo el que esta trabajando esta actualizado el -> 19:00 que pone la hora me
+  gusta pero a veces no va y no aparece"; then "es muy grande, no puede aparecer main y CI con su visto, en una segunda
+  linea? tipo abajo del nombre." Cause: idle sessions re-run the status line every 30 s with their own last
+  response's usage, and the newest reading was chosen by when it arrived. Now newestLimits compares the data (later
+  5-hour window, else more used) and every session shows the merged newest; live, the three agents held
+  `5h 88% →19:00 · sem 65%` for 75 s. The tree puts each name on its own row and branch and state below it (a braille
+  blank keeps the last branch indented: herdr trims leading spaces).

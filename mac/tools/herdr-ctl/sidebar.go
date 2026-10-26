@@ -67,11 +67,31 @@ type Window struct {
 	ResetsAt int64   `json:"resets_at"`
 }
 
-// Limits are the subscription's two usage windows, and when they were read (Unix seconds).
+// Limits are the subscription's two usage windows.
 type Limits struct {
 	FiveHour Window `json:"five_hour"`
 	Week     Window `json:"seven_day"`
-	SeenAt   int64  `json:"seen_at"`
+}
+
+// newestLimits picks the newer of two readings. Every session carries the usage of its own last response, and an idle
+// one keeps re-reporting it, so the time a reading arrives says nothing: within a window usage only grows, so the
+// newer reading is the one of the later 5-hour window or, in the same window, the one with more used (then the week).
+func newestLimits(a, b Limits) Limits {
+	switch {
+	case a.FiveHour.ResetsAt != b.FiveHour.ResetsAt:
+		if b.FiveHour.ResetsAt > a.FiveHour.ResetsAt {
+			return b
+		}
+		return a
+	case a.FiveHour.Percent != b.FiveHour.Percent:
+		if b.FiveHour.Percent > a.FiveHour.Percent {
+			return b
+		}
+		return a
+	case b.Week.ResetsAt > a.Week.ResetsAt || (b.Week.ResetsAt == a.Week.ResetsAt && b.Week.Percent > a.Week.Percent):
+		return b
+	}
+	return a
 }
 
 // Statusline is the part of Claude Code's status line payload the sidebar shows.
@@ -168,23 +188,35 @@ func readLimits(path string) (Limits, bool) {
 	return l, true
 }
 
-// saveLimits keeps the newest reading: sessions report at different times, and an idle one must not roll it back.
-func saveLimits(path string, l Limits) error {
-	if old, ok := readLimits(path); ok && old.SeenAt > l.SeenAt {
-		return nil
+// mergeLimits stores a reading unless the cache already holds a newer one, and returns the newest: the usage every
+// agent shows. Several status lines may write at once, each through its own temporary file.
+func mergeLimits(path string, l Limits) (Limits, error) {
+	if old, ok := readLimits(path); ok {
+		l = newestLimits(old, l)
+		if l == old {
+			return l, nil
+		}
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return err
+		return l, err
 	}
 	data, err := json.Marshal(l)
 	if err != nil {
-		return err
+		return l, err
 	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o600); err != nil {
-		return err
+	tmp, err := os.CreateTemp(filepath.Dir(path), "limits-*.tmp")
+	if err != nil {
+		return l, err
 	}
-	return os.Rename(tmp, path)
+	defer func() { _ = os.Remove(tmp.Name()) }()
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return l, err
+	}
+	if err := tmp.Close(); err != nil {
+		return l, err
+	}
+	return l, os.Rename(tmp.Name(), path)
 }
 
 func tokenArgs(tokens map[string]string) []string {
@@ -237,9 +269,13 @@ func runStatusline(in io.Reader, out io.Writer) error {
 		return err
 	}
 	now := time.Now()
+	// The agent shows the account's newest usage, not this session's last view of it.
 	if s.Limits != nil {
-		s.Limits.SeenAt = now.Unix()
-		_ = saveLimits(limitsCachePath(), *s.Limits)
+		if newest, err := mergeLimits(limitsCachePath(), *s.Limits); err == nil {
+			s.Limits = &newest
+		}
+	} else if cached, ok := readLimits(limitsCachePath()); ok {
+		s.Limits = &cached
 	}
 	if pane := os.Getenv("HERDR_PANE_ID"); pane != "" {
 		_ = runHerdr(paneReportArgs(pane, s.paneTokens(now), stateLabels))
@@ -279,7 +315,8 @@ func (g GitState) summary() string {
 	return strings.Join(parts, " · ")
 }
 
-// maxSpaceRepos is how many repository rows a space has in config.toml ($repo1..$repo3 with $repo1s..$repo3s).
+// maxSpaceRepos is how many repositories a space shows in config.toml: each has a name row ($repoN, only when the
+// space holds several) and a branch row ($repoNb with its state $repoNs).
 const maxSpaceRepos = 3
 
 // RepoState is one repository of a space, as its rows show it.
@@ -310,28 +347,27 @@ func workspaceRepos(panes []PaneInfo, root func(dir string) (string, bool)) map[
 	return repos
 }
 
-// spaceTokens fills a space's repository rows: one repository shows its branch and state; several are drawn as a
-// tree, each with its name, its branch and its state.
+// spaceTokens fills a space's repository rows. One repository shows its branch and state under the space's name;
+// several are drawn as a tree, each name on a row of its own and its branch and state on the row below.
 func spaceTokens(repos []RepoState) map[string]string {
 	if len(repos) > maxSpaceRepos {
 		repos = repos[:maxSpaceRepos]
 	}
 	tokens := map[string]string{}
 	for i, r := range repos {
-		label := r.Branch
-		if len(repos) > 1 {
-			branch := "├ "
-			if i == len(repos)-1 {
-				branch = "└ "
-			}
-			label = branch + r.Name
-			if r.Branch != "" {
-				label += " · " + r.Branch
-			}
-		}
 		key := fmt.Sprintf("repo%d", i+1)
-		if label != "" {
-			tokens[key] = label
+		branch := r.Branch
+		if len(repos) > 1 {
+			glyph, rail := "├ ", "│ "
+			if i == len(repos)-1 {
+				// herdr trims a token's leading spaces; a braille blank keeps the last branch under its name.
+				glyph, rail = "└ ", "\u2800 "
+			}
+			tokens[key] = glyph + r.Name
+			branch = rail + r.Branch
+		}
+		if strings.TrimSpace(branch) != "" {
+			tokens[key+"b"] = branch
 		}
 		if s := r.Git.summary(); s != "" {
 			tokens[key+"s"] = s
@@ -344,8 +380,8 @@ func spaceTokens(repos []RepoState) map[string]string {
 func spaceTokensToClear(tokens map[string]string) []string {
 	clear := []string{}
 	for i := 1; i <= maxSpaceRepos; i++ {
-		for _, k := range []string{fmt.Sprintf("repo%d", i), fmt.Sprintf("repo%ds", i)} {
-			if _, set := tokens[k]; !set {
+		for _, suffix := range []string{"", "b", "s"} {
+			if k := fmt.Sprintf("repo%d%s", i, suffix); tokens[k] == "" {
 				clear = append(clear, k)
 			}
 		}

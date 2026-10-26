@@ -93,28 +93,52 @@ func TestPaneReportArgsPutThePaneFirst(t *testing.T) {
 	}
 }
 
+func TestAnIdleSessionsOldReadingNeverReplacesANewerOne(t *testing.T) {
+	// An idle session refreshes its status line every 30 s with the usage of its own last response: 62% while the
+	// working session already read 85%. Newer is the later window, or more of the same window, never the later run.
+	window, nextWindow := int64(1793052000), int64(1793070000)
+	fresh := Limits{FiveHour: Window{85, window}, Week: Window{65, 2}}
+	stale := Limits{FiveHour: Window{62, window}, Week: Window{62, 2}}
+	if got := newestLimits(stale, fresh); got != fresh {
+		t.Fatalf("stale over fresh = %+v, want %+v", got, fresh)
+	}
+	if got := newestLimits(fresh, stale); got != fresh {
+		t.Fatalf("fresh over stale = %+v, want %+v", got, fresh)
+	}
+	reset := Limits{FiveHour: Window{3, nextWindow}, Week: Window{66, 2}}
+	if got := newestLimits(fresh, reset); got != reset {
+		t.Fatalf("a new 5-hour window = %+v, want %+v", got, reset)
+	}
+	sameFive := Limits{FiveHour: Window{85, window}, Week: Window{70, 2}}
+	if got := newestLimits(fresh, sameFive); got != sameFive {
+		t.Fatalf("same 5-hour reading, more of the week = %+v, want %+v", got, sameFive)
+	}
+}
+
 func TestLimitsCacheKeepsTheNewestReading(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "herdr-ctl", "limits.json")
 	if _, ok := readLimits(path); ok {
 		t.Fatal("an absent cache read as limits")
 	}
-	older := Limits{FiveHour: Window{40, 1}, Week: Window{60, 2}, SeenAt: 100}
-	newer := Limits{FiveHour: Window{51, 1}, Week: Window{61, 2}, SeenAt: 200}
-	if err := saveLimits(path, newer); err != nil {
-		t.Fatal(err)
+	newer := Limits{FiveHour: Window{85, 1793052000}, Week: Window{65, 2}}
+	older := Limits{FiveHour: Window{62, 1793052000}, Week: Window{62, 2}}
+	if got, err := mergeLimits(path, newer); err != nil || got != newer {
+		t.Fatalf("first reading = %+v %v", got, err)
 	}
-	if err := saveLimits(path, older); err != nil {
-		t.Fatal(err)
+	if got, err := mergeLimits(path, older); err != nil || got != newer {
+		t.Fatalf("an older reading after it = %+v %v, want the newer %+v kept and returned", got, err, newer)
 	}
-	got, ok := readLimits(path)
-	if !ok || got != newer {
-		t.Fatalf("cache = %+v %v, want the newer %+v", got, ok, newer)
+	if got, ok := readLimits(path); !ok || got != newer {
+		t.Fatalf("cache = %+v %v, want %+v", got, ok, newer)
 	}
 	if err := os.WriteFile(path, []byte("{broken"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if _, ok := readLimits(path); ok {
 		t.Fatal("a broken cache read as limits")
+	}
+	if got, err := mergeLimits(path, older); err != nil || got != older {
+		t.Fatalf("a reading over a broken cache = %+v %v, want it stored", got, err)
 	}
 }
 
@@ -181,25 +205,29 @@ func TestASpaceListsEachOfItsRepositoriesOnce(t *testing.T) {
 
 func TestSpaceTokensDrawATreeOnlyForSeveralRepositories(t *testing.T) {
 	one := spaceTokens([]RepoState{{Name: "dotfiles", Branch: "feat/swift-bar", Git: GitState{Ahead: 1}}})
-	if want := map[string]string{"repo1": "feat/swift-bar", "repo1s": "↑1"}; !reflect.DeepEqual(one, want) {
+	if want := map[string]string{"repo1b": "feat/swift-bar", "repo1s": "↑1"}; !reflect.DeepEqual(one, want) {
 		t.Fatalf("one repository = %v, want %v", one, want)
 	}
+	// Several: each repository's name on its own line, its branch and state on the line below, inside the tree.
 	two := spaceTokens([]RepoState{
 		{Name: "lazymark", Branch: "main", Git: GitState{CI: "success"}},
 		{Name: "lazyfinder", Branch: "main", Git: GitState{Changed: 2}},
 	})
-	want := map[string]string{"repo1": "├ lazymark · main", "repo1s": "CI ✓", "repo2": "└ lazyfinder · main", "repo2s": "✚2"}
+	want := map[string]string{
+		"repo1": "├ lazymark", "repo1b": "│ main", "repo1s": "CI ✓",
+		"repo2": "└ lazyfinder", "repo2b": "\u2800 main", "repo2s": "✚2",
+	}
 	if !reflect.DeepEqual(two, want) {
 		t.Fatalf("two repositories = %v, want %v", two, want)
 	}
-	if got := len(spaceTokens(make([]RepoState, 5))); got > 2*maxSpaceRepos {
-		t.Fatalf("five repositories gave %d tokens, past the %d rows the config has", got, maxSpaceRepos)
+	if got := len(spaceTokens(make([]RepoState, 5))); got > 3*maxSpaceRepos {
+		t.Fatalf("five repositories gave %d tokens, past the %d rows the config has", got, 2*maxSpaceRepos)
 	}
 }
 
 func TestSpaceTokensClearEveryRowTheyDoNotFill(t *testing.T) {
-	got := spaceTokensToClear(map[string]string{"repo1": "main", "repo1s": "CI ✓"})
-	want := []string{"repo2", "repo2s", "repo3", "repo3s", "sync"}
+	got := spaceTokensToClear(map[string]string{"repo1b": "main", "repo1s": "CI ✓"})
+	want := []string{"repo1", "repo2", "repo2b", "repo2s", "repo3", "repo3b", "repo3s", "sync"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("cleared = %v, want %v", got, want)
 	}

@@ -31,13 +31,16 @@ rows = [
 
 [ui.sidebar.spaces]
 row_gap = 0
-# One repository per row (herdr-ctl spaces-sync): its branch and state, or, when a space holds several, a tree of them
-# with each name. Rows left empty are hidden.
+# Each repository of the space (herdr-ctl spaces-sync): its branch and state under the space's name, or, when a space
+# holds several, a tree with each name on a row and its branch and state below it. Rows left empty are hidden.
 rows = [
   ["state_icon", "workspace"],
-  [{ token = "$repo1", dim = true }, "$repo1s"],
-  [{ token = "$repo2", dim = true }, "$repo2s"],
-  [{ token = "$repo3", dim = true }, "$repo3s"],
+  ["$repo1"],
+  [{ token = "$repo1b", dim = true }, "$repo1s"],
+  ["$repo2"],
+  [{ token = "$repo2b", dim = true }, "$repo2s"],
+  ["$repo3"],
+  [{ token = "$repo3b", dim = true }, "$repo3s"],
 ]
 
 [ui.sound]
