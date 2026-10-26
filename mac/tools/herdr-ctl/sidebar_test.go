@@ -203,12 +203,13 @@ func TestASpaceListsEachOfItsRepositoriesOnce(t *testing.T) {
 	}
 }
 
-func TestSpaceTokensDrawATreeOnlyForSeveralRepositories(t *testing.T) {
+func TestSpaceTokensDrawEveryRepositoryAsATree(t *testing.T) {
+	// One repository is a tree of one, like a space that holds several: the same shape for every space.
 	one := spaceTokens([]RepoState{{Name: "dotfiles", Branch: "feat/swift-bar", Git: GitState{Ahead: 1}}})
-	if want := map[string]string{"repo1b": "feat/swift-bar", "repo1s": "↑1"}; !reflect.DeepEqual(one, want) {
+	if want := map[string]string{"repo1": "└ dotfiles", "repo1b": "\u2800 feat/swift-bar", "repo1s": "↑1"}; !reflect.DeepEqual(one, want) {
 		t.Fatalf("one repository = %v, want %v", one, want)
 	}
-	// Several: each repository's name on its own line, its branch and state on the line below, inside the tree.
+	// Each repository's name on its own line, its branch and state on the line below, inside the tree.
 	two := spaceTokens([]RepoState{
 		{Name: "lazymark", Branch: "main", Git: GitState{CI: "success"}},
 		{Name: "lazyfinder", Branch: "main", Git: GitState{Changed: 2}},

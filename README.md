@@ -106,7 +106,8 @@ herdr's own sidebar shows two lines per space and three per agent:
 ```
 spaces
 ✱ Config mac
-  feat/swift-bar · ↑2 ✚3 · CI ✓
+  └ dotfiles
+    feat/swift-bar · ↑2 ✚3 · CI ✓
 ○ Desarrollo Tuis
   ├ lazymark
   │ main · CI ✓
@@ -119,7 +120,7 @@ agents
   5h 51% · sem 61%
 ```
 
-A space shows, for each repository its panes are in (as a tree when there are several, up to three: each name on a line, its branch and state on the next), its branch, the commits not pushed (`↑`), the files changed (`✚`) and the branch's last CI run (`✓` passed, `✗` failed, `…` running). An agent shows its model, its state, the context it has used, and the account's 5-hour and weekly usage, the same numbers as Claude's `/usage` (every session reports what its own last response saw, so the newest reading wins: the later 5-hour window, or more used in the same one); a window at 75% or more also shows when it comes back. `herdr-ctl statusline` is Claude Code's status line (`"statusLine": {"type": "command", "command": "$HOME/.local/bin/herdr-ctl statusline", "refreshInterval": 30}` in `~/.claude/settings.json`): it reports each session's model, context and usage to its herdr pane. `herdr-ctl spaces-sync`, run every minute by the `dev.dotfiles.herdr-spaces` launch agent that `install.sh` loads, reports each space's git and CI state and hands the newest usage to every agent.
+A space shows, for each repository its panes are in (as a tree, one repository or up to three: each name on a line, its branch and state on the next), its branch, the commits not pushed (`↑`), the files changed (`✚`) and the branch's last CI run (`✓` passed, `✗` failed, `…` running). An agent shows its model, its state, the context it has used, and the account's 5-hour and weekly usage, the same numbers as Claude's `/usage` (every session reports what its own last response saw, so the newest reading wins: the later 5-hour window, or more used in the same one); a window at 75% or more also shows when it comes back. `herdr-ctl statusline` is Claude Code's status line (`"statusLine": {"type": "command", "command": "$HOME/.local/bin/herdr-ctl statusline", "refreshInterval": 30}` in `~/.claude/settings.json`): it reports each session's model, context and usage to its herdr pane. `herdr-ctl spaces-sync`, run every minute by the `dev.dotfiles.herdr-spaces` launch agent that `install.sh` loads, reports each space's git and CI state and hands the newest usage to every agent.
 
 ## herdr-ctl (Go, `mac/tools/herdr-ctl`)
 

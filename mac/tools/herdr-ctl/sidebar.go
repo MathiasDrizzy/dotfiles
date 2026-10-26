@@ -315,8 +315,8 @@ func (g GitState) summary() string {
 	return strings.Join(parts, " · ")
 }
 
-// maxSpaceRepos is how many repositories a space shows in config.toml: each has a name row ($repoN, only when the
-// space holds several) and a branch row ($repoNb with its state $repoNs).
+// maxSpaceRepos is how many repositories a space shows in config.toml: each has a name row ($repoN) and a branch row
+// ($repoNb with its state $repoNs).
 const maxSpaceRepos = 3
 
 // RepoState is one repository of a space, as its rows show it.
@@ -347,8 +347,8 @@ func workspaceRepos(panes []PaneInfo, root func(dir string) (string, bool)) map[
 	return repos
 }
 
-// spaceTokens fills a space's repository rows. One repository shows its branch and state under the space's name;
-// several are drawn as a tree, each name on a row of its own and its branch and state on the row below.
+// spaceTokens fills a space's repository rows as a tree, one repository or several alike: each name on a row of its
+// own and its branch and state on the row below.
 func spaceTokens(repos []RepoState) map[string]string {
 	if len(repos) > maxSpaceRepos {
 		repos = repos[:maxSpaceRepos]
@@ -356,18 +356,14 @@ func spaceTokens(repos []RepoState) map[string]string {
 	tokens := map[string]string{}
 	for i, r := range repos {
 		key := fmt.Sprintf("repo%d", i+1)
-		branch := r.Branch
-		if len(repos) > 1 {
-			glyph, rail := "├ ", "│ "
-			if i == len(repos)-1 {
-				// herdr trims a token's leading spaces; a braille blank keeps the last branch under its name.
-				glyph, rail = "└ ", "\u2800 "
-			}
-			tokens[key] = glyph + r.Name
-			branch = rail + r.Branch
+		glyph, rail := "├ ", "│ "
+		if i == len(repos)-1 {
+			// herdr trims a token's leading spaces; a braille blank keeps the last branch under its name.
+			glyph, rail = "└ ", "\u2800 "
 		}
-		if strings.TrimSpace(branch) != "" {
-			tokens[key+"b"] = branch
+		tokens[key] = glyph + r.Name
+		if r.Branch != "" {
+			tokens[key+"b"] = rail + r.Branch
 		}
 		if s := r.Git.summary(); s != "" {
 			tokens[key+"s"] = s

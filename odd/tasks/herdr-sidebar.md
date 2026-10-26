@@ -64,3 +64,6 @@ in reviewed slices). Delivery: single PR-sized slices on main. Test runner: `go 
   5-hour window, else more used) and every session shows the merged newest; live, the three agents held
   `5h 88% →19:00 · sem 65%` for 75 s. The tree puts each name on its own row and branch and state below it (a braille
   blank keeps the last branch indented: herdr trims leading spaces).
+- L7 (2026-10-26, user, verbatim): "y el que esta solo? aparece raro, no sera mejor dejarlo tambien como esta
+  desarrollo de tuis, osea con su arbol aunque sea solo, para seguir una linea". A space with one repository is now a
+  tree of one (`└ dotfiles`, its branch and state below), the same shape as a space with several.
