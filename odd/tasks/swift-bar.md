@@ -138,3 +138,6 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 - L20 (2026-10-26, user, verbatim): "se ve cortado el emogi". The weather-icons glyphs' ink is up to 20 points wide but
   their advance is 11 at 19 points, so they ran into the label and were cut; SkyIcon draws each in a fixed 20-point
   slot centered by its ink. Checked live (overcast: the whole cloud shows); dotbar-tests PASS.
+- L21 (2026-10-26, user, verbatim): "conecte el monitor externo y mira el icono no aparece completo". The other
+  monitor's mark (nf-md-monitor, ink 13.8 points against a 9-point advance) was cut like the sky glyph; it is drawn
+  with InkCenteredIcon in its slot. Checked live with the MSI monitor connected; dotbar-tests PASS.

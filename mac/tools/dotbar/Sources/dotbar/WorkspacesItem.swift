@@ -170,7 +170,8 @@ struct WorkspacesView: View {
         // Each slot is 26 points plus 1 of padding on each side, side by side: SketchyBar's items in their bracket.
         HStack(spacing: 0) {
             if mark {
-                Text("\u{F0379}").font(Theme.iconFont).foregroundStyle(Theme.blue).frame(width: Theme.slot)
+                // Its ink is wider than its advance (13.8 points against 9): laid out as plain text it was cut.
+                InkCenteredIcon(glyph: "\u{F0379}", color: Theme.blue).frame(width: Theme.slot)
                     .padding(.horizontal, 1)
             }
             ForEach(pills, id: \.id) { pill in
