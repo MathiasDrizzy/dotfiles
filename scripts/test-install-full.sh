@@ -86,11 +86,20 @@ out=""; prev=""; for a in "\$@"; do [ "\$prev" = "-o" ] && out="\$a"; prev="\$a"
 [ -n "\$out" ] && echo "# tema de prueba (stub)" > "\$out"
 exit 0
 EOF
-  # shortcuts y open: el atajo del clima se firma y se abre para añadirlo; en la prueba solo se registra (nada sale a la pantalla)
-  cat >"$B/stubs/shortcuts" <<EOF
+  # swift: dotbar se compila en release con SwiftPM, que dentro de la sandbox no puede (guarda cachés en el HOME real y su
+  # servicio de compilación no escribe en ella). La compilación real la prueban `swift run dotbar-tests` y bundle.sh fuera
+  # de la sandbox; aquí el stub registra la llamada y deja un binario, y el resto (armar la app, firmarla, el agente) es real.
+  cat >"$B/stubs/swift" <<EOF
 #!/bin/sh
-echo "shortcuts \$*" >> "$B/logs/shortcuts.log"
-if [ "\$1" = sign ]; then while [ \$# -gt 0 ]; do [ "\$1" = --output ] && echo stub > "\$2"; shift; done; fi
+echo "swift \$*" >> "$B/logs/swift.log"
+mkdir -p "$B/swiftbin" && printf '#!/bin/sh\nexit 0\n' > "$B/swiftbin/dotbar" && chmod +x "$B/swiftbin/dotbar"
+case "\$*" in *--show-bin-path*) echo "$B/swiftbin" ;; esac
+exit 0
+EOF
+  # launchctl: el agente de dotbar se carga con launchctl bootstrap; en la prueba solo se registra (no arranca una barra real)
+  cat >"$B/stubs/launchctl" <<EOF
+#!/bin/sh
+echo "launchctl \$*" >> "$B/logs/launchctl.log"
 exit 0
 EOF
   cat >"$B/stubs/open" <<EOF
@@ -242,8 +251,13 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
     '[ -x "$H/.local/bin/ctlcenter" ] && [ -n "$(ls -A "$H/.cache/swift-module-cache" 2>/dev/null)" ]'
   check "ctrl+flecha abajo (Ventanas de la aplicación, atajo 33 del sistema) queda desactivado y aplicado" \
     'grep -q "^defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 33 <dict><key>enabled</key><false/>" "$B/logs/defaults.log" && grep -q "^activateSettings -u" "$B/logs/defaults.log"'
-  check "el atajo del clima (Temperatura barra) se firmó y se abrió para añadirlo" \
-    'w="$H/.cache/dotfiles/temperatura-barra.wflow"; grep -q "^shortcuts sign --mode anyone --input $w " "$B/logs/shortcuts.log" && [ "$(head -c 8 "$w")" = bplist00 ] && [ "$(plutil -p "$w")" = "$(plutil -p "$REPO/mac/config/shortcuts/temperatura-barra.plist")" ] && grep -q "^open .*Temperatura barra.shortcut" "$B/logs/open.log"'
+  check "dotbar se compila en release, su build y cachés dentro del HOME" \
+    'grep -q "^swift build -c release --package-path .*/tools/dotbar --scratch-path $H/.cache/dotbar-build .*--product dotbar$" "$B/logs/swift.log"'
+  check "dotbar.app compilada y firmada en ~/Applications" \
+    '[ -x "$H/Applications/dotbar.app/Contents/MacOS/dotbar" ] && codesign --verify "$H/Applications/dotbar.app"'
+  check "su agente de inicio apunta a la app de este HOME y se cargó con launchctl" \
+    'a="$H/Library/LaunchAgents/dev.dotfiles.dotbar.plist"; plutil -lint "$a" >/dev/null && grep -q "<string>$H/Applications/dotbar.app/Contents/MacOS/dotbar</string>" "$a" && grep -q "^launchctl bootstrap gui/$(id -u) $a$" "$B/logs/launchctl.log"'
+  check "no quedó nada de SketchyBar en ~/.config" '[ ! -e "$H/.config/sketchybar" ]'
   check "todos los enlaces de check-links.sh quedan OK (--strict: 0 faltantes, rc 0)" \
     'n="$(grep -c "^  \".*|\$HOME/" "$REPO/mac/scripts/check-links.sh")"; [ "$n" -ge 10 ]; o="$(HOME="$H" DOTFILES_BACKUP_DIR="$B/respaldos" "$REPO/mac/scripts/check-links.sh" --strict 2>&1 | strip)"; rc=$?; echo "$o" | grep -q " 0 Faltantes" && echo "$o" | grep -q "$n Symlinks OK" && echo "$o" | grep -q "0 Modificaciones Fuera de Git"'
   check "sin enlaces rotos" '[ "$(broken "$H")" = 0 ]'

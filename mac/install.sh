@@ -101,9 +101,7 @@ if [ "$LINKS_ONLY" = false ]; then
     brew install --cask font-sketchybar-app-font || true
     brew install --cask nikitabobko/tap/aerospace || true
     brew install felixkratz/formulae/borders || true
-    brew install felixkratz/formulae/sketchybar || true
     brew install ungive/media-control/media-control || true
-    brew install --cask corelocationcli || true # the weather box asks Location Services for the commune you are in
   fi
 
   # 4. Activar toolchain de Rust
@@ -122,7 +120,6 @@ CONFIG_DIRS=(
   "$HOME/.config/ghostty"
   "$HOME/.config/herdr"
   "$HOME/.config/aerospace"
-  "$HOME/.config/sketchybar/plugins"
   "$HOME/.config/yazi"
   "$HOME/.config/micro/colorschemes"
   "$HOME/.config/btop/themes"
@@ -151,29 +148,6 @@ REQUIRED_SOURCES=(
   "config/ghostty/config"
   "config/herdr/config.toml"
   "config/aerospace/aerospace.toml"
-  "config/sketchybar/sketchybarrc"
-  "config/sketchybar/colors.sh"
-  "config/sketchybar/icons.sh"
-  "config/sketchybar/helpers.sh"
-  "config/sketchybar/icon_map.sh"
-  "config/sketchybar/plugins/aerospace.sh"
-  "config/sketchybar/plugins/media.sh"
-  "config/sketchybar/plugins/clock.sh"
-  "config/sketchybar/plugins/battery.sh"
-  "config/sketchybar/plugins/apple.sh"
-  "config/sketchybar/plugins/hover.sh"
-  "config/sketchybar/plugins/appmenu.sh"
-  "config/sketchybar/plugins/monitor.sh"
-  "config/sketchybar/plugins/close_popups.sh"
-  "config/sketchybar/plugins/controlcenter.sh"
-  "config/sketchybar/plugins/control.sh"
-  "config/sketchybar/plugins/about.sh"
-  "config/sketchybar/plugins/weather.sh"
-  "config/sketchybar/plugins/fit.sh"
-  "config/sketchybar/plugins/app_name.sh"
-  "config/sketchybar/plugins/moon.sh"
-  "config/sketchybar/plugins/drag.sh"
-  "config/sketchybar/plugins/sys.sh"
   "config/yazi/keymap.toml"
   "config/yazi/theme.toml"
   "config/micro/settings.json"
@@ -247,13 +221,14 @@ if [ "$LINKS_ONLY" = false ]; then
     )
   fi
 
-  # 10. Compile ctlcenter (opens Control Center for the SketchyBar status button; needs the Xcode command line tools)
+  # 10. Compile ctlcenter (dotbar runs its `stay` helper, and opens Control Center through it when it may not post keys
+  # itself; needs the Xcode command line tools)
   if [ "$DRY_RUN" != true ]; then
     echo "==> Compilando ctlcenter..."
     # Its module cache goes under HOME: the default one (outside it) is written only when cold, as on a fresh Mac.
     swiftc -O -module-cache-path "$HOME/.cache/swift-module-cache" "$DOTFILES_DIR/tools/ctlcenter/ctlcenter.swift" \
       -o "$HOME/.local/bin/ctlcenter" ||
-      echo "  [AVISO] ctlcenter no compiló (¿faltan las Command Line Tools?); el botón de estado abre Ajustes en su lugar."
+      echo "  [AVISO] ctlcenter no compiló (¿faltan las Command Line Tools?); dotbar sigue funcionando sin su ayudante."
   fi
 
   # 11. ctrl+down (Mission Control's "Application windows", system shortcut 33) is turned off: it is of no
@@ -266,20 +241,47 @@ if [ "$LINKS_ONLY" = false ]; then
     "$activate_settings" -u 2>/dev/null || true
   fi
 
-  # 12. The weather box's shortcut: Apple Weather's temperature (the one the Mac and the iPhone show) is read through
-  # Shortcuts, which only adds a shortcut the user accepts. It is signed here and opened; without it the box uses Open-Meteo.
-  if [ "$DRY_RUN" != true ] && ! shortcuts list 2>/dev/null | grep -qx "Temperatura barra"; then
-    echo "==> Atajo del clima..."
-    shortcut_dir="$HOME/.cache/dotfiles"
-    mkdir -p "$shortcut_dir"
-    # The repo keeps it as readable XML; Shortcuts signs only the binary form.
-    if plutil -convert binary1 -o "$shortcut_dir/temperatura-barra.wflow" "$DOTFILES_DIR/config/shortcuts/temperatura-barra.plist" &&
-      shortcuts sign --mode anyone --input "$shortcut_dir/temperatura-barra.wflow" \
-        --output "$shortcut_dir/Temperatura barra.shortcut" 2>/dev/null; then
-      open "$shortcut_dir/Temperatura barra.shortcut"
-      echo "  [ACCIÓN] En Atajos, haz clic en \"Añadir atajo\" (y permite la ubicación la primera vez que corra)."
+  # 12. dotbar, the bar (mac/tools/dotbar): built into ~/Applications/dotbar.app and started at login by a launch agent
+  # that starts it again if it crashes (a quit or a logout ends it for good). Its first run asks for Location (the weather
+  # box's commune); Accessibility (the app's menus, Control Center, Vorssaint) is granted in System Settings.
+  if [ "$DRY_RUN" != true ]; then
+    echo "==> Compilando dotbar..."
+    if "$DOTFILES_DIR/tools/dotbar/scripts/bundle.sh" "$HOME/Applications" >/dev/null; then
+      agent="$HOME/Library/LaunchAgents/dev.dotfiles.dotbar.plist"
+      mkdir -p "$(dirname "$agent")"
+      # Written with printf, not a here-document: macOS's bash keeps a here-document in a temporary file of its own choice.
+      printf '%s\n' \
+        '<?xml version="1.0" encoding="UTF-8"?>' \
+        '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+        '<plist version="1.0">' \
+        '<dict>' \
+        '  <key>Label</key><string>dev.dotfiles.dotbar</string>' \
+        "  <key>ProgramArguments</key><array><string>$HOME/Applications/dotbar.app/Contents/MacOS/dotbar</string></array>" \
+        '  <key>RunAtLoad</key><true/>' \
+        '  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>' \
+        '  <key>ProcessType</key><string>Interactive</string>' \
+        '  <key>LimitLoadToSessionType</key><string>Aqua</string>' \
+        '</dict>' \
+        '</plist>' >"$agent"
+      launchctl bootout "gui/$(id -u)/dev.dotfiles.dotbar" 2>/dev/null || true
+      launchctl bootstrap "gui/$(id -u)" "$agent" ||
+        echo "  [AVISO] dotbar no arrancó; ábrelo con: open ~/Applications/dotbar.app"
     else
-      echo "  [AVISO] No se pudo firmar el atajo del clima; la barra usa Open-Meteo para la temperatura."
+      echo "  [AVISO] dotbar no compiló (¿faltan las Command Line Tools?)."
+    fi
+  fi
+
+  # 13. SketchyBar, the bar dotbar replaced: stopped and uninstalled where an earlier install left it, and the links it left
+  # in ~/.config removed (their sources are gone from the repo).
+  if [ "$DRY_RUN" != true ]; then
+    if brew list sketchybar >/dev/null 2>&1; then
+      echo "==> Quitando SketchyBar..."
+      pkill -x sketchybar 2>/dev/null || true
+      brew uninstall sketchybar >/dev/null 2>&1 || true
+    fi
+    if [ -d "$HOME/.config/sketchybar" ]; then
+      find "$HOME/.config/sketchybar" -type l -delete
+      find "$HOME/.config/sketchybar" -type d -empty -delete 2>/dev/null || true
     fi
   fi
 

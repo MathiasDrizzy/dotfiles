@@ -4,10 +4,9 @@
 config-version = 2
 
 # JankyBorders: a thin purple round border on the focused window only (inactive windows get none).
-# It detects an already running instance, so an AeroSpace restart does not start it twice.
+# It detects an already running instance, so an AeroSpace restart does not start it twice. The bar (dotbar) is started by
+# its own launch agent and follows AeroSpace through `aerospace subscribe`.
 after-startup-command = [
-    # SketchyBar detects an already running instance, so an AeroSpace restart does not start it twice.
-    'exec-and-forget sketchybar',
     'exec-and-forget borders style=round width=2.0 hidpi=on active_color=0xccb48efa inactive_color=0x00000000'
 ]
 start-at-login = true
@@ -44,11 +43,6 @@ gaps.outer.right = 6
 on-window-detected = [
     { if = 'test %{app-bundle-id} = com.apple.systempreferences', run = 'layout floating' },
     { if = 'test %{app-bundle-id} = com.vorssaint.utils', run = 'layout floating' },
-]
-
-# Tell SketchyBar which workspace is focused.
-exec-on-workspace-change = ['/bin/bash', '-c',
-    'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE'
 ]
 
 # Two sets of nine: 1..9 live on the Mac (Option+N), e1..e9 on the external monitor (Control+Option+N). The bar draws e3 as

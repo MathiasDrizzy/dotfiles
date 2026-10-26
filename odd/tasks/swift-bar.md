@@ -38,7 +38,7 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 | T6 | S3 now playing | delegated | done | fde7e9e |
 | T7 | S3 notch fit, other monitor, the "+N" cap | inline | done | aeae6b4 |
 | T8 | S3 Control Center, cover, Vorssaint, drag to swap | delegated | done | 4fb3413, 7923ddf, 34c8aca |
-| T9 | S4 switch and SketchyBar removal | inline | pending | |
+| T9 | S4 switch and SketchyBar removal | inline | done | T9 commit |
 
 - T1: Swift package `mac/tools/dotbar` (library + app + tests); a non-activating panel above the menu bar on the main
   display, transparent, 40 pt tall, full width; a development flag to draw it at the bottom next to SketchyBar; the
@@ -108,3 +108,15 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
   pill click marks a switch as asked, a swap pauses it; Vorssaint's popover holds the cover. 254 checks pass. Live, the
   integrated bar matches SketchyBar box by box (only the temperature source differs), 0% CPU, 57 MB, two aerospace
   streams and one media stream as children, nothing left after quit. Next step: T9.
+- L15: T9 done in the repo: install.sh builds dotbar.app into ~/Applications (scripts/bundle.sh, build under
+  ~/.cache/dotbar-build) and loads the launch agent dev.dotfiles.dotbar (written with printf: macOS's bash keeps a
+  here-document in a temporary file the installer test's sandbox forbids), uninstalls SketchyBar and removes its links;
+  AeroSpace no longer calls SketchyBar; mac/config/sketchybar, the Shortcuts weather shortcut and the five SketchyBar
+  tests are gone; dotbar starts `ctlcenter stay`. The installer test stubs `swift` (SwiftPM cannot build inside its
+  sandbox: it uses the real user's caches and a build service that cannot write there); the real build is covered by
+  bundle.sh and dotbar-tests. Full install test: PASS.
+- L16 (2026-10-26, user, verbatim): "sigue con el proceso pero desactiva sketchybar para mi y deja la barra de mac
+  nativa, la de sketchybar no funciona esta pegada. recuerda ver si por ejemplo ahora que usamos switft podemos poner
+  nativamente los botones de vorssaint o la barra de mission control. temina lo que estamas haciendo." Done on this Mac:
+  SketchyBar and its helpers stopped, menu bar auto-hide off (the native bar shows). dotbar is not installed on this
+  Mac yet: the user keeps the native bar until they ask for dotbar.

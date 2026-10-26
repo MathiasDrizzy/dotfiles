@@ -119,6 +119,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let runner = CommandRunner()
     private lazy var workspaces = WorkspacesModel(runner: runner, aerospace: aerospacePath())
     private lazy var stay = StayModel(runner: runner, aerospace: aerospacePath())
+    /// `ctlcenter stay` (mac/tools/ctlcenter): keeps AeroSpace from following macOS elsewhere when the app in front quits,
+    /// by putting Finder right behind it. Long-lived, started again if it ends; SketchyBar's rc used to start it.
+    private let finderBehind = LineStream(
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".local/bin/ctlcenter").path, ["stay"],
+        restartDelay: 5
+    ) { _ in }
     private let status = StatusModel()
     private let moon = MoonModel()
     private let weather = WeatherModel()
@@ -140,6 +146,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         workspaces.start()
         stay.start()
+        finderBehind.start()
         status.start()
         moon.start()
         weather.start()
@@ -161,6 +168,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func shutdown() {
         workspaces.stop()
         stay.stop()
+        finderBehind.stop()
         status.stop()
         moon.stop()
         weather.stop()

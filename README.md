@@ -76,20 +76,25 @@ The focused window gets a thin purple round border from [JankyBorders](https://g
 
 The keyboard is Latin American, so the punctuation keys are aliased by the symbol printed on them (`key-mapping` in the config). Only numbered workspaces are bound, so the shell's `alt+b/f/d` word motions keep working. It needs the Accessibility permission and `defaults write com.apple.dock expose-group-apps -bool true` so Mission Control shows hidden windows properly.
 
-## SketchyBar (menu bar replacement, `mac/config/sketchybar/`)
+## dotbar (menu bar replacement, `mac/tools/dotbar/`)
 
-A bar of small solid boxes in Catppuccin Macchiato, after [neutonfoo/dotfiles](https://github.com/neutonfoo/dotfiles): a colored icon per box, the Apple menu and the active app as color blocks, JetBrainsMono Nerd Font. The bar itself is transparent so the camera housing stays clear. The native menu bar is set to auto-hide (System Settings → Control Center → *Automatically hide and show the menu bar*: Always).
+The bar is one native Swift app: a panel above the menu bar on every Space that never takes the focus. It keeps its state
+in memory and follows the system through events and long-lived streams (AeroSpace's `subscribe`, `media-control
+stream`, IOKit, the network path, NSWorkspace); it starts no process per tick, and every outside command it runs has a
+time limit and never runs twice at once. A bar of small solid boxes in Catppuccin Macchiato, after
+[neutonfoo/dotfiles](https://github.com/neutonfoo/dotfiles): a colored icon per box, the Apple menu and the active app
+as color blocks, JetBrainsMono Nerd Font. The native menu bar is set to auto-hide (System Settings → Control Center →
+*Automatically hide and show the menu bar*: Always).
 
-- Left: Apple menu (click for About, Settings, Sleep, Lock, Log out, Restart, Shut down), the active app (its name in a box of fixed width that slides when the name is longer; click for its menus, centered under it) and the AeroSpace workspaces (only the focused, the visible and the occupied ones; click to switch, **drag one onto another to swap their windows**). With an external monitor connected, its workspaces get a pill of their own, marked with a monitor glyph and in blue, right after the Mac's (there is one bar, on the Mac).
-- Nothing covers anything: the camera housing and the neighbouring boxes are hard stops. When the left side runs out of room beside the weather box, the front app name narrows first, then workspaces leave (the pill says `+N`); the track beside the housing is cut to stop short of Vorssaint (`plugins/fit.sh`).
+- Left: Apple menu (click for About, Settings, Sleep, Lock, Log out, Restart, Shut down), the active app (its name in a box of fixed width that slides when the name is longer; click for its menus) and the AeroSpace workspaces (only the focused, the visible and the occupied ones; click to switch, **drag one onto another to swap their windows**). With an external monitor connected, its workspaces get a pill of their own, marked with a monitor glyph and in blue.
+- Nothing covers anything: the camera housing and the neighbouring boxes are hard stops. When the left side runs out of room, the front app name narrows first, then workspaces leave (the pill says `+N`); the track is cut to stop short of Vorssaint.
 - Around the camera notch: the moon phase and the weather (the commune you are in and its temperature) on its left, and the track that is playing on its right (click to play or pause, via [`media-control`](https://github.com/ungive/media-control)).
-- Right: Vorssaint (its pill sits right over its hidden menu bar icon, so its menu opens under it), the battery, the date (click for Calendar), the time and a Control Center button. The Control Center button opens the system panel with `fn+C` and closes it again on a second click; while it is open the bar turns into an opaque cover in the color of the desktop so the native bar never shows through.
+- Right: Vorssaint (its box sits over its hidden menu bar icon, so its menu opens under it), the battery, the date (click for Calendar), the time and a Control Center button (`fn+C`, a second click closes it). While a panel or menu is open, the bar draws the wallpaper behind its boxes so the native bar never shows through.
+- When the last window of a workspace closes, the focus stays there instead of following macOS to another app's workspace.
 
-The weather box finds the commune with [CoreLocationCLI](https://github.com/fulldecent/corelocationcli) (allow it in Location Services) and reads the temperature from Apple Weather, the one the Mac and the iPhone show, through the Shortcuts shortcut *Temperatura barra* (`mac/config/shortcuts/temperatura-barra.plist`). `install.sh` signs it and opens it: click *Add Shortcut*. Without it the box falls back to [Open-Meteo](https://open-meteo.com), which can be a degree off.
+The weather is native: the commune from Location Services (CoreLocation and its reverse geocoding), the temperature from [Open-Meteo](https://open-meteo.com) (Apple Weather needs a paid developer account), every 30 minutes and on wake.
 
-`ctlcenter` (a small Swift helper in `mac/tools/ctlcenter`, compiled by `install.sh`, needs the Xcode command line tools) presses `fn+C` and watches the pointer so the workspace drag can start the moment you press. The macOS recording indicator (orange dot) is drawn by the system above everything and cannot be moved or hidden.
-
-AeroSpace starts it and notifies it of workspace changes. Reload after editing: `sketchybar --reload`. Installed by `install.sh`.
+`install.sh` builds it into `~/Applications/dotbar.app` and starts it at login with a launch agent (`~/Library/LaunchAgents/dev.dotfiles.dotbar.plist`, started again if it crashes). Its first run asks for Location; grant Accessibility to `dotbar` in System Settings for the app menus, Control Center and Vorssaint. It also runs `ctlcenter stay` (`mac/tools/ctlcenter`), which keeps AeroSpace in place when the app in front quits. Rebuild after editing: `mac/tools/dotbar/scripts/bundle.sh ~/Applications`, then `launchctl kickstart -k gui/$(id -u)/dev.dotfiles.dotbar`. Checks: `cd mac/tools/dotbar && swift run dotbar-tests`.
 
 Tabs are named after what runs in them by the [Auto Title](https://github.com/kryptamine/herdr-auto-title) herdr plugin (`install.sh` installs it, pinned to a release; it needs `ui.prompt_new_tab_name = false`, already set). A tab you rename by hand keeps its name.
 
@@ -125,9 +130,7 @@ afocus <agent>          # jump to its pane                 (herdr-ctl focus)
 scripts/lint-shell.sh                     # shellcheck and shfmt
 scripts/go-checks.sh                      # herdr-ctl: vet, test -race, golangci-lint, govulncheck
 scripts/test-install-full.sh              # full install in a sandbox with a temporary HOME
-scripts/test-sketchybar-no-pileup.sh      # no plugin waits forever on an outside command or piles up (all stubbed, no bar)
-scripts/test-sketchybar-workspaces.sh     # by hand: the workspace pills follow AeroSpace through bursts of switches (own bar, stubbed AeroSpace)
-scripts/test-sketchybar-fit.sh            # by hand: no bar box overlaps another or the camera housing (a throwaway bar shows at the bottom of the screen for ~20 s)
+(cd mac/tools/dotbar && swift run dotbar-tests)  # the bar's checks (workspaces, runner, fit, weather, media, swap...)
 ```
 
 * Development runs under the gentle-ai harness (ODD workflow, Engram memory, CodeGraph); the repo keeps no git hooks of its own.
