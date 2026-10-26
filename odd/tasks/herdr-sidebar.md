@@ -116,3 +116,6 @@ in reviewed slices). Delivery: single PR-sized slices on main. Test runner: `go 
   switch); the white follows a switch in under 0.6 s with the poll's own delay; idle 0.02 s CPU in 30 s, 20 switches
   0.07 s CPU, 10 MB flat, one process. If the watcher dies the last names stay (launchd restarts it within 10 s and a
   reconnect republishes everything). The 8d100c9 commit had landed on a local branch the user switched to by hand.
+- L14: the review of aa09a6b (approved) warned of two edges, both closed: an agent that loses its name now clears both
+  name tokens instead of keeping the last, and a failing workspace.list no longer stops the full pass (git, CI, usage):
+  without the spaces nobody knows who is in front, so the names are left as they were (tested through nameReports).

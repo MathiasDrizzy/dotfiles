@@ -380,8 +380,10 @@ func TestAgentNameTokensSwapBetweenDimAndHot(t *testing.T) {
 	if !reflect.DeepEqual(set, map[string]string{"aname_dim": "dotfiles"}) || !reflect.DeepEqual(clear, []string{"aname_hot"}) {
 		t.Fatalf("unfocused: set %v clear %v", set, clear)
 	}
-	if set, _ := nameTokens("", true); len(set) != 0 {
-		t.Fatalf("a nameless agent published %v", set)
+	// An agent that lost its name must not keep the last one on screen: both tokens are cleared.
+	set, clear = nameTokens("", true)
+	if len(set) != 0 || !reflect.DeepEqual(clear, []string{"aname_dim", "aname_hot"}) {
+		t.Fatalf("a nameless agent: set %v clear %v", set, clear)
 	}
 }
 
@@ -421,5 +423,21 @@ func TestTheAgentThatLosesTheFocusIsReportedBeforeTheOneThatGainsIt(t *testing.T
 	order := namesOrder(panes, focusedPanes(panes, []WorkspaceInfo{{WorkspaceID: "w", Focused: true, ActiveTabID: "t"}}))
 	if !reflect.DeepEqual(order, []string{"lose", "gain"}) {
 		t.Fatalf("order = %v, want the unfocused agent first", order)
+	}
+}
+
+func TestNameReportsNeedTheSpacesToKnowWhoIsInFront(t *testing.T) {
+	panes := []PaneInfo{{PaneID: "a", Agent: "claude", TabID: "t", TerminalTitleStripped: "a", Focused: true}}
+	workspaces := []WorkspaceInfo{{WorkspaceID: "w", Focused: true, ActiveTabID: "t"}}
+	if got := nameReports(panes, workspaces, false); len(got) != 0 {
+		t.Fatalf("without the spaces the names were reported anyway: %v", got)
+	}
+	got := nameReports(panes, workspaces, true)
+	if len(got) != 1 || got[0].pane != "a" || got[0].set["aname_hot"] != "a" {
+		t.Fatalf("reports = %+v", got)
+	}
+	nameless := nameReports([]PaneInfo{{PaneID: "b", Agent: "claude"}}, workspaces, true)
+	if len(nameless) != 1 || len(nameless[0].set) != 0 || len(nameless[0].clear) != 2 {
+		t.Fatalf("a nameless agent was not cleared: %+v", nameless)
 	}
 }
