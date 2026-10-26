@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Lints every tracked shell script with shellcheck and shfmt, using pinned tool versions.
-# CI and verificar.sh run this same script. Needs `uvx` (uv) and `go` on the PATH.
+# CI runs this same script (on Linux). Needs `uvx` (uv) and `go` on the PATH.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
