@@ -26,8 +26,8 @@ public enum WorkspaceSwap {
         case nothing
         /// The windows of a workspace could not be read (no answer in time): nothing moved.
         case unread
-        /// A command failed or timed out partway: it stopped there and left the parking workspace; the bar reads the
-        /// workspaces again instead of painting a swap that did not happen.
+        /// A command failed or timed out partway: it stopped there, moved back the windows it had already moved, and left
+        /// the parking workspace; the bar reads the workspaces again instead of painting a swap that did not happen.
         case failed
     }
 
@@ -65,14 +65,23 @@ public enum WorkspaceSwap {
         let plan = plan(
             from: from, to: to, focused: focus, fromWindows: parseWindowIDs(fromWindows.stdout),
             toWindows: parseWindowIDs(toWindows.stdout))
+        var moved: [(window: String, back: String)] = []
         for command in plan.commands {
             let answer = await runner.run(aerospace, command, timeout: timeout)
             guard answer.status == 0 else {
-                // Moving more windows blind would only make it worse: stop, and do not leave the focus parked.
+                // Moving more windows blind would only make it worse: stop, put back what moved (last first), so no
+                // workspace is left half swapped, and do not leave the focus parked.
+                for move in moved.reversed() {
+                    _ = await runner.run(
+                        aerospace, ["move-node-to-workspace", "--window-id", move.window, move.back], timeout: timeout)
+                }
                 if !focus.isEmpty, command != ["workspace", focus] {
                     _ = await runner.run(aerospace, ["workspace", focus], timeout: timeout)
                 }
                 return .failed
+            }
+            if command.count == 4, command[0] == "move-node-to-workspace" {
+                moved.append((command[2], command[3] == to ? from : to))
             }
         }
         return .swapped(focus: plan.focus)

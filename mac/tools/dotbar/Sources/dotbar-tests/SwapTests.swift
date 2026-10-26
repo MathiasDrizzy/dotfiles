@@ -142,10 +142,11 @@ func swapTests() async {
     let brokenMoves = logged().filter { !$0.hasPrefix("list-") }
     check("a move that fails stops the swap and says so", broken == .failed, "\(broken)")
     check(
-        "...without moving more, and the focus leaves the parking workspace",
+        "...moves back what had moved, last first, and the focus leaves the parking workspace",
         brokenMoves == [
             "workspace swap-park", "move-node-to-workspace --window-id 11 5", "move-node-to-workspace --window-id 12 5",
-            "move-node-to-workspace --window-id 51 1", "workspace 1",
+            "move-node-to-workspace --window-id 51 1", "move-node-to-workspace --window-id 12 1",
+            "move-node-to-workspace --window-id 11 1", "workspace 1",
         ], "\(brokenMoves)")
 
     try? FileManager.default.removeItem(atPath: log)

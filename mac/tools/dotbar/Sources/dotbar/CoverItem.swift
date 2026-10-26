@@ -44,6 +44,9 @@ final class CoverModel {
     @ObservationIgnored private var holds: Set<String> = []
     /// Holds that end on their own (a popover closed by the user, not by the bar): checked each time the cover asks.
     @ObservationIgnored private var holdChecks: [String: () -> Bool] = [:]
+    @ObservationIgnored private var holdSince: [String: Date] = [:]
+    /// A popover reported open may not be a window yet: its hold is not checked for this long.
+    private static let holdGrace: TimeInterval = 1.5
     @ObservationIgnored private var atTop = false
     @ObservationIgnored private var monitors: [Any] = []
     @ObservationIgnored private var observers: [(NotificationCenter, NSObjectProtocol)] = []
@@ -103,6 +106,7 @@ final class CoverModel {
     func hold(_ reason: String, while stillNeeded: (() -> Bool)? = nil) {
         holds.insert(reason)
         holdChecks[reason] = stillNeeded
+        holdSince[reason] = Date()
         shown = true
     }
 
@@ -110,6 +114,7 @@ final class CoverModel {
     func release(_ reason: String) {
         holds.remove(reason)
         holdChecks[reason] = nil
+        holdSince[reason] = nil
         settleSoon(after: Self.releaseDelay)
     }
 
@@ -137,9 +142,11 @@ final class CoverModel {
     }
 
     private func needed() -> Bool {
-        for (reason, check) in holdChecks where !check() {
+        for (reason, check) in holdChecks
+        where Date().timeIntervalSince(holdSince[reason] ?? .distantPast) > Self.holdGrace && !check() {
             holds.remove(reason)
             holdChecks[reason] = nil
+            holdSince[reason] = nil
         }
         return Self.pointerAtTop() || !holds.isEmpty || ScreenWindows.popupOpen(bundles: Self.popupBundles)
     }
