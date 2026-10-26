@@ -3,7 +3,7 @@ eval "$(mise activate zsh)"
 # Rutas locales
 export PATH="$HOME/.local/bin:$PATH"
 
-# Editor por defecto (yazi, git, etc.) — no vim
+# Editor por defecto (git, lazyfinder, etc.) — no vim
 export EDITOR="code -w"
 export VISUAL="$EDITOR"
 
@@ -33,15 +33,6 @@ source /opt/homebrew/opt/fzf-tab/share/fzf-tab/fzf-tab.zsh
 source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
-# yazi: la funcion y() deja la shell en la carpeta donde saliste
-function y() {
-	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
-	yazi "$@" --cwd-file="$tmp"
-	IFS= read -r -d "" cwd < "$tmp"
-	[ -n "$cwd" ] && [ "$cwd" != "$PWD" ] && builtin cd -- "$cwd"
-	rm -f -- "$tmp"
-}
-
 # lazyfinder: shell function that leaves the shell in the folder you exit from (skipped if not installed).
 # The init output is cached and regenerated only when the lazyfinder binary is newer, so startup does not spawn it.
 if (( $+commands[lazyfinder] )); then
@@ -59,7 +50,6 @@ alias ld='lazydocker'
 alias sftp='termscp'
 alias hosts='sshs'
 alias sb='herdr plugin action invoke lazyfinder.toggle >/dev/null'   # lazyfinder sidebar
-alias mirador='mirador'
 
 # Enjambre e Intercomunicación de Agentes (Socket Unix ~/.config/herdr/herdr.sock)
 alias swarm='herdr-ctl swarm'

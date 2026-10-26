@@ -80,8 +80,8 @@ if [ "$LINKS_ONLY" = false ]; then
   # 3. Paquetes Homebrew esenciales
   BREW_PACKAGES=(
     herdr ghostty micro glow bat git-delta go rustup
-    yazi ffmpeg poppler fd ripgrep fzf zoxide atuin starship mise
-    lazygit lazydocker termscp sshs btop chafa blueutil mathiasdrizzy/tap/lazyfinder
+    poppler fd ripgrep fzf zoxide atuin starship mise
+    lazygit lazydocker termscp sshs btop mathiasdrizzy/tap/lazyfinder
     fzf-tab zsh-autosuggestions zsh-syntax-highlighting
   )
 
@@ -120,7 +120,6 @@ CONFIG_DIRS=(
   "$HOME/.config/ghostty"
   "$HOME/.config/herdr"
   "$HOME/.config/aerospace"
-  "$HOME/.config/yazi"
   "$HOME/.config/micro/colorschemes"
   "$HOME/.config/btop/themes"
   "$HOME/.config/bat"
@@ -148,8 +147,6 @@ REQUIRED_SOURCES=(
   "config/ghostty/config"
   "config/herdr/config.toml"
   "config/aerospace/aerospace.toml"
-  "config/yazi/keymap.toml"
-  "config/yazi/theme.toml"
   "config/micro/settings.json"
   "config/starship/starship.toml"
   "config/termscp/config.toml"

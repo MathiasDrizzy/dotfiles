@@ -128,9 +128,8 @@ var staticSections = []Section{
 		Title: "󰞷  Herramientas TUI",
 		Color: cPeach,
 		Items: []Item{
-			{Key: "yazi (y)", Desc: "Gestor de archivos (Espacio: preview)"},
-			{Key: "yazi: a", Desc: "Crear archivo (o carpeta con / al final)"},
-			{Key: "yazi: r / Delete", Desc: "Renombrar / borrar archivo"},
+			{Key: "lazyfinder", Desc: "Gestor de archivos tipo Finder (al salir deja la shell en esa carpeta)"},
+			{Key: "lazyfinder (sb)", Desc: "Barra lateral de archivos en herdr", Alias: "sb"},
 			{Key: "lazygit (lg)", Desc: "Interfaz visual para Git", Alias: "lg"},
 			{Key: "lazydocker (ld)", Desc: "Gestión de contenedores Docker", Alias: "ld"},
 			{Key: "btop", Desc: "Monitor de recursos del sistema"},

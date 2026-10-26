@@ -88,8 +88,6 @@ CONFIG_PAIRS=(
   "config/ghostty/config|$HOME/.config/ghostty/config"
   "config/herdr/config.toml|$HOME/.config/herdr/config.toml"
   "config/aerospace/aerospace.toml|$HOME/.config/aerospace/aerospace.toml"
-  "config/yazi/keymap.toml|$HOME/.config/yazi/keymap.toml"
-  "config/yazi/theme.toml|$HOME/.config/yazi/theme.toml"
   "config/micro/settings.json|$HOME/.config/micro/settings.json"
   "config/termscp/config.toml|$HOME/.config/termscp/config.toml"
   "config/termscp/theme.toml|$HOME/.config/termscp/theme.toml"
