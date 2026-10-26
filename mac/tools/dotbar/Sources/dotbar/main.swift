@@ -146,7 +146,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         workspaces.start()
         stay.start()
-        finderBehind.start()
+        // `defaults write dev.dotfiles.dotbar stay -bool false` turns it off: no Finder brought forward at each switch (an
+        // app in front blinks), but quitting a workspace's last app may flicker through another workspace again.
+        if UserDefaults.standard.object(forKey: "stay") as? Bool ?? true { finderBehind.start() }
         status.start()
         moon.start()
         weather.start()
