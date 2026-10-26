@@ -257,8 +257,8 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
     '[ -x "$H/Applications/dotbar.app/Contents/MacOS/dotbar" ] && codesign --verify "$H/Applications/dotbar.app"'
   check "su agente de inicio apunta a la app de este HOME y se cargó con launchctl" \
     'a="$H/Library/LaunchAgents/dev.dotfiles.dotbar.plist"; plutil -lint "$a" >/dev/null && grep -q "<string>$H/Applications/dotbar.app/Contents/MacOS/dotbar</string>" "$a" && grep -q "^launchctl bootstrap gui/$(id -u) $a$" "$B/logs/launchctl.log"'
-  check "el agente de herdr-ctl spaces-sync corre cada minuto con Homebrew en el PATH y se cargó con launchctl" \
-    'a="$H/Library/LaunchAgents/dev.dotfiles.herdr-spaces.plist"; plutil -lint "$a" >/dev/null && grep -q "<string>$H/.local/bin/herdr-ctl</string><string>spaces-sync</string>" "$a" && grep -q "<key>StartInterval</key><integer>60</integer>" "$a" && grep -q "/bin:/usr/bin:/bin</string>" "$a" && grep -q "^launchctl bootstrap gui/$(id -u) $a$" "$B/logs/launchctl.log"'
+  check "el agente de herdr-ctl spaces-watch sigue los eventos de herdr, se mantiene vivo sin reinicios en bucle y se cargó con launchctl" \
+    'a="$H/Library/LaunchAgents/dev.dotfiles.herdr-spaces.plist"; plutil -lint "$a" >/dev/null && grep -q "<string>$H/.local/bin/herdr-ctl</string><string>spaces-watch</string>" "$a" && grep -q "<key>KeepAlive</key><true/>" "$a" && grep -q "<key>ThrottleInterval</key><integer>10</integer>" "$a" && grep -q "/bin:/usr/bin:/bin</string>" "$a" && grep -q "^launchctl bootstrap gui/$(id -u) $a$" "$B/logs/launchctl.log"'
   check "no quedó nada de SketchyBar en ~/.config" '[ ! -e "$H/.config/sketchybar" ]'
   check "todos los enlaces de check-links.sh quedan OK (--strict: 0 faltantes, rc 0)" \
     'n="$(grep -c "^  \".*|\$HOME/" "$REPO/mac/scripts/check-links.sh")"; [ "$n" -ge 10 ]; o="$(HOME="$H" DOTFILES_BACKUP_DIR="$B/respaldos" "$REPO/mac/scripts/check-links.sh" --strict 2>&1 | strip)"; rc=$?; echo "$o" | grep -q " 0 Faltantes" && echo "$o" | grep -q "$n Symlinks OK" && echo "$o" | grep -q "0 Modificaciones Fuera de Git"'

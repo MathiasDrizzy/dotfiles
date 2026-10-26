@@ -72,3 +72,12 @@ in reviewed slices). Delivery: single PR-sized slices on main. Test runner: `go 
   space or agent name is written in the code; they come from git's top level, herdr and Claude. herdr joins a row's
   tokens with " · " (src/ui/sidebar/tokens.rs `separator`), so the tree line cannot be a token of its own: both the
   name and branch rows are dimmed and the line is one color.
+- L9 (2026-10-26, user, verbatim): "me quede sin toquens y aparce libre y no es asi deberia haber un estado diciendo que
+  estoy sin tokens po algo" and "cuando se cierra una tab, se demora mucho en actualizar que ya no esta ese agente".
+  Idle agents read "sin tokens" while the 5-hour or weekly window is at 100% and has not reset (labelsFor; spaces
+  passes refresh the labels, so they come back on their own). The minute's spaces-sync became `spaces-watch`, kept
+  alive by launchd (KeepAlive, ThrottleInterval 10): it subscribes to herdr's structural events only (never metadata
+  or *.updated, which its own reports raise: tested, the loop lazyfinder once had), settles bursts for 0.4 s, skips
+  reports that change nothing, asks gh at most once a minute per branch, and reconnects after 5 s doubling to 60 s.
+  Measured: a tab with another repository showed in the tree in 2.1 s and left it 1.65 s after closing (was up to
+  60 s); idle, 0.09 s CPU a minute and 11 MB.

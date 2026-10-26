@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -231,5 +232,78 @@ func TestSpaceTokensClearEveryRowTheyDoNotFill(t *testing.T) {
 	want := []string{"repo1", "repo2", "repo2b", "repo2s", "repo3", "repo3b", "repo3s", "sync"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("cleared = %v, want %v", got, want)
+	}
+}
+
+func TestAgentsSayTheyHaveNoTokensWhileAWindowIsUsedUp(t *testing.T) {
+	later := sidebarNow.Add(time.Hour).Unix()
+	week := sidebarNow.Add(72 * time.Hour).Unix()
+	exhausted := []string{"working=trabajando", "blocked=sin tokens", "done=sin tokens", "idle=sin tokens"}
+	cases := []struct {
+		name string
+		l    *Limits
+		want []string
+	}{
+		{"no usage known", nil, stateLabels},
+		{"room left", &Limits{FiveHour: Window{88, later}, Week: Window{65, week}}, stateLabels},
+		{"5 hours used up", &Limits{FiveHour: Window{100, later}, Week: Window{67, week}}, exhausted},
+		{"the week used up", &Limits{FiveHour: Window{10, later}, Week: Window{100, week}}, exhausted},
+		{"used up, but the window already reset", &Limits{FiveHour: Window{100, sidebarNow.Add(-time.Minute).Unix()}, Week: Window{67, week}}, stateLabels},
+	}
+	for _, c := range cases {
+		if got := labelsFor(c.l, sidebarNow); !reflect.DeepEqual(got, c.want) {
+			t.Errorf("%s: %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
+func TestTheWatcherNeverListensToWhatItReports(t *testing.T) {
+	// herdr-ctl reports metadata, and a report raises workspace.metadata_updated and pane.updated: listening to those
+	// would answer its own reports forever, the loop the lazyfinder sidebar once had.
+	for _, e := range watchedEvents {
+		if strings.Contains(e, "metadata") || strings.HasSuffix(e, ".updated") || strings.Contains(e, "output") ||
+			strings.Contains(e, "scroll") || strings.Contains(e, "focused") || strings.Contains(e, "status_changed") {
+			t.Errorf("the watcher listens to %q, which its own reports or every keystroke raise", e)
+		}
+	}
+	for _, need := range []string{"tab.closed", "pane.closed", "pane.created", "workspace.closed"} {
+		found := false
+		for _, e := range watchedEvents {
+			found = found || e == need
+		}
+		if !found {
+			t.Errorf("the watcher misses %q: a closed tab would stay in the tree", need)
+		}
+	}
+}
+
+func TestReconnectsWaitLongerEachTime(t *testing.T) {
+	want := []time.Duration{5 * time.Second, 10 * time.Second, 20 * time.Second, 40 * time.Second, time.Minute, time.Minute}
+	got := []time.Duration{}
+	for i := range want {
+		got = append(got, reconnectDelay(i))
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("delays = %v, want %v", got, want)
+	}
+}
+
+func TestCIIsAskedAtMostOncePerInterval(t *testing.T) {
+	c := newCICache(time.Minute)
+	calls := 0
+	ask := func() string { calls++; return "success" }
+	t0 := sidebarNow
+	for _, at := range []time.Duration{0, 10 * time.Second, 59 * time.Second} {
+		if got := c.get("/repo", "main", t0.Add(at), ask); got != "success" {
+			t.Fatalf("ci = %q", got)
+		}
+	}
+	if calls != 1 {
+		t.Fatalf("gh asked %d times within a minute, want 1", calls)
+	}
+	c.get("/repo", "main", t0.Add(61*time.Second), ask)
+	c.get("/repo", "feature", t0.Add(61*time.Second), ask)
+	if calls != 3 {
+		t.Fatalf("after a minute and for another branch: %d calls, want 3", calls)
 	}
 }

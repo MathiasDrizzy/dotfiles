@@ -426,12 +426,14 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	case "spaces-watch":
+		runSpacesWatch()
 	case "spaces-sync":
 		if err := runSpacesSync(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
 	default:
-		fmt.Printf("Uso: herdr-ctl [move-tab|reload|swarm|prompt|read|focus|cheatsheet|keys-check|status|statusline|spaces-sync]\n")
+		fmt.Printf("Uso: herdr-ctl [move-tab|reload|swarm|prompt|read|focus|cheatsheet|keys-check|status|statusline|spaces-sync|spaces-watch]\n")
 	}
 }

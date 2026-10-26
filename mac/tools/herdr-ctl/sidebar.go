@@ -59,12 +59,29 @@ const limitsAlertPercent = 75
 // stateLabels rename herdr's agent states in the agents rows.
 var stateLabels = []string{"working=trabajando", "blocked=te espera", "done=listo", "idle=libre"}
 
+// noTokensLabels replace them while a usage window is used up: an agent waiting for its reset is not free.
+var noTokensLabels = []string{"working=trabajando", "blocked=sin tokens", "done=sin tokens", "idle=sin tokens"}
+
+// labelsFor picks the agents' state labels for the account's usage: "sin tokens" while the 5-hour or the weekly
+// window is used up and has not reset yet.
+func labelsFor(l *Limits, now time.Time) []string {
+	if l != nil && (l.FiveHour.usedUp(now) || l.Week.usedUp(now)) {
+		return noTokensLabels
+	}
+	return stateLabels
+}
+
 var spanishWeekdays = [...]string{"dom", "lun", "mar", "mié", "jue", "vie", "sáb"}
 
 // Window is one usage window: how much of it is used and when it resets (Unix seconds).
 type Window struct {
 	Percent  float64 `json:"used_percentage"`
 	ResetsAt int64   `json:"resets_at"`
+}
+
+// usedUp is a window at 100% that has not reset yet.
+func (w Window) usedUp(now time.Time) bool {
+	return w.Percent >= 100 && time.Unix(w.ResetsAt, 0).After(now)
 }
 
 // Limits are the subscription's two usage windows.
@@ -278,7 +295,7 @@ func runStatusline(in io.Reader, out io.Writer) error {
 		s.Limits = &cached
 	}
 	if pane := os.Getenv("HERDR_PANE_ID"); pane != "" {
-		_ = runHerdr(paneReportArgs(pane, s.paneTokens(now), stateLabels))
+		_ = runHerdr(paneReportArgs(pane, s.paneTokens(now), labelsFor(s.Limits, now)))
 	}
 	_, err = fmt.Fprintln(out, s.text(now))
 	return err
@@ -405,8 +422,8 @@ func gitOutput(dir string, args ...string) (string, error) {
 	return commandOutput(gitTimeout, dir, "git", append([]string{"--no-optional-locks"}, args...)...)
 }
 
-// readGitState asks git and gh about one repository; anything it cannot read is left empty, never guessed.
-func readGitState(dir string) (GitState, bool) {
+// readGitState asks git about one repository and ci about its branch; anything it cannot read is left empty, never guessed.
+func readGitState(dir string, ci func(branch string) string) (GitState, bool) {
 	if _, err := gitOutput(dir, "rev-parse", "--git-dir"); err != nil {
 		return GitState{}, false
 	}
@@ -422,25 +439,57 @@ func readGitState(dir string) (GitState, bool) {
 		g.Changed = len(strings.Split(status, "\n"))
 	}
 	if branch, err := gitOutput(dir, "branch", "--show-current"); err == nil && branch != "" {
-		if out, err := commandOutput(ghTimeout, dir, "gh", "run", "list", "--branch", branch, "--limit", "1", "--json",
-			"status,conclusion"); err == nil {
-			var runs []struct {
-				Status     string `json:"status"`
-				Conclusion string `json:"conclusion"`
-			}
-			if json.Unmarshal([]byte(out), &runs) == nil && len(runs) > 0 {
-				g.CI = runs[0].Conclusion
-				if runs[0].Status != "completed" {
-					g.CI = runs[0].Status
-				}
-			}
-		}
+		g.CI = ci(branch)
 	}
 	return g, true
 }
 
-// runSpacesSync is `herdr-ctl spaces-sync`: one pass over herdr's spaces and agents.
-func runSpacesSync() error {
+// lastCI asks gh for a branch's last CI run: its conclusion, or its status while it runs; empty when there is none.
+func lastCI(dir, branch string) string {
+	out, err := commandOutput(ghTimeout, dir, "gh", "run", "list", "--branch", branch, "--limit", "1", "--json",
+		"status,conclusion")
+	if err != nil {
+		return ""
+	}
+	var runs []struct {
+		Status     string `json:"status"`
+		Conclusion string `json:"conclusion"`
+	}
+	if json.Unmarshal([]byte(out), &runs) != nil || len(runs) == 0 {
+		return ""
+	}
+	if runs[0].Status != "completed" {
+		return runs[0].Status
+	}
+	return runs[0].Conclusion
+}
+
+// syncer reports spaces and agents to herdr. It remembers what it last reported and skips a report that would not
+// change anything, and keeps each branch's CI for ci's interval.
+type syncer struct {
+	ci        *ciCache
+	published map[string]string
+}
+
+func newSyncer(ciInterval time.Duration) *syncer {
+	return &syncer{ci: newCICache(ciInterval), published: map[string]string{}}
+}
+
+// report runs a herdr report unless the same one already went out.
+func (s *syncer) report(key string, args []string) error {
+	sig := strings.Join(args, "\x00")
+	if s.published[key] == sig {
+		return nil
+	}
+	if err := runHerdr(args); err != nil {
+		return err
+	}
+	s.published[key] = sig
+	return nil
+}
+
+// pass is one sync over herdr's spaces and agents.
+func (s *syncer) pass(now time.Time) error {
 	resp, err := callRPC("pane.list", map[string]interface{}{})
 	if err != nil {
 		return err
@@ -453,7 +502,9 @@ func runSpacesSync() error {
 	for ws, dirs := range workspaceRepos(res.Panes, repoRoot) {
 		repos := []RepoState{}
 		for _, dir := range dirs {
-			g, ok := readGitState(dir)
+			g, ok := readGitState(dir, func(branch string) string {
+				return s.ci.get(dir, branch, now, func() string { return lastCI(dir, branch) })
+			})
 			if !ok {
 				continue
 			}
@@ -461,14 +512,15 @@ func runSpacesSync() error {
 			repos = append(repos, RepoState{Name: filepath.Base(dir), Branch: branch, Git: g})
 		}
 		tokens := spaceTokens(repos)
-		if err := runHerdr(workspaceReportArgs(ws, tokens, spaceTokensToClear(tokens))); err != nil {
+		if err := s.report("ws "+ws, workspaceReportArgs(ws, tokens, spaceTokensToClear(tokens))); err != nil {
 			failures = append(failures, err.Error())
 		}
 	}
 	if l, ok := readLimits(limitsCachePath()); ok {
-		text := l.format(time.Now())
+		text, labels := l.format(now), labelsFor(&l, now)
+		// The labels too: an idle session's status line may not run again before its window resets.
 		for _, pane := range agentPanes(res.Panes) {
-			if err := runHerdr(paneReportArgs(pane, map[string]string{"limits": text}, nil)); err != nil {
+			if err := s.report("pane "+pane, paneReportArgs(pane, map[string]string{"limits": text}, labels)); err != nil {
 				failures = append(failures, err.Error())
 			}
 		}
@@ -477,4 +529,9 @@ func runSpacesSync() error {
 		return fmt.Errorf("%s", strings.Join(failures, "; "))
 	}
 	return nil
+}
+
+// runSpacesSync is `herdr-ctl spaces-sync`: one pass, asking gh every time.
+func runSpacesSync() error {
+	return newSyncer(0).pass(time.Now())
 }
