@@ -48,6 +48,8 @@ final class CoverModel {
     /// A popover reported open may not be a window yet: its hold is not checked for this long.
     private static let holdGrace: TimeInterval = 1.5
     @ObservationIgnored private var atTop = false
+    /// Puts the cover on once the pointer has stayed at the top for `TopStrip.coverDelay`.
+    @ObservationIgnored private var arrive: Timer?
     @ObservationIgnored private var monitors: [Any] = []
     @ObservationIgnored private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     @ObservationIgnored private var settle: CoverSettle?
@@ -100,6 +102,8 @@ final class CoverModel {
         settleTimer?.invalidate()
         settleTimer = nil
         settle = nil
+        arrive?.invalidate()
+        arrive = nil
     }
 
     /// Keeps the cover on for `reason` (the Control Center driver, a menu being opened) until `release`.
@@ -136,9 +140,19 @@ final class CoverModel {
         let top = Self.pointerAtTop()
         guard top != atTop else { return }
         atTop = top
+        arrive?.invalidate()
+        arrive = nil
         if top {
-            shown = true
-        } else {
+            // Only a pointer that stays brings the native bar down; one passing to a monitor above is gone by then.
+            let timer = Timer(timeInterval: TopStrip.coverDelay, repeats: false) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self, self.atTop, Self.pointerAtTop() else { return }
+                    self.shown = true
+                }
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            arrive = timer
+        } else if shown {
             settleSoon(after: Self.awayGrace)
         }
     }
@@ -301,6 +315,13 @@ struct WallpaperKey: Equatable, Sendable {
                         x: landing.minX * key.scale, y: (key.strip.height - landing.maxY) * key.scale,
                         width: landing.width * key.scale, height: landing.height * key.scale))
             }
+        }
+        // The desktop's own shade under the menu bar, a pixel row at a time (none for a bar lower on the screen).
+        for row in 0..<height {
+            let darkening = MenuBarShade.darkening(at: key.strip.minY + (CGFloat(row) + 0.5) / key.scale)
+            guard darkening > 0 else { break }
+            context.setFillColor(CGColor(gray: 0, alpha: darkening))
+            context.fill(CGRect(x: 0, y: height - row - 1, width: width, height: 1))
         }
         return context.makeImage().map(Picture.init)
     }

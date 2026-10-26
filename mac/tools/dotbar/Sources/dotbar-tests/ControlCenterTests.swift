@@ -114,6 +114,9 @@ func controlCenterTests() async {
     check("the pointer at y 0 is at the top", TopStrip.contains(CGPoint(x: 700, y: 0), mainDisplay: main))
     check("39 points down too", TopStrip.contains(CGPoint(x: 700, y: 39), mainDisplay: main))
     check("40 points down is not", !TopStrip.contains(CGPoint(x: 700, y: 40), mainDisplay: main))
+    check(
+        "the cover waits for the pointer to stay at the top, less than the quarter second macOS waits to reveal its bar",
+        TopStrip.coverDelay > 0 && TopStrip.coverDelay < 0.25)
     check("a monitor above is not", !TopStrip.contains(CGPoint(x: 700, y: -10), mainDisplay: main))
 
     // The cover comes off once nothing has needed it for three checks.
@@ -163,4 +166,13 @@ func controlCenterTests() async {
     check(
         "at the bottom it is the picture's last 90 pixels",
         bottom.map { abs($0.source.maxY - 2160) < 0.1 && $0.destination.minY == 0 } ?? false, "\(String(describing: bottom))")
+
+    // The shade macOS draws over the top of the desktop, measured against the wallpaper file: the cover draws it too.
+    check("the shade is darkest at the screen's top edge", abs(MenuBarShade.darkening(at: 0) - 0.22) < 0.005)
+    check("...a twentieth at 10 points down", abs(MenuBarShade.darkening(at: 10) - 0.046) < 0.005, "\(MenuBarShade.darkening(at: 10))")
+    check("...and nothing from 18 points down", MenuBarShade.darkening(at: 18) == 0 && MenuBarShade.darkening(at: 39.5) == 0)
+    check(
+        "it only lightens going down",
+        stride(from: 0.0, to: 18, by: 0.25).allSatisfy { MenuBarShade.darkening(at: $0) >= MenuBarShade.darkening(at: $0 + 0.25) })
+    check("a bar at the bottom of the screen gets none", MenuBarShade.darkening(at: 916) == 0)
 }

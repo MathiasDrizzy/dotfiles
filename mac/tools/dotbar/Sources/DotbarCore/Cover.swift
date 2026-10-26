@@ -76,3 +76,26 @@ public enum WallpaperStrip {
         return (source, destination)
     }
 }
+
+/// The shade macOS draws over the top of the desktop under its menu bar, hidden or not: the desktop there is darker than
+/// the wallpaper file, so a cover drawn from the file alone was lighter than the desktop, and the bar's see-through parts
+/// flashed lighter each time the pointer crossed the top edge (on its way to a monitor above, say).
+public enum MenuBarShade {
+    /// How much of the wallpaper's light the desktop shows, every half point from the screen's top edge, measured on
+    /// macOS 27 against the wallpaper file on an empty Space (the same factor at every brightness: a black overlay).
+    /// Small measuring wobbles are evened out so it only lightens going down; from 18 points down there is none.
+    static let light: [CGFloat] = [
+        0.780, 0.792, 0.804, 0.814, 0.827, 0.836, 0.847, 0.857, 0.867, 0.877, 0.887, 0.894,
+        0.904, 0.912, 0.922, 0.928, 0.934, 0.940, 0.947, 0.952, 0.954, 0.962, 0.964, 0.964,
+        0.964, 0.967, 0.968, 0.969, 0.969, 0.971, 0.972, 0.973, 0.973, 0.973, 0.973, 0.979, 1,
+    ]
+
+    /// The black overlay's opacity at `y` points from the screen's top edge.
+    public static func darkening(at y: CGFloat) -> CGFloat {
+        let position = max(0, y) * 2
+        let index = Int(position)
+        guard index < light.count - 1 else { return 0 }
+        let fraction = position - CGFloat(index)
+        return 1 - (light[index] + (light[index + 1] - light[index]) * fraction)
+    }
+}

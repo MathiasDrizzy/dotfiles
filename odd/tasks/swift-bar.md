@@ -141,3 +141,12 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 - L21 (2026-10-26, user, verbatim): "conecte el monitor externo y mira el icono no aparece completo". The other
   monitor's mark (nf-md-monitor, ink 13.8 points against a 9-point advance) was cut like the sky glyph; it is drawn
   with InkCenteredIcon in its slot. Checked live with the MSI monitor connected; dotbar-tests PASS.
+- L22 (2026-10-26, user, verbatim): "cuando paso el mouse de la pantalla del mac a la externa y viceversa la barra se
+  vuelve mas oscura o mas clara", "es como que la barra el error aparece como shaders o como sombras", "las pildoras no
+  cambian lo que cambia es el fondo de mas atras, lo que esta transparente". The external monitor sits above the Mac's
+  screen, so every crossing touched the top strip and put the cover (the wallpaper file) on for the grace time; the
+  desktop there is darker than the file (macOS shades the top 18 points, and windows below cast shadows). Measured:
+  macOS reveals its hidden bar only after the pointer stays 0.25-0.3 s at the top, so the cover now waits
+  TopStrip.coverDelay (0.15 s) and a crossing leaves the bar untouched (56 noise pixels against the desktop); the cover
+  also draws macOS's top shade (MenuBarShade), matching an empty Space within 0.1%. Left: with windows under the bar,
+  a cover held on purpose is still a little lighter where their shadows reach. dotbar-tests PASS.

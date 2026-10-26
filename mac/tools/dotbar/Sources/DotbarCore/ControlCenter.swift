@@ -179,6 +179,10 @@ public enum PopupWindows {
 /// the pointer was anywhere on that monitor.
 public enum TopStrip {
     public static let height: CGFloat = 40
+    /// macOS reveals its hidden bar only once the pointer has stayed at the top for a quarter to three tenths of a second
+    /// (measured on macOS 27): a pointer crossing the edge on its way to a monitor above never brings it down. The cover
+    /// waits this long, so a crossing does not flash it over the desktop for nothing.
+    public static let coverDelay: TimeInterval = 0.15
 
     public static func contains(_ point: CGPoint, mainDisplay: CGRect, height: CGFloat = TopStrip.height) -> Bool {
         point.y >= mainDisplay.minY && point.y < mainDisplay.minY + height && point.x >= mainDisplay.minX
