@@ -87,6 +87,7 @@ echo ""
 CONFIG_PAIRS=(
   "config/ghostty/config|$HOME/.config/ghostty/config"
   "config/herdr/config.toml|$HOME/.config/herdr/config.toml"
+  "config/herdr-auto-title/config.env|$HOME/.config/herdr-auto-title/config.env"
   "config/aerospace/aerospace.toml|$HOME/.config/aerospace/aerospace.toml"
   "config/micro/settings.json|$HOME/.config/micro/settings.json"
   "config/termscp/config.toml|$HOME/.config/termscp/config.toml"

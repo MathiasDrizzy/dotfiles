@@ -46,3 +46,13 @@ in reviewed slices). Delivery: single PR-sized slices on main. Test runner: `go 
   y los tokens". Every outside command has a limit (herdr 2 s, git 5 s, gh 15 s; tested with a hung `sleep`).
   Measured: statusline 0.01 s, 9 MB; spaces-sync 1.8 s wall (GitHub), 0.25 s CPU, 46 MB peak, then exits; launchd never
   overlaps two passes. Real time: Claude refreshes the status line on every update and every 30 s (refreshInterval).
+- L5 (2026-10-26, user, verbatim): "revisa ahora lo del arbol en space, ahora cambie y tengo un space llamado Desarrollo
+  Tuis, donde tengo a Lazymark y Lazyfinder y solo veo 1 main ... yo quiero que me diga el nombre de completo de la ruta
+  de la barra no la rama ... deberia aparecer solo dotfiles y si abro otra cosa ya sea micro lazy finder etc, deberia
+  decir por ejemplo dotfiles > micro. cuando ejecutas herdr ctl siempre me pide permitir, dale permisos para siempre".
+  Spaces now list each repository of their panes ($repo1..3 with $repo1s..3s; a tree with names when there are
+  several; herdr hides empty rows, checked in its src/ui/sidebar/tokens.rs). Tabs: Auto Title's
+  HERDR_AUTO_TITLE_BRANCH_MAX=0 (mac/config/herdr-auto-title/config.env, linked) gives `dotfiles`, and a background
+  test tab with micro read `dotfiles › micro`. herdr-ctl was signed ad hoc as `a.out`, so every build looked new to
+  macOS; it is now signed with the local certificate as dev.dotfiles.herdr-ctl (install.sh too). No tccd entry named
+  it, so the exact prompt the user saw is not confirmed.

@@ -138,16 +138,10 @@ func TestSyncSummary(t *testing.T) {
 	}
 }
 
-func TestWorkspaceDirsPreferTheAgentsPane(t *testing.T) {
+func TestAgentPanesAreThePanesRunningAnAgent(t *testing.T) {
 	panes := []PaneInfo{
 		{PaneID: "w2:p46", WorkspaceID: "w2", Cwd: "/repo/other"},
 		{PaneID: "w2:p2N", WorkspaceID: "w2", Agent: "claude", Cwd: "/repo/dotfiles"},
-		{PaneID: "wE:p2", WorkspaceID: "wE", Cwd: "/repo/lazyfinder"},
-	}
-	got := workspaceDirs(panes)
-	want := map[string]string{"w2": "/repo/dotfiles", "wE": "/repo/lazyfinder"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("dirs = %v, want %v", got, want)
 	}
 	if agents := agentPanes(panes); !reflect.DeepEqual(agents, []string{"w2:p2N"}) {
 		t.Fatalf("agent panes = %v", agents)
@@ -167,5 +161,46 @@ func TestAHungCommandIsStoppedAtItsLimit(t *testing.T) {
 	out, err := commandOutput(time.Second, t.TempDir(), "pwd")
 	if err != nil || out == "" {
 		t.Fatalf("a quick command failed: %q %v", out, err)
+	}
+}
+
+func TestASpaceListsEachOfItsRepositoriesOnce(t *testing.T) {
+	panes := []PaneInfo{
+		{WorkspaceID: "wF", Cwd: "/p/lazyfinder"},
+		{WorkspaceID: "wF", Agent: "claude", Cwd: "/p/lazymark/docs"},
+		{WorkspaceID: "wF", Agent: "claude", Cwd: "/p/lazymark"},
+		{WorkspaceID: "w2", Cwd: ""},
+	}
+	root := map[string]string{"/p/lazyfinder": "/p/lazyfinder", "/p/lazymark/docs": "/p/lazymark", "/p/lazymark": "/p/lazymark"}
+	got := workspaceRepos(panes, func(dir string) (string, bool) { r, ok := root[dir]; return r, ok })
+	want := map[string][]string{"wF": {"/p/lazymark", "/p/lazyfinder"}}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("repos = %v, want %v (agents' repositories first, each once)", got, want)
+	}
+}
+
+func TestSpaceTokensDrawATreeOnlyForSeveralRepositories(t *testing.T) {
+	one := spaceTokens([]RepoState{{Name: "dotfiles", Branch: "feat/swift-bar", Git: GitState{Ahead: 1}}})
+	if want := map[string]string{"repo1": "feat/swift-bar", "repo1s": "↑1"}; !reflect.DeepEqual(one, want) {
+		t.Fatalf("one repository = %v, want %v", one, want)
+	}
+	two := spaceTokens([]RepoState{
+		{Name: "lazymark", Branch: "main", Git: GitState{CI: "success"}},
+		{Name: "lazyfinder", Branch: "main", Git: GitState{Changed: 2}},
+	})
+	want := map[string]string{"repo1": "├ lazymark · main", "repo1s": "CI ✓", "repo2": "└ lazyfinder · main", "repo2s": "✚2"}
+	if !reflect.DeepEqual(two, want) {
+		t.Fatalf("two repositories = %v, want %v", two, want)
+	}
+	if got := len(spaceTokens(make([]RepoState, 5))); got > 2*maxSpaceRepos {
+		t.Fatalf("five repositories gave %d tokens, past the %d rows the config has", got, maxSpaceRepos)
+	}
+}
+
+func TestSpaceTokensClearEveryRowTheyDoNotFill(t *testing.T) {
+	got := spaceTokensToClear(map[string]string{"repo1": "main", "repo1s": "CI ✓"})
+	want := []string{"repo2", "repo2s", "repo3", "repo3s", "sync"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("cleared = %v, want %v", got, want)
 	}
 }

@@ -279,21 +279,83 @@ func (g GitState) summary() string {
 	return strings.Join(parts, " · ")
 }
 
-// workspaceDirs maps each space to its repository: the folder of its agent's pane, or of its first pane.
-func workspaceDirs(panes []PaneInfo) map[string]string {
-	dirs := map[string]string{}
-	// Agents first, so a space's agent wins over any other pane of it.
+// maxSpaceRepos is how many repository rows a space has in config.toml ($repo1..$repo3 with $repo1s..$repo3s).
+const maxSpaceRepos = 3
+
+// RepoState is one repository of a space, as its rows show it.
+type RepoState struct {
+	Name   string
+	Branch string
+	Git    GitState
+}
+
+// workspaceRepos lists each space's repositories, its agents' first, each once however many panes sit in it. root
+// gives a folder's repository (its top level), false outside one.
+func workspaceRepos(panes []PaneInfo, root func(dir string) (string, bool)) map[string][]string {
+	repos := map[string][]string{}
+	seen := map[string]bool{}
 	for _, wantAgent := range []bool{true, false} {
 		for _, p := range panes {
 			if p.Cwd == "" || (p.Agent != "") != wantAgent {
 				continue
 			}
-			if _, seen := dirs[p.WorkspaceID]; !seen {
-				dirs[p.WorkspaceID] = p.Cwd
+			top, ok := root(p.Cwd)
+			if !ok || seen[p.WorkspaceID+"\x00"+top] {
+				continue
+			}
+			seen[p.WorkspaceID+"\x00"+top] = true
+			repos[p.WorkspaceID] = append(repos[p.WorkspaceID], top)
+		}
+	}
+	return repos
+}
+
+// spaceTokens fills a space's repository rows: one repository shows its branch and state; several are drawn as a
+// tree, each with its name, its branch and its state.
+func spaceTokens(repos []RepoState) map[string]string {
+	if len(repos) > maxSpaceRepos {
+		repos = repos[:maxSpaceRepos]
+	}
+	tokens := map[string]string{}
+	for i, r := range repos {
+		label := r.Branch
+		if len(repos) > 1 {
+			branch := "├ "
+			if i == len(repos)-1 {
+				branch = "└ "
+			}
+			label = branch + r.Name
+			if r.Branch != "" {
+				label += " · " + r.Branch
+			}
+		}
+		key := fmt.Sprintf("repo%d", i+1)
+		if label != "" {
+			tokens[key] = label
+		}
+		if s := r.Git.summary(); s != "" {
+			tokens[key+"s"] = s
+		}
+	}
+	return tokens
+}
+
+// spaceTokensToClear are the space's rows left empty this pass, and the older single $sync row.
+func spaceTokensToClear(tokens map[string]string) []string {
+	clear := []string{}
+	for i := 1; i <= maxSpaceRepos; i++ {
+		for _, k := range []string{fmt.Sprintf("repo%d", i), fmt.Sprintf("repo%ds", i)} {
+			if _, set := tokens[k]; !set {
+				clear = append(clear, k)
 			}
 		}
 	}
-	return dirs
+	return append(clear, "sync")
+}
+
+func repoRoot(dir string) (string, bool) {
+	top, err := gitOutput(dir, "rev-parse", "--show-toplevel")
+	return top, err == nil && top != ""
 }
 
 func agentPanes(panes []PaneInfo) []string {
@@ -356,17 +418,18 @@ func runSpacesSync() error {
 		return err
 	}
 	var failures []string
-	for ws, dir := range workspaceDirs(res.Panes) {
-		g, ok := readGitState(dir)
-		if !ok {
-			continue
+	for ws, dirs := range workspaceRepos(res.Panes, repoRoot) {
+		repos := []RepoState{}
+		for _, dir := range dirs {
+			g, ok := readGitState(dir)
+			if !ok {
+				continue
+			}
+			branch, _ := gitOutput(dir, "branch", "--show-current")
+			repos = append(repos, RepoState{Name: filepath.Base(dir), Branch: branch, Git: g})
 		}
-		summary := g.summary()
-		args := workspaceReportArgs(ws, map[string]string{"sync": summary}, nil)
-		if summary == "" {
-			args = workspaceReportArgs(ws, nil, []string{"sync"})
-		}
-		if err := runHerdr(args); err != nil {
+		tokens := spaceTokens(repos)
+		if err := runHerdr(workspaceReportArgs(ws, tokens, spaceTokensToClear(tokens))); err != nil {
 			failures = append(failures, err.Error())
 		}
 	}

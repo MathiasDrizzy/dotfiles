@@ -119,6 +119,7 @@ fi
 CONFIG_DIRS=(
   "$HOME/.config/ghostty"
   "$HOME/.config/herdr"
+  "$HOME/.config/herdr-auto-title"
   "$HOME/.config/aerospace"
   "$HOME/.config/micro/colorschemes"
   "$HOME/.config/btop/themes"
@@ -146,6 +147,7 @@ echo "==> Verificando fuentes de configuración en $DOTFILES_DIR..."
 REQUIRED_SOURCES=(
   "config/ghostty/config"
   "config/herdr/config.toml"
+  "config/herdr-auto-title/config.env"
   "config/aerospace/aerospace.toml"
   "config/micro/settings.json"
   "config/starship/starship.toml"
@@ -216,6 +218,12 @@ if [ "$LINKS_ONLY" = false ]; then
       cd "$DOTFILES_DIR/tools/herdr-ctl"
       go build -ldflags="-s -w" -o "$HOME/.local/bin/herdr-ctl"
     )
+    # Signed with the same local certificate as dotbar and a fixed identifier: macOS then keeps what it was allowed
+    # (the background pass reads repositories under ~/Documents) across rebuilds; ad hoc signing named it a.out and
+    # every build looked like a new program.
+    identity="$("$DOTFILES_DIR/tools/dotbar/scripts/signing-identity.sh" 2>/dev/null)" || identity="-"
+    codesign --force -s "$identity" -i dev.dotfiles.herdr-ctl "$HOME/.local/bin/herdr-ctl" 2>/dev/null ||
+      echo "  [AVISO] herdr-ctl quedó sin firmar; macOS puede volver a pedir permiso tras cada compilación."
     # The herdr sidebar's space rows ($sync: commits not pushed, files changed, the branch's CI) and the agents' usage
     # ($limits) come from `herdr-ctl spaces-sync`, one pass a minute. launchd's PATH lacks Homebrew: herdr, git and gh
     # are found through the one set here.
