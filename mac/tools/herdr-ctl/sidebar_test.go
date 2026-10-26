@@ -516,13 +516,13 @@ func TestOnlyOneWatcherRunsAtATime(t *testing.T) {
 		t.Fatal("the first watcher must get the lock")
 	}
 	if second, ok := lockWatcher(path); ok {
-		second.Close()
+		_ = second.Close()
 		t.Fatal("a second watcher got the lock while the first holds it")
 	}
-	first.Close()
+	_ = first.Close()
 	again, ok := lockWatcher(path)
 	if !ok {
 		t.Fatal("the lock must be free once its holder is gone")
 	}
-	again.Close()
+	_ = again.Close()
 }
