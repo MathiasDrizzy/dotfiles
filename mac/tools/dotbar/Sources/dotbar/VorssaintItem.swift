@@ -7,11 +7,12 @@ extension Theme {
     /// The planet of Vorssaint's own icon (Nerd Font fae-planet).
     static let vorssaintGlyph = "\u{E22E}"
     static let vorssaintBundle = "com.vorssaint.utils"
-    /// The least widths of the boxes right of Vorssaint's (battery, date, time): an icon and its label at the least
-    /// label widths of colors.sh (30, 72, 36). They widen by VorssaintAlign's shares.
-    static let leastSpreadWidths: [CGFloat] = [52, 96, 59]
+    /// The least widths of the boxes right of Vorssaint's (battery, date, time): SketchyBar's widths, the narrowest that
+    /// fit "100%", a date and a time. They only ever widen, by VorssaintAlign's shares: narrower ones (before the extra
+    /// was found, or without Accessibility) cut their labels.
+    static let leastSpreadWidths: [CGFloat] = [65, 108, 71]
     /// The status boxes and their gaps at those least widths: Vorssaint, battery, date, time, Control Center.
-    static let leastStatusWidth: CGFloat = 28 + 52 + 96 + 59 + 28 + 4 * 5
+    static let leastStatusWidth: CGFloat = 28 + 65 + 108 + 71 + 28 + 4 * 5
 }
 
 /// The Vorssaint box (vorssaint.sh): a click opens Vorssaint's menu bar extra popover, or closes it when it is open. The
