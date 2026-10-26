@@ -8,7 +8,8 @@ import CoreGraphics
 public enum BarFit {
     /// SketchyBar's notch_width: the gap kept around the camera housing, centered, on a screen that has one.
     public static let notchWidth: CGFloat = 224
-    public static let nameWidth: CGFloat = 94
+    /// The front app name box (FrontAppItem): a longer name slides inside it.
+    public static let nameWidth: CGFloat = 72
     public static let minNameWidth: CGFloat = 40
     /// A workspace slot: its 26 points plus 1 of padding on each side.
     public static let slotStep: CGFloat = 28
