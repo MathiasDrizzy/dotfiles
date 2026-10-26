@@ -38,7 +38,7 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
 | T6 | S3 now playing | delegated | done | fde7e9e |
 | T7 | S3 notch fit, other monitor, the "+N" cap | inline | done | aeae6b4 |
 | T8 | S3 Control Center, cover, Vorssaint, drag to swap | delegated | done | 4fb3413, 7923ddf, 34c8aca |
-| T9 | S4 switch and SketchyBar removal | inline | done | T9 commit |
+| T9 | S4 switch and SketchyBar removal | inline | done | 7052e8d |
 
 - T1: Swift package `mac/tools/dotbar` (library + app + tests); a non-activating panel above the menu bar on the main
   display, transparent, 40 pt tall, full width; a development flag to draw it at the bottom next to SketchyBar; the
