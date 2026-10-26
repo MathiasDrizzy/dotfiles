@@ -16,16 +16,25 @@ files=()
 while IFS= read -r f; do [ -f "$f" ] && files+=("$f"); done < <(git ls-files)
 
 step "Public repo: no local network addresses, internal services or precise coordinates"
-# Character classes ([.], [o]...) keep this file from matching its own patterns.
-if grep -nE '192[.]168[.]|pizer[o]|setpasswor[d]|/admi[n]' "${files[@]}"; then
-  bad "local network or internal service data in tracked files (lines above)"
-fi
+# Character classes ([.], [o]...) keep this file from matching its own patterns. grep exits 1 when nothing matches and 2
+# when it cannot read a file: only 1 is clean.
+grep -nIE '192[.]168[.]|pizer[o]|setpasswor[d]|/admi[n]' "${files[@]}"
+case $? in
+0) bad "local network or internal service data in tracked files (lines above)" ;;
+1) ;;
+*) bad "the local network scan could not read every tracked file" ;;
+esac
 # A latitude and longitude with four or more decimals (meters) place a home. Fixtures use Plaza de Armas in Santiago, a
-# public landmark, or whole degrees.
+# public landmark, or whole degrees: that pair is taken out of each line before the line is looked at again, so it never
+# hides another pair on the same line.
 # Separators: commas, quotes, blanks and an escaped tab (\t in a string literal); the same between the allowed pair.
 sep='([",[:space:]]|\\t)+(longitude:[[:space:]]*|"longitude":"?)?'
-if grep -nIE -- "-?[0-9]{1,3}[.][0-9]{4,}$sep-?[0-9]{1,3}[.][0-9]{4,}" "${files[@]}" |
-  grep -vE -- "-33[.]4378[0-9]*$sep-70[.]650[0-9]*"; then
+pair="-?[0-9]{1,3}[.][0-9]{4,}$sep-?[0-9]{1,3}[.][0-9]{4,}"
+lines="$(grep -nIE -- "$pair" "${files[@]}")"
+[ $? -le 1 ] || bad "the coordinate scan could not read every tracked file"
+found="$(printf '%s\n' "$lines" | sed -E "s/-33[.]4378[0-9]*$sep-70[.]650[0-9]*//g" | grep -E -- "$pair")"
+if [ -n "$found" ]; then
+  printf '%s\n' "$found"
   bad "precise coordinates in tracked files (lines above): use Plaza de Armas (-33.437800, -70.650500) in fixtures"
 fi
 
@@ -41,6 +50,7 @@ while read -r mode _ _ f; do
   [ -f "$f" ] && [ ! -L "$f" ] || continue
   if [ "$(head -c2 "$f")" = "#!" ] && [ "$mode" != "100755" ]; then bad "$f has a shebang but mode $mode (must be 100755)"; fi
 done < <(git ls-files -s)
+python3 -c 'import tomllib' 2>/dev/null || bad "python3 3.11 or later is needed to check TOML (tomllib)"
 python3 - <<'PY' || fail=1
 import subprocess, sys, tomllib
 bad = 0
