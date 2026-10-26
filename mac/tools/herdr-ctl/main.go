@@ -35,11 +35,14 @@ type PaneListResult struct {
 }
 
 type PaneInfo struct {
-	PaneID  string                 `json:"pane_id"`
-	TabID   string                 `json:"tab_id"`
-	Label   string                 `json:"label"`
-	Focused bool                   `json:"focused"`
-	Tokens  map[string]interface{} `json:"tokens"`
+	PaneID      string                 `json:"pane_id"`
+	TabID       string                 `json:"tab_id"`
+	WorkspaceID string                 `json:"workspace_id"`
+	Label       string                 `json:"label"`
+	Agent       string                 `json:"agent"`
+	Cwd         string                 `json:"cwd"`
+	Focused     bool                   `json:"focused"`
+	Tokens      map[string]interface{} `json:"tokens"`
 }
 
 type AgentListResult struct {
@@ -418,7 +421,17 @@ func main() {
 		runCheatsheet()
 	case "keys-check":
 		os.Exit(runKeysCheck())
+	case "statusline":
+		if err := runStatusline(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	case "spaces-sync":
+		if err := runSpacesSync(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	default:
-		fmt.Printf("Uso: herdr-ctl [move-tab|reload|swarm|prompt|read|focus|cheatsheet|keys-check|status]\n")
+		fmt.Printf("Uso: herdr-ctl [move-tab|reload|swarm|prompt|read|focus|cheatsheet|keys-check|status|statusline|spaces-sync]\n")
 	}
 }

@@ -216,6 +216,27 @@ if [ "$LINKS_ONLY" = false ]; then
       cd "$DOTFILES_DIR/tools/herdr-ctl"
       go build -ldflags="-s -w" -o "$HOME/.local/bin/herdr-ctl"
     )
+    # The herdr sidebar's space rows ($sync: commits not pushed, files changed, the branch's CI) and the agents' usage
+    # ($limits) come from `herdr-ctl spaces-sync`, one pass a minute. launchd's PATH lacks Homebrew: herdr, git and gh
+    # are found through the one set here.
+    agent="$HOME/Library/LaunchAgents/dev.dotfiles.herdr-spaces.plist"
+    mkdir -p "$(dirname "$agent")"
+    printf '%s\n' \
+      '<?xml version="1.0" encoding="UTF-8"?>' \
+      '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+      '<plist version="1.0">' \
+      '<dict>' \
+      '  <key>Label</key><string>dev.dotfiles.herdr-spaces</string>' \
+      "  <key>ProgramArguments</key><array><string>$HOME/.local/bin/herdr-ctl</string><string>spaces-sync</string></array>" \
+      "  <key>EnvironmentVariables</key><dict><key>PATH</key><string>$BREW_PREFIX/bin:/usr/bin:/bin</string></dict>" \
+      '  <key>StartInterval</key><integer>60</integer>' \
+      '  <key>RunAtLoad</key><true/>' \
+      '  <key>ProcessType</key><string>Background</string>' \
+      '  <key>LimitLoadToSessionType</key><string>Aqua</string>' \
+      '</dict>' \
+      '</plist>' >"$agent"
+    launchctl bootout "gui/$(id -u)/dev.dotfiles.herdr-spaces" 2>/dev/null || true
+    launchctl bootstrap "gui/$(id -u)" "$agent" || echo "  [AVISO] el agente de herdr-ctl spaces-sync no arrancó."
   fi
 
   # 10. Compile ctlcenter (dotbar runs its `stay` helper, and opens Control Center through it when it may not post keys

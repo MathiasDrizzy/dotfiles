@@ -101,6 +101,21 @@ Tabs are named after what runs in them by the [Auto Title](https://github.com/kr
 
 The sidebar is [lazyfinder](https://github.com/MathiasDrizzy/lazyfinder) as a herdr plugin (`install.sh` installs it): it docks on the left of each tab and follows the folder of the terminal next to it. Its width, side and auto-open are lazyfinder's own settings (`herdr.width`, `herdr.dock`, `herdr.auto_open`).
 
+herdr's own sidebar shows two lines per space and three per agent:
+
+```
+spaces
+✱ Config mac
+  feat/swift-bar · ↑2 ✚3 · CI ✓
+
+agents
+✱ dotfiles · opus 5.5
+  trabajando · ctx 62%
+  5h 51% · sem 61%
+```
+
+A space shows its branch, the commits not pushed (`↑`), the files changed (`✚`) and the branch's last CI run (`✓` passed, `✗` failed, `…` running). An agent shows its model, its state, the context it has used, and the account's 5-hour and weekly usage, the same numbers as Claude's `/usage`; a window at 75% or more also shows when it comes back. `herdr-ctl statusline` is Claude Code's status line (`"statusLine": {"type": "command", "command": "$HOME/.local/bin/herdr-ctl statusline", "refreshInterval": 30}` in `~/.claude/settings.json`): it reports each session's model, context and usage to its herdr pane. `herdr-ctl spaces-sync`, run every minute by the `dev.dotfiles.herdr-spaces` launch agent that `install.sh` loads, reports each space's git and CI state and hands the newest usage to every agent.
+
 ## herdr-ctl (Go, `mac/tools/herdr-ctl`)
 
 ```bash
