@@ -193,6 +193,35 @@ extension Theme {
     static let skyFont = Font.custom(fontName, size: 19).bold()
 }
 
+/// A sky glyph in a slot as wide as the widest of them, centered by its ink. Their ink is up to twice as wide as the
+/// advance the font gives them (11 points at 19), so laid out as text they ran into the label and were cut; a fixed
+/// slot also keeps the box from changing width when the sky does.
+struct SkyIcon: View {
+    let glyph: String
+
+    static let slot: CGFloat = 20
+    @MainActor private static var shifts: [String: CGFloat] = [:]
+
+    var body: some View {
+        // The trailing spaces give the text room for all of its ink; the frame then lays out only the slot.
+        Text(glyph + "  ").font(Theme.skyFont).foregroundStyle(Theme.pink).fixedSize()
+            .offset(x: Self.shift(glyph))
+            .frame(width: Self.slot, alignment: .leading)
+    }
+
+    /// From the slot's left edge to where the glyph starts, so its ink sits in the slot's middle.
+    @MainActor private static func shift(_ glyph: String) -> CGFloat {
+        if let known = shifts[glyph] { return known }
+        guard let regular = NSFont(name: Theme.fontName, size: 19) else { return 0 }
+        let font = NSFontManager.shared.convert(regular, toHaveTrait: .boldFontMask)
+        let ink = CTLineGetImageBounds(
+            CTLineCreateWithAttributedString(NSAttributedString(string: glyph, attributes: [.font: font])), nil)
+        let shift = ((slot - ink.width) / 2 - ink.minX).rounded()
+        shifts[glyph] = shift
+        return shift
+    }
+}
+
 /// The weather box (sketchybarrc's weather item): the sky's pink glyph (the thermometer until it is known) with 5 points
 /// on each side, then the label with 5 after it; as wide as its text, like SketchyBar's. Not clickable, so no hover tint.
 struct WeatherView: View {
@@ -201,8 +230,14 @@ struct WeatherView: View {
     var body: some View {
         BarBox(id: "weather") {
             HStack(spacing: 0) {
-                Text(model.icon).font(model.icon == WeatherIcon.thermometer ? Theme.boldIconFont : Theme.skyFont).foregroundStyle(Theme.pink).fixedSize()
-                    .padding(.horizontal, 5)
+                Group {
+                    if model.icon == WeatherIcon.thermometer {
+                        Text(model.icon).font(Theme.boldIconFont).foregroundStyle(Theme.pink).fixedSize()
+                    } else {
+                        SkyIcon(glyph: model.icon)
+                    }
+                }
+                .padding(.horizontal, 5)
                 if let label = model.label {
                     Text(label).font(Theme.mediumFont).foregroundStyle(Theme.text).fixedSize().padding(.trailing, 5)
                 }

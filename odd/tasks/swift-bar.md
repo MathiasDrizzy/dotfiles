@@ -135,3 +135,6 @@ plugin process is ever spawned per tick. Branch `feat/swift-bar`; delivery `ask-
   íconos de la fuente". The weather box reads Open-Meteo's weather_code and is_day in the same request and draws the
   Nerd Font's weather-icons glyph in pink (thermometer until a sky is known). The moon box was checked: today's age is
   15.1 days, so the full moon it shows is right. dotbar-tests PASS; checked live (overcast: a cloud).
+- L20 (2026-10-26, user, verbatim): "se ve cortado el emogi". The weather-icons glyphs' ink is up to 20 points wide but
+  their advance is 11 at 19 points, so they ran into the label and were cut; SkyIcon draws each in a fixed 20-point
+  slot centered by its ink. Checked live (overcast: the whole cloud shows); dotbar-tests PASS.
