@@ -226,27 +226,18 @@ if [ "$LINKS_ONLY" = false ]; then
       echo "  [AVISO] herdr-ctl quedó sin firmar; macOS puede volver a pedir permiso tras cada compilación."
     # The herdr sidebar's space rows (each repository: branch, commits not pushed, files changed, CI) and the agents'
     # usage come from `herdr-ctl spaces-watch`: it follows herdr's events (a closed tab leaves the tree at once) and
-    # makes one pass a minute for CI. launchd keeps it running and restarts it at most every 10 s. launchd's PATH lacks
-    # Homebrew: herdr, git and gh are found through the one set here.
-    agent="$HOME/Library/LaunchAgents/dev.dotfiles.herdr-spaces.plist"
-    mkdir -p "$(dirname "$agent")"
-    printf '%s\n' \
-      '<?xml version="1.0" encoding="UTF-8"?>' \
-      '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
-      '<plist version="1.0">' \
-      '<dict>' \
-      '  <key>Label</key><string>dev.dotfiles.herdr-spaces</string>' \
-      "  <key>ProgramArguments</key><array><string>$HOME/.local/bin/herdr-ctl</string><string>spaces-watch</string></array>" \
-      "  <key>EnvironmentVariables</key><dict><key>PATH</key><string>$BREW_PREFIX/bin:/usr/bin:/bin</string></dict>" \
-      '  <key>RunAtLoad</key><true/>' \
-      '  <key>KeepAlive</key><true/>' \
-      '  <key>ThrottleInterval</key><integer>10</integer>' \
-      '  <key>ProcessType</key><string>Background</string>' \
-      '  <key>LimitLoadToSessionType</key><string>Aqua</string>' \
-      '</dict>' \
-      '</plist>' >"$agent"
-    launchctl bootout "gui/$(id -u)/dev.dotfiles.herdr-spaces" 2>/dev/null || true
-    launchctl bootstrap "gui/$(id -u)" "$agent" || echo "  [AVISO] el agente de herdr-ctl spaces-watch no arrancó."
+    # makes one pass a minute for CI. It runs as a herdr plugin, not a launchd job: macOS delays a launchd job's
+    # wakeups by about 100 ms, which made the bright agent name trail the focus by half a second.
+    old_agent="$HOME/Library/LaunchAgents/dev.dotfiles.herdr-spaces.plist"
+    if [ -e "$old_agent" ]; then
+      launchctl bootout "gui/$(id -u)/dev.dotfiles.herdr-spaces" 2>/dev/null || true
+      rm -f "$old_agent"
+    fi
+    if command -v herdr >/dev/null 2>&1; then
+      herdr plugin link "$DOTFILES_DIR/config/herdr-plugins/spaces-sync" >/dev/null 2>&1 &&
+        { herdr plugin action invoke start --plugin dev.dotfiles.spaces-sync >/dev/null 2>&1 || true; } ||
+        echo "  [AVISO] no se enlazó el plugin spaces-sync; reintenta: herdr plugin link $DOTFILES_DIR/config/herdr-plugins/spaces-sync"
+    fi
   fi
 
   # 10. Compile ctlcenter (dotbar runs its `stay` helper, and opens Control Center through it when it may not post keys

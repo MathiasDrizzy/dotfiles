@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -519,7 +520,28 @@ func lastCI(dir, branch string) string {
 // change anything, and keeps each branch's CI for ci's interval.
 type syncer struct {
 	ci        *ciCache
+	mu        sync.Mutex // guards published: the full pass and the focus passes run in different goroutines
 	published map[string]string
+}
+
+// reported says whether this exact report already went out for the key.
+func (s *syncer) reported(key, sig string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.published[key] == sig
+}
+
+func (s *syncer) remember(key, sig string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.published[key] = sig
+}
+
+// reset forgets everything reported: after a reconnect herdr may have lost it all.
+func (s *syncer) reset() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.published = map[string]string{}
 }
 
 func newSyncer(ciInterval time.Duration) *syncer {
@@ -529,6 +551,8 @@ func newSyncer(ciInterval time.Duration) *syncer {
 // forgetExcept drops what was reported for spaces and panes this pass did not see: closed ones never come back, and
 // the memory of them would only grow.
 func (s *syncer) forgetExcept(seen map[string]bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	for key := range s.published {
 		if !seen[key] {
 			delete(s.published, key)
@@ -539,13 +563,13 @@ func (s *syncer) forgetExcept(seen map[string]bool) {
 // report runs a herdr report unless the same one already went out.
 func (s *syncer) report(key string, args []string) error {
 	sig := strings.Join(args, "\x00")
-	if s.published[key] == sig {
+	if s.reported(key, sig) {
 		return nil
 	}
 	if err := runHerdr(args); err != nil {
 		return err
 	}
-	s.published[key] = sig
+	s.remember(key, sig)
 	return nil
 }
 
@@ -610,6 +634,33 @@ func nameReports(panes []PaneInfo, workspaces []WorkspaceInfo, workspacesOK bool
 	return reports
 }
 
+// paneReportParams is the socket's own form of `herdr pane report-metadata`: a null token is a cleared one. Sent over
+// the socket it costs a message; the CLI costs a process start (about 300 ms each, measured).
+func paneReportParams(pane string, set map[string]string, clear []string) map[string]interface{} {
+	tokens := map[string]interface{}{}
+	for k, v := range set {
+		tokens[k] = v
+	}
+	for _, k := range clear {
+		tokens[k] = nil
+	}
+	return map[string]interface{}{"pane_id": pane, "source": metadataSource, "tokens": tokens}
+}
+
+// reportNameRPC sends a name report unless the same one already went out.
+func (s *syncer) reportNameRPC(key string, r nameReport) error {
+	params := paneReportParams(r.pane, r.set, r.clear)
+	raw, _ := json.Marshal(params)
+	if s.reported(key, string(raw)) {
+		return nil
+	}
+	if _, err := callRPC("pane.report_metadata", params); err != nil {
+		return err
+	}
+	s.remember(key, string(raw))
+	return nil
+}
+
 // names sends the name reports. A report that would change nothing is skipped, so a focus change costs two: the pane
 // that lost the focus and the one that got it.
 func (s *syncer) names(panes []PaneInfo, workspaces []WorkspaceInfo, workspacesOK bool, seen map[string]bool) []string {
@@ -619,7 +670,7 @@ func (s *syncer) names(panes []PaneInfo, workspaces []WorkspaceInfo, workspacesO
 		if seen != nil {
 			seen[key] = true
 		}
-		if err := s.report(key, withClears(paneReportArgs(r.pane, r.set, nil), r.clear)); err != nil {
+		if err := s.reportNameRPC(key, r); err != nil {
 			failures = append(failures, err.Error())
 		}
 	}

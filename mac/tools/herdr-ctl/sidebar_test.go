@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -440,4 +442,87 @@ func TestNameReportsNeedTheSpacesToKnowWhoIsInFront(t *testing.T) {
 	if len(nameless) != 1 || len(nameless[0].set) != 0 || len(nameless[0].clear) != 2 {
 		t.Fatalf("a nameless agent was not cleared: %+v", nameless)
 	}
+}
+
+func TestANameReportGoesStraightToTheSocket(t *testing.T) {
+	// The CLI costs a process start per report (about 300 ms each, measured): the report is the socket's own message.
+	got := paneReportParams("w2:p1", map[string]string{"aname_hot": "dotfiles"}, []string{"aname_dim"})
+	want := map[string]interface{}{
+		"pane_id": "w2:p1", "source": metadataSource,
+		"tokens": map[string]interface{}{"aname_hot": "dotfiles", "aname_dim": nil},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("params = %v, want %v", got, want)
+	}
+	raw, _ := json.Marshal(got)
+	if !strings.Contains(string(raw), `"aname_dim":null`) {
+		t.Fatalf("a cleared token must travel as null: %s", raw)
+	}
+}
+
+func TestAFocusChangeIsAnsweredAtOnce(t *testing.T) {
+	// Three focus events come in the same instant: a few milliseconds are enough to answer them with one pass.
+	if watchFocusSettle > 25*time.Millisecond {
+		t.Fatalf("the focus settle is %v: the name would trail the focus by a visible delay", watchFocusSettle)
+	}
+}
+
+func TestTheSyncersMemoryIsSafeAcrossGoroutines(t *testing.T) {
+	// The full pass (git, gh) runs beside the focus passes, so both touch what was reported: run under -race.
+	s := newSyncer(time.Minute)
+	done := make(chan struct{})
+	for g := 0; g < 4; g++ {
+		go func(g int) {
+			defer func() { done <- struct{}{} }()
+			for i := 0; i < 200; i++ {
+				key := fmt.Sprintf("name %d-%d", g, i%7)
+				s.remember(key, "x")
+				_ = s.reported(key, "x")
+				if i%50 == 0 {
+					s.forgetExcept(map[string]bool{key: true})
+				}
+				if i%97 == 0 {
+					s.reset()
+				}
+			}
+		}(g)
+	}
+	for g := 0; g < 4; g++ {
+		<-done
+	}
+}
+
+func TestAFullPassRequestWhileOneRunsIsKeptNotLost(t *testing.T) {
+	// A tab that closes during the minute's slow pass must still be seen: one request waits, any more are the same one.
+	req := newPassRequests()
+	req.ask()
+	req.ask()
+	req.ask()
+	if got := len(req.ch); got != 1 {
+		t.Fatalf("%d requests queued, want exactly 1", got)
+	}
+	<-req.ch
+	req.ask()
+	if got := len(req.ch); got != 1 {
+		t.Fatalf("a request made after the last was taken was lost (%d queued)", got)
+	}
+}
+
+func TestOnlyOneWatcherRunsAtATime(t *testing.T) {
+	// herdr starts the watcher with each server start, and a copy may still be running: the second one must give way.
+	path := filepath.Join(t.TempDir(), "watch.lock")
+	first, ok := lockWatcher(path)
+	if !ok {
+		t.Fatal("the first watcher must get the lock")
+	}
+	if second, ok := lockWatcher(path); ok {
+		second.Close()
+		t.Fatal("a second watcher got the lock while the first holds it")
+	}
+	first.Close()
+	again, ok := lockWatcher(path)
+	if !ok {
+		t.Fatal("the lock must be free once its holder is gone")
+	}
+	again.Close()
 }

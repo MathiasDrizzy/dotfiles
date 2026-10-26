@@ -117,6 +117,8 @@ func callRPC(method string, params interface{}) (*RPCResponse, error) {
 		return nil, fmt.Errorf("error al conectar con socket herdr: %w", err)
 	}
 	defer func() { _ = conn.Close() }()
+	// A herdr that accepts and never answers must not hold a caller (the watcher among them) forever.
+	_ = conn.SetDeadline(time.Now().Add(3 * time.Second))
 
 	req := RPCRequest{
 		ID:     "herdr-ctl",
@@ -439,6 +441,10 @@ func main() {
 			os.Exit(1)
 		}
 	case "spaces-watch":
+		home, _ := os.UserHomeDir()
+		if _, ok := lockWatcher(filepath.Join(home, ".cache", "herdr-ctl", "watch.lock")); !ok {
+			return // another watcher already follows herdr
+		}
 		runSpacesWatch()
 	case "spaces-sync":
 		if err := runSpacesSync(); err != nil {

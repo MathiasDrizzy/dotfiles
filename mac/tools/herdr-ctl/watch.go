@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -43,7 +45,7 @@ func isFocusEvent(name string) bool {
 
 const (
 	watchSettle      = 400 * time.Millisecond // events come in bursts (a tab and its panes): one pass for the burst
-	watchFocusSettle = 80 * time.Millisecond  // a switch raises three focus events at once: one light pass for them
+	watchFocusSettle = 15 * time.Millisecond  // a switch raises three focus events at once: one light pass for them
 	watchFullPass    = time.Minute            // CI, and shells that changed folder, between events
 	watchCIInterval  = 55 * time.Second       // under the full pass, so each full pass refreshes CI
 	watchHeld        = time.Minute            // a connection that lasted this long counts as working
@@ -69,6 +71,19 @@ func reconnectDelay(attempt int) time.Duration {
 		d = time.Minute
 	}
 	return d
+}
+
+// passRequests asks for full passes without ever blocking the asker: one request waits at most, and a request made
+// while a pass runs is kept, so a tab that closes during the slow pass is still seen right after it.
+type passRequests struct{ ch chan struct{} }
+
+func newPassRequests() *passRequests { return &passRequests{ch: make(chan struct{}, 1)} }
+
+func (r *passRequests) ask() {
+	select {
+	case r.ch <- struct{}{}:
+	default:
+	}
 }
 
 // ciCache keeps a branch's last CI for an interval, so events never make gh run more than once a minute.
@@ -132,12 +147,27 @@ func subscribe() (net.Conn, *bufio.Reader, error) {
 }
 
 // runSpacesWatch never returns: it syncs on herdr's events and once a minute, and reconnects when herdr goes away.
+// The full pass (git, gh: seconds at times) runs in a goroutine of its own, so a focus change is answered in
+// milliseconds even while it runs.
 func runSpacesWatch() {
 	s := newSyncer(watchCIInterval)
 	events := make(chan struct{}, 1)
 	focus := make(chan struct{}, 1)
 	// A reconnect means herdr may have restarted and forgotten every report: they all go out again.
 	reconnected := make(chan struct{}, 1)
+	full := newPassRequests()
+	go func() {
+		for range full.ch {
+			time.Sleep(watchSettle) // events come in bursts (a tab and its panes): one pass for the burst
+			select {
+			case <-full.ch:
+			default:
+			}
+			if err := s.pass(time.Now()); err != nil {
+				fmt.Fprintf(os.Stderr, "spaces-watch: %v\n", err)
+			}
+		}
+	}()
 	go func() {
 		for attempt := 0; ; {
 			var delay time.Duration
@@ -171,36 +201,48 @@ func runSpacesWatch() {
 			time.Sleep(delay)
 		}
 	}()
-	full := time.NewTicker(watchFullPass)
-	defer full.Stop()
-	pass := func() {
-		if err := s.pass(time.Now()); err != nil {
-			fmt.Fprintf(os.Stderr, "spaces-watch: %v\n", err)
-		}
-	}
+	tick := time.NewTicker(watchFullPass)
+	defer tick.Stop()
 	for {
 		select {
 		case <-reconnected:
-			s.published = map[string]string{}
-			pass()
+			s.reset()
+			lightPass(s)
+			full.ask()
 		case <-events:
-			time.Sleep(watchSettle)
-			select { // events that came while settling are part of this pass
-			case <-events:
-			default:
-			}
-			pass()
+			full.ask()
 		case <-focus:
 			time.Sleep(watchFocusSettle)
 			select { // the rest of the same switch
 			case <-focus:
 			default:
 			}
-			if err := s.focusPass(); err != nil {
-				fmt.Fprintf(os.Stderr, "spaces-watch: %v\n", err)
-			}
-		case <-full.C:
-			pass()
+			lightPass(s)
+		case <-tick.C:
+			full.ask()
 		}
 	}
+}
+
+func lightPass(s *syncer) {
+	if err := s.focusPass(); err != nil {
+		fmt.Fprintf(os.Stderr, "spaces-watch: %v\n", err)
+	}
+}
+
+// lockWatcher takes the watcher's single-instance lock. The kernel drops it with the process, so a crash never leaves
+// a stale one behind.
+func lockWatcher(path string) (*os.File, bool) {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return nil, false
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		return nil, false
+	}
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		_ = f.Close()
+		return nil, false
+	}
+	return f, true
 }

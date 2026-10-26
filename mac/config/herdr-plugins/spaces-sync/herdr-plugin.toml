@@ -1,0 +1,20 @@
+# Keeps herdr's sidebar rows (spaces tree, agent names, usage) in step with herdr: `herdr-ctl spaces-watch`.
+# It runs as herdr's own child: a launchd job gets its wakeups delayed by about 100 ms by the system, a process in
+# herdr's tree does not (measured), and this way it lives only while herdr does. A second copy gives way (lock).
+id = "dev.dotfiles.spaces-sync"
+name = "Spaces sync"
+version = "0.1.0"
+min_herdr_version = "0.9.5"
+description = "Sidebar rows for spaces and agents, followed live from herdr's events"
+platforms = ["macos"]
+
+[[startup]]
+platforms = ["macos"]
+command = ["sh", "-c", "PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin exec \"$HOME/.local/bin/herdr-ctl\" spaces-watch"]
+
+[[actions]]
+id = "start"
+title = "Spaces sync: start"
+description = "Start the watcher if it is not running"
+contexts = ["global"]
+command = ["sh", "-c", "PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin exec \"$HOME/.local/bin/herdr-ctl\" spaces-watch"]
