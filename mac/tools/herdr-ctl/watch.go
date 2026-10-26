@@ -230,6 +230,10 @@ func lightPass(s *syncer) {
 	}
 }
 
+// watcherLock keeps the lock file reachable for the life of the process: an *os.File closes its descriptor when the
+// garbage collector finds it unreachable, and closing the descriptor releases the lock.
+var watcherLock *os.File
+
 // lockWatcher takes the watcher's single-instance lock. The kernel drops it with the process, so a crash never leaves
 // a stale one behind.
 func lockWatcher(path string) (*os.File, bool) {
@@ -244,5 +248,6 @@ func lockWatcher(path string) (*os.File, bool) {
 		_ = f.Close()
 		return nil, false
 	}
+	watcherLock = f
 	return f, true
 }

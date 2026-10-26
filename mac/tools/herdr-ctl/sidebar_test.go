@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -525,4 +526,20 @@ func TestOnlyOneWatcherRunsAtATime(t *testing.T) {
 		t.Fatal("the lock must be free once its holder is gone")
 	}
 	_ = again.Close()
+}
+
+func TestTheWatcherLockSurvivesTheGarbageCollector(t *testing.T) {
+	// The caller drops the file (spaces-watch does): the lock must not go with the file's finalizer.
+	path := filepath.Join(t.TempDir(), "watch.lock")
+	if _, ok := lockWatcher(path); !ok {
+		t.Fatal("the first watcher must get the lock")
+	}
+	for i := 0; i < 3; i++ {
+		runtime.GC()
+		time.Sleep(20 * time.Millisecond)
+	}
+	if other, ok := lockWatcher(path); ok {
+		_ = other.Close()
+		t.Fatal("the lock was released once the file became unreachable")
+	}
 }
