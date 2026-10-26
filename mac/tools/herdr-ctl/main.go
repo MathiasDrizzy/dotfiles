@@ -35,14 +35,26 @@ type PaneListResult struct {
 }
 
 type PaneInfo struct {
-	PaneID      string                 `json:"pane_id"`
-	TabID       string                 `json:"tab_id"`
-	WorkspaceID string                 `json:"workspace_id"`
-	Label       string                 `json:"label"`
-	Agent       string                 `json:"agent"`
-	Cwd         string                 `json:"cwd"`
-	Focused     bool                   `json:"focused"`
-	Tokens      map[string]interface{} `json:"tokens"`
+	PaneID                string                 `json:"pane_id"`
+	TabID                 string                 `json:"tab_id"`
+	WorkspaceID           string                 `json:"workspace_id"`
+	Label                 string                 `json:"label"`
+	Agent                 string                 `json:"agent"`
+	Cwd                   string                 `json:"cwd"`
+	TerminalTitleStripped string                 `json:"terminal_title_stripped"`
+	Focused               bool                   `json:"focused"`
+	Tokens                map[string]interface{} `json:"tokens"`
+}
+
+// WorkspaceInfo is what herdr says of a space: whether it is the one in front and which of its tabs is showing.
+type WorkspaceInfo struct {
+	WorkspaceID string `json:"workspace_id"`
+	Focused     bool   `json:"focused"`
+	ActiveTabID string `json:"active_tab_id"`
+}
+
+type WorkspaceListResult struct {
+	Workspaces []WorkspaceInfo `json:"workspaces"`
 }
 
 type AgentListResult struct {

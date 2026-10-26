@@ -21,13 +21,32 @@ var watchedEvents = []string{
 	"worktree.created", "worktree.opened", "worktree.removed",
 	"tab.created", "tab.closed", "tab.moved",
 	"pane.created", "pane.closed", "pane.exited", "pane.moved", "pane.agent_detected",
+	// Which agent is in front. Measured: none while nothing is touched, none from a report, three at once per switch.
+	"pane.focused", "tab.focused", "workspace.focused",
+}
+
+// eventName reads the "event" of a line herdr sends on a subscription; empty for anything else.
+func eventName(line []byte) string {
+	var e struct {
+		Event string `json:"event"`
+	}
+	if json.Unmarshal(line, &e) != nil {
+		return ""
+	}
+	return e.Event
+}
+
+// isFocusEvent is a change of what is in front, which moves no pane: it only needs the light pass.
+func isFocusEvent(name string) bool {
+	return name == "pane_focused" || name == "tab_focused" || name == "workspace_focused"
 }
 
 const (
-	watchSettle     = 400 * time.Millisecond // events come in bursts (a tab and its panes): one pass for the burst
-	watchFullPass   = time.Minute            // CI, and shells that changed folder, between events
-	watchCIInterval = 55 * time.Second       // under the full pass, so each full pass refreshes CI
-	watchHeld       = time.Minute            // a connection that lasted this long counts as working
+	watchSettle      = 400 * time.Millisecond // events come in bursts (a tab and its panes): one pass for the burst
+	watchFocusSettle = 80 * time.Millisecond  // a switch raises three focus events at once: one light pass for them
+	watchFullPass    = time.Minute            // CI, and shells that changed folder, between events
+	watchCIInterval  = 55 * time.Second       // under the full pass, so each full pass refreshes CI
+	watchHeld        = time.Minute            // a connection that lasted this long counts as working
 )
 
 // afterDisconnect is how long to wait after a connection ends, and the next attempt number. Every end waits, longer
@@ -116,6 +135,7 @@ func subscribe() (net.Conn, *bufio.Reader, error) {
 func runSpacesWatch() {
 	s := newSyncer(watchCIInterval)
 	events := make(chan struct{}, 1)
+	focus := make(chan struct{}, 1)
 	// A reconnect means herdr may have restarted and forgotten every report: they all go out again.
 	reconnected := make(chan struct{}, 1)
 	go func() {
@@ -133,11 +153,16 @@ func runSpacesWatch() {
 			default:
 			}
 			for {
-				if _, err := reader.ReadBytes('\n'); err != nil {
+				line, err := reader.ReadBytes('\n')
+				if err != nil {
 					break
 				}
+				channel := events
+				if isFocusEvent(eventName(line)) {
+					channel = focus
+				}
 				select {
-				case events <- struct{}{}:
+				case channel <- struct{}{}:
 				default:
 				}
 			}
@@ -165,6 +190,15 @@ func runSpacesWatch() {
 			default:
 			}
 			pass()
+		case <-focus:
+			time.Sleep(watchFocusSettle)
+			select { // the rest of the same switch
+			case <-focus:
+			default:
+			}
+			if err := s.focusPass(); err != nil {
+				fmt.Fprintf(os.Stderr, "spaces-watch: %v\n", err)
+			}
 		case <-full.C:
 			pass()
 		}

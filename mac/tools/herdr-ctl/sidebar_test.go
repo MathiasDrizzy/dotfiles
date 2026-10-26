@@ -261,12 +261,13 @@ func TestTheWatcherNeverListensToWhatItReports(t *testing.T) {
 	// herdr-ctl reports metadata, and a report raises workspace.metadata_updated and pane.updated: listening to those
 	// would answer its own reports forever, the loop the lazyfinder sidebar once had.
 	for _, e := range watchedEvents {
+		// Focus events are user-driven: measured, herdr raises none on its own and none from a report.
 		if strings.Contains(e, "metadata") || strings.HasSuffix(e, ".updated") || strings.Contains(e, "output") ||
-			strings.Contains(e, "scroll") || strings.Contains(e, "focused") || strings.Contains(e, "status_changed") {
+			strings.Contains(e, "scroll") || strings.Contains(e, "status_changed") {
 			t.Errorf("the watcher listens to %q, which its own reports or every keystroke raise", e)
 		}
 	}
-	for _, need := range []string{"tab.closed", "pane.closed", "pane.created", "workspace.closed"} {
+	for _, need := range []string{"tab.closed", "pane.closed", "pane.created", "workspace.closed", "pane.focused", "tab.focused", "workspace.focused"} {
 		found := false
 		for _, e := range watchedEvents {
 			found = found || e == need
@@ -334,5 +335,91 @@ func TestReportsForClosedPanesAreForgotten(t *testing.T) {
 	s.forgetExcept(map[string]bool{"ws w2": true, "pane w2:p1": true})
 	if want := map[string]string{"ws w2": "a", "pane w2:p1": "b"}; !reflect.DeepEqual(s.published, want) {
 		t.Fatalf("published = %v, want %v", s.published, want)
+	}
+}
+
+func TestAgentNameIsItsSessionOrItsFolder(t *testing.T) {
+	cases := []struct {
+		pane PaneInfo
+		want string
+	}{
+		{PaneInfo{TerminalTitleStripped: " lazyfinder ", Cwd: "/p/other"}, "lazyfinder"},
+		{PaneInfo{Cwd: "/p/lazymark/"}, "lazymark"},
+		{PaneInfo{}, ""},
+	}
+	for _, c := range cases {
+		if got := agentName(c.pane); got != c.want {
+			t.Errorf("agentName(%+v) = %q, want %q", c.pane, got, c.want)
+		}
+	}
+}
+
+func TestOnlyTheAgentInTheTabYouAreLookingAtIsFocused(t *testing.T) {
+	workspaces := []WorkspaceInfo{
+		{WorkspaceID: "w2", Focused: true, ActiveTabID: "w2:t1"},
+		{WorkspaceID: "wF", Focused: false, ActiveTabID: "wF:t4"},
+	}
+	panes := []PaneInfo{
+		{PaneID: "a", WorkspaceID: "w2", TabID: "w2:t1", Focused: true, Agent: "claude"},  // the one in front
+		{PaneID: "b", WorkspaceID: "w2", TabID: "w2:t9", Focused: true, Agent: "claude"},  // another tab of that space
+		{PaneID: "c", WorkspaceID: "wF", TabID: "wF:t4", Focused: true, Agent: "claude"},  // another space
+		{PaneID: "d", WorkspaceID: "w2", TabID: "w2:t1", Focused: false, Agent: "claude"}, // beside the focused pane
+	}
+	got := focusedPanes(panes, workspaces)
+	if want := map[string]bool{"a": true}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("focused = %v, want %v", got, want)
+	}
+}
+
+func TestAgentNameTokensSwapBetweenDimAndHot(t *testing.T) {
+	set, clear := nameTokens("dotfiles", true)
+	if !reflect.DeepEqual(set, map[string]string{"aname_hot": "dotfiles"}) || !reflect.DeepEqual(clear, []string{"aname_dim"}) {
+		t.Fatalf("focused: set %v clear %v", set, clear)
+	}
+	set, clear = nameTokens("dotfiles", false)
+	if !reflect.DeepEqual(set, map[string]string{"aname_dim": "dotfiles"}) || !reflect.DeepEqual(clear, []string{"aname_hot"}) {
+		t.Fatalf("unfocused: set %v clear %v", set, clear)
+	}
+	if set, _ := nameTokens("", true); len(set) != 0 {
+		t.Fatalf("a nameless agent published %v", set)
+	}
+}
+
+func TestWatchEventKinds(t *testing.T) {
+	for _, e := range []string{"pane_focused", "tab_focused", "workspace_focused"} {
+		if !isFocusEvent(e) {
+			t.Errorf("%s is not a focus event", e)
+		}
+	}
+	for _, e := range []string{"tab_closed", "pane_created", "pane_exited", ""} {
+		if isFocusEvent(e) {
+			t.Errorf("%s counts as a focus event: it changes the structure", e)
+		}
+	}
+	if got := eventName([]byte(`{"event":"tab_focused","data":{"tab_id":"w2:t1"}}`)); got != "tab_focused" {
+		t.Fatalf("eventName = %q", got)
+	}
+	if got := eventName([]byte("not json")); got != "" {
+		t.Fatalf("eventName of garbage = %q", got)
+	}
+}
+
+func TestClearingTokensRidesTheSameReport(t *testing.T) {
+	got := withClears(paneReportArgs("w2:p1", map[string]string{"aname_hot": "x"}, nil), []string{"aname_dim"})
+	want := []string{"pane", "report-metadata", "w2:p1", "--source", metadataSource, "--token", "aname_hot=x", "--clear-token", "aname_dim"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args = %q, want %q", got, want)
+	}
+}
+
+func TestTheAgentThatLosesTheFocusIsReportedBeforeTheOneThatGainsIt(t *testing.T) {
+	// Two reports cannot land together: reporting the gainer first would show two bright names for a moment.
+	panes := []PaneInfo{
+		{PaneID: "gain", Agent: "claude", TabID: "t", TerminalTitleStripped: "gain", Focused: true},
+		{PaneID: "lose", Agent: "claude", TabID: "t2", TerminalTitleStripped: "lose"},
+	}
+	order := namesOrder(panes, focusedPanes(panes, []WorkspaceInfo{{WorkspaceID: "w", Focused: true, ActiveTabID: "t"}}))
+	if !reflect.DeepEqual(order, []string{"lose", "gain"}) {
+		t.Fatalf("order = %v, want the unfocused agent first", order)
 	}
 }

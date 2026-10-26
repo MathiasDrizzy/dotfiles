@@ -105,3 +105,14 @@ in reviewed slices). Delivery: single PR-sized slices on main. Test runner: `go 
   Rejected: a watcher that marks the focused agent in a custom token with a zero-width character and a style rule
   (one more event to follow, and agent names vanish if the watcher is down). A reload gave herdr's 26-column sidebar
   back, which cut the rows: ui.sidebar_min_width = 30 (a sidebar dragged wider keeps its width).
+- L13 (2026-10-26, user, verbatim): "mira ahora no aparece el nombre del agente, yo quiero que aparezca el nombre del agente
+  y que se pinte en blanco eso te lo dije explicitamente ese cambia y que evaluaras la mejor opcion de hacerlo,
+  respetando el cosumo de recursos y que funcione siempre y en tiempo real". The native option (L12) dropped the agent's
+  name, so it is reverted: herdr colors by focus only the `workspace` token, so spaces-watch puts each agent's name in
+  $aname_dim, or $aname_hot while its pane is the one in front (the focused pane of the active tab of the focused space),
+  clearing the other in the same report; the rows style them (hot: bold, #cdd6f4). Focus events (pane/tab/workspace
+  .focused) run a light pass: two RPC questions and at most two reports, losing agent first so two names are never
+  bright together; no git, no gh. Measured: herdr raises no focus event idle or from a report (three at once per
+  switch); the white follows a switch in under 0.6 s with the poll's own delay; idle 0.02 s CPU in 30 s, 20 switches
+  0.07 s CPU, 10 MB flat, one process. If the watcher dies the last names stay (launchd restarts it within 10 s and a
+  reconnect republishes everything). The 8d100c9 commit had landed on a local branch the user switched to by hand.

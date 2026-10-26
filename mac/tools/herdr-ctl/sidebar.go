@@ -407,6 +407,57 @@ func repoRoot(dir string) (string, bool) {
 	return top, err == nil && top != ""
 }
 
+// agentName is what an agent is called in the sidebar: its session's title, else its folder's name.
+func agentName(p PaneInfo) string {
+	if title := strings.TrimSpace(p.TerminalTitleStripped); title != "" {
+		return title
+	}
+	cwd := strings.TrimRight(strings.TrimSpace(p.Cwd), "/")
+	if cwd == "" {
+		return ""
+	}
+	return filepath.Base(cwd)
+}
+
+// focusedPanes are the panes in front of the user: the focused pane of the active tab of the focused space. herdr's own
+// flag is the focused pane of every tab, so each space would have a "focused" agent.
+func focusedPanes(panes []PaneInfo, workspaces []WorkspaceInfo) map[string]bool {
+	activeTab := ""
+	for _, w := range workspaces {
+		if w.Focused {
+			activeTab = w.ActiveTabID
+		}
+	}
+	focused := map[string]bool{}
+	for _, p := range panes {
+		if p.Focused && activeTab != "" && p.TabID == activeTab {
+			focused[p.PaneID] = true
+		}
+	}
+	return focused
+}
+
+// nameTokens are the agent's name for its row, in one of two tokens that config.toml styles apart (dim, or bold white):
+// herdr only styles by focus the one token kind (workspace) the row cannot use, so the focus travels in which token
+// holds the name. The other token is cleared in the same report.
+func nameTokens(name string, focused bool) (set map[string]string, clear []string) {
+	if name == "" {
+		return map[string]string{}, nil
+	}
+	if focused {
+		return map[string]string{"aname_hot": name}, []string{"aname_dim"}
+	}
+	return map[string]string{"aname_dim": name}, []string{"aname_hot"}
+}
+
+// withClears adds --clear-token for each name to a report.
+func withClears(args []string, clear []string) []string {
+	for _, k := range clear {
+		args = append(args, "--clear-token", k)
+	}
+	return args
+}
+
 func agentPanes(panes []PaneInfo) []string {
 	ids := []string{}
 	for _, p := range panes {
@@ -498,18 +549,89 @@ func (s *syncer) report(key string, args []string) error {
 	return nil
 }
 
-// pass is one sync over herdr's spaces and agents.
-func (s *syncer) pass(now time.Time) error {
+// listPanes asks herdr for its panes and spaces.
+func listPanes() ([]PaneInfo, []WorkspaceInfo, error) {
 	resp, err := callRPC("pane.list", map[string]interface{}{})
+	if err != nil {
+		return nil, nil, err
+	}
+	var panes PaneListResult
+	if err := json.Unmarshal(resp.Result, &panes); err != nil {
+		return nil, nil, err
+	}
+	resp, err = callRPC("workspace.list", map[string]interface{}{})
+	if err != nil {
+		return nil, nil, err
+	}
+	var workspaces WorkspaceListResult
+	if err := json.Unmarshal(resp.Result, &workspaces); err != nil {
+		return nil, nil, err
+	}
+	return panes.Panes, workspaces.Workspaces, nil
+}
+
+// namesOrder lists the agents' panes with the focused ones last: the one that lost the focus goes dim before the one
+// that gained it goes bright, so two bright names are never on screen together.
+func namesOrder(panes []PaneInfo, focused map[string]bool) []string {
+	order := []string{}
+	for _, wantFocused := range []bool{false, true} {
+		for _, p := range panes {
+			if p.Agent != "" && focused[p.PaneID] == wantFocused {
+				order = append(order, p.PaneID)
+			}
+		}
+	}
+	return order
+}
+
+// names reports each agent's name, in the token that says whether its pane is the one in front. A report that would
+// change nothing is skipped, so a focus change costs two reports: the pane that lost the focus and the one that got it.
+func (s *syncer) names(panes []PaneInfo, workspaces []WorkspaceInfo, seen map[string]bool) []string {
+	var failures []string
+	focused := focusedPanes(panes, workspaces)
+	byPane := map[string]PaneInfo{}
+	for _, p := range panes {
+		byPane[p.PaneID] = p
+	}
+	for _, id := range namesOrder(panes, focused) {
+		p := byPane[id]
+		set, clear := nameTokens(agentName(p), focused[p.PaneID])
+		if len(set) == 0 {
+			continue
+		}
+		key := "name " + p.PaneID
+		if seen != nil {
+			seen[key] = true
+		}
+		if err := s.report(key, withClears(paneReportArgs(p.PaneID, set, nil), clear)); err != nil {
+			failures = append(failures, err.Error())
+		}
+	}
+	return failures
+}
+
+// focusPass is the light pass for a focus change: two questions to herdr and at most two reports, no git, no gh.
+func (s *syncer) focusPass() error {
+	panes, workspaces, err := listPanes()
 	if err != nil {
 		return err
 	}
-	var res PaneListResult
-	if err := json.Unmarshal(resp.Result, &res); err != nil {
+	if failures := s.names(panes, workspaces, nil); len(failures) > 0 {
+		return fmt.Errorf("%s", strings.Join(failures, "; "))
+	}
+	return nil
+}
+
+// pass is one sync over herdr's spaces and agents.
+func (s *syncer) pass(now time.Time) error {
+	panes, workspaces, err := listPanes()
+	if err != nil {
 		return err
 	}
+	res := PaneListResult{Panes: panes}
 	var failures []string
 	seen := map[string]bool{}
+	failures = append(failures, s.names(panes, workspaces, seen)...)
 	for ws, dirs := range workspaceRepos(res.Panes, repoRoot) {
 		seen["ws "+ws] = true
 		repos := []RepoState{}
