@@ -22,9 +22,10 @@ if grep -nE '192[.]168[.]|pizer[o]|setpasswor[d]|/admi[n]' "${files[@]}"; then
 fi
 # A latitude and longitude with four or more decimals (meters) place a home. Fixtures use Plaza de Armas in Santiago, a
 # public landmark, or whole degrees.
-# Separators: commas, quotes, blanks and an escaped tab (\t in a string literal).
-if grep -nE -- '-?[0-9]{1,3}[.][0-9]{4,}([",[:space:]]|\\t)+(longitude:[[:space:]]*|"longitude":"?)?-?[0-9]{1,3}[.][0-9]{4,}' \
-  "${files[@]}" | grep -vE -- '-33[.]4378[0-9]*([",[:space:]]|\\t)+(longitude:[[:space:]]*)?-70[.]650[0-9]*'; then
+# Separators: commas, quotes, blanks and an escaped tab (\t in a string literal); the same between the allowed pair.
+sep='([",[:space:]]|\\t)+(longitude:[[:space:]]*|"longitude":"?)?'
+if grep -nIE -- "-?[0-9]{1,3}[.][0-9]{4,}$sep-?[0-9]{1,3}[.][0-9]{4,}" "${files[@]}" |
+  grep -vE -- "-33[.]4378[0-9]*$sep-70[.]650[0-9]*"; then
   bad "precise coordinates in tracked files (lines above): use Plaza de Armas (-33.437800, -70.650500) in fixtures"
 fi
 
@@ -33,11 +34,11 @@ for f in $(git ls-files '*.sh' 'mac/install.sh' 'mac/zshrc' 'mac/zshenv' | sort 
   [ -f "$f" ] || continue
   case "$f" in mac/zshrc | mac/zshenv) shell=zsh ;; *) shell=bash ;; esac
   command -v "$shell" >/dev/null || continue
-  "$shell" -n "$f" 2>/dev/null || bad "invalid syntax in $f"
+  "$shell" -n "$f" || bad "invalid syntax in $f"
 done
-# A script with a shebang goes in the index with mode 755: a fresh clone gets it as is.
+# A script with a shebang goes in the index with mode 755: a fresh clone gets it as is. A symlink (120000) is not one.
 while read -r mode _ _ f; do
-  [ -f "$f" ] || continue
+  [ -f "$f" ] && [ ! -L "$f" ] || continue
   if [ "$(head -c2 "$f")" = "#!" ] && [ "$mode" != "100755" ]; then bad "$f has a shebang but mode $mode (must be 100755)"; fi
 done < <(git ls-files -s)
 python3 - <<'PY' || fail=1
@@ -54,9 +55,13 @@ sys.exit(bad)
 PY
 
 step "Config tests (temporary HOME)"
-scripts/test-zshenv.sh >/dev/null || bad "test-zshenv fails (run it for details)"
-scripts/test-lazyfinder-init.sh >/dev/null || bad "test-lazyfinder-init fails (run it for details)"
-scripts/test-aerospace-config.sh >/dev/null || bad "test-aerospace-config fails (run it for details)"
+# Quiet when they pass; their whole output when one fails.
+for t in test-zshenv test-lazyfinder-init test-aerospace-config; do
+  if out="$("scripts/$t.sh" 2>&1)"; then echo "✓ $t"; else
+    printf '%s\n' "$out" >&2
+    bad "$t fails"
+  fi
+done
 
 echo
 if [ "$fail" -eq 0 ]; then echo "check-repo: PASS"; else echo "check-repo: FAIL"; fi
