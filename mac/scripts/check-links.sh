@@ -98,7 +98,7 @@ CONFIG_PAIRS=(
   "config/lazydocker/config.yml|$HOME/Library/Application Support/lazydocker/config.yml"
   "zshrc|$HOME/.zshrc"
   "zshenv|$HOME/.zshenv"
-  "scripts/scratchpad.sh|$HOME/.local/bin/scratchpad"
+  "scripts/terminal-popup.sh|$HOME/.local/bin/terminal-popup"
 )
 
 drifts=0

@@ -84,3 +84,27 @@ brewup() {
   brew doctor
 }
 alias brewout='brew outdated --verbose'   # ver que hay pendiente sin tocar nada
+
+# Terminal Popup (scratchpad de herdr): salir con Escape si el prompt está vacío, o con Ctrl+Q
+if [[ -n "${HERDR_POPUP:-}" ]]; then
+  export KEYTIMEOUT=15
+  _popup_exit_on_esc() {
+    if [[ -z "$BUFFER" ]]; then
+      exit 0
+    else
+      zle kill-whole-line
+    fi
+  }
+  zle -N _popup_exit_on_esc
+  bindkey '\e' _popup_exit_on_esc
+  bindkey '^Q' _popup_exit_on_esc
+
+  # A herdr popup is not a pane: Cmd+V and the mouse never reach it, so paste and copy go by keyboard through the system
+  # clipboard. Ctrl+V pastes (the paste stays in the line to be read before Enter); Ctrl+Y copies the whole line.
+  _popup_paste() { LBUFFER+="$(pbpaste)"; }
+  _popup_copy() { print -rn -- "$BUFFER" | pbcopy; zle -M "copiado"; }
+  zle -N _popup_paste
+  zle -N _popup_copy
+  bindkey '^V' _popup_paste
+  bindkey '^Y' _popup_copy
+fi
