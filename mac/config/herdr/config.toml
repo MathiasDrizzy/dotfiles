@@ -52,6 +52,10 @@ rows = [
   [{ token = "$repo2b", dim = true }, "$repo2s"],
   [{ token = "$repo3", dim = true }],
   [{ token = "$repo3b", dim = true }, "$repo3s"],
+  [{ token = "$repo4", dim = true }],
+  [{ token = "$repo4b", dim = true }, "$repo4s"],
+  [{ token = "$repo5", dim = true }],
+  [{ token = "$repo5b", dim = true }, "$repo5s"],
 ]
 
 [ui.sound]
