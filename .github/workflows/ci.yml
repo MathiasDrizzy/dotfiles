@@ -47,7 +47,11 @@ jobs:
         working-directory: mac/tools/herdr-ctl
         env:
           HERDR_CTL_REQUIRE_CONFIG: "1"
-        run: go test -count=1 -run 'Repo|Cheatsheet|Validator|Keymap|Zshrc' ./...
+        run: |
+          go test -count=1 -v -run 'Repo|Cheatsheet|Validator|Keymap|Zshrc' ./... | tee "$RUNNER_TEMP/keymap.log"
+          # The filter must match tests, and none may skip: a skip here means the config was not found.
+          grep -q -- '^--- PASS' "$RUNNER_TEMP/keymap.log"
+          ! grep -q -- '^--- SKIP' "$RUNNER_TEMP/keymap.log"
 
   # These are macOS dotfiles: every job runs on macOS, as the scripts do.
   lint:
