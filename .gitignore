@@ -27,4 +27,3 @@ __pycache__/
 .codegraph/
 
 # Swift build output
-mac/tools/dotbar/.build/

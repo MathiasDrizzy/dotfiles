@@ -15,6 +15,11 @@ func mustRead(t *testing.T, path string) string {
 	t.Helper()
 	b, err := os.ReadFile(path)
 	if err != nil {
+		// Standalone, the repository has no dotfiles around it: the tests of the real config wait for the dotfiles CI,
+		// which sets HERDR_CTL_REQUIRE_CONFIG so that a missing file there is a failure, not a skip.
+		if os.IsNotExist(err) && (path == repoConfigPath || path == zshrcPath) && os.Getenv("HERDR_CTL_REQUIRE_CONFIG") == "" {
+			t.Skipf("no dotfiles around (%s): checked by the dotfiles CI", path)
+		}
 		t.Fatalf("no pude leer %s: %v", path, err)
 	}
 	return string(b)

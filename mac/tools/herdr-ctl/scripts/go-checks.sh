@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Go checks for mac/tools/herdr-ctl with pinned tool versions. CI and verificar.sh run this same script.
+# Go checks with pinned tool versions. CI runs this same script.
 set -euo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")/../mac/tools/herdr-ctl"
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 GOLANGCI_LINT_VERSION="v2.14.0"
 GOVULNCHECK_VERSION="v1.9.0"
