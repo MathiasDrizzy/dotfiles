@@ -22,6 +22,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          submodules: true
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -40,12 +41,13 @@ jobs:
       - name: Full install in a sandbox
         run: scripts/test-install-full.sh
 
-      - name: Go checks (vet, test -race, golangci-lint, govulncheck)
-        run: scripts/go-checks.sh
-
-      - name: dotbar tests
-        working-directory: mac/tools/dotbar
-        run: swift run dotbar-tests
+      # herdr-ctl and dotbar run their own checks in their own repositories. What only this repository can check is that
+      # herdr-ctl's shortcut tests pass against the config in use here (a missing file is a failure, not a skip).
+      - name: herdr-ctl against this herdr config
+        working-directory: mac/tools/herdr-ctl
+        env:
+          HERDR_CTL_REQUIRE_CONFIG: "1"
+        run: go test -count=1 -run 'Repo|Cheatsheet|Validator|Keymap|Zshrc' ./...
 
   # These are macOS dotfiles: every job runs on macOS, as the scripts do.
   lint:
@@ -57,6 +59,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          submodules: true
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0

@@ -20,6 +20,11 @@ for arg in "$@"; do
 done
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# herdr-ctl and dotbar are repositories of their own, pinned here as submodules: fetch them when a plain clone left them empty.
+if [ ! -f "$DOTFILES_DIR/tools/herdr-ctl/go.mod" ] && git -C "$DOTFILES_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+  git -C "$DOTFILES_DIR" submodule update --init --recursive ||
+    echo "  [AVISO] no se descargaron herdr-ctl y dotbar; ejecuta: git submodule update --init --recursive"
+fi
 # Prefijo de Homebrew. Solo se cambia para probar el instalador en aislamiento (scripts/test-install-full.sh).
 BREW_PREFIX="${DOTFILES_BREW_PREFIX:-/opt/homebrew}"
 
@@ -207,7 +212,7 @@ if [ "$LINKS_ONLY" = false ]; then
     (
       cd "$DOTFILES_DIR/tools/herdr-ctl"
       go vet ./...
-      # Sin `go test`: los tests de herdr-ctl los corre scripts/go-checks.sh. Mantenerlos aquí acoplaba un test de Go
+      # Sin `go test`: los tests de herdr-ctl los corre su propio repositorio (scripts/go-checks.sh de herdr-ctl). Mantenerlos aquí acoplaba un test de Go
       # en rojo (fase roja de TDD) con el dry-run y con los checks de test-zshenv que lo ejecutan.
       go build -o /dev/null .
     )
@@ -234,9 +239,9 @@ if [ "$LINKS_ONLY" = false ]; then
       rm -f "$old_agent"
     fi
     if command -v herdr >/dev/null 2>&1; then
-      herdr plugin link "$DOTFILES_DIR/config/herdr-plugins/spaces-sync" >/dev/null 2>&1 &&
+      herdr plugin link "$DOTFILES_DIR/tools/herdr-ctl/plugin" >/dev/null 2>&1 &&
         { herdr plugin action invoke start --plugin dev.dotfiles.spaces-sync >/dev/null 2>&1 || true; } ||
-        echo "  [AVISO] no se enlazó el plugin spaces-sync; reintenta: herdr plugin link $DOTFILES_DIR/config/herdr-plugins/spaces-sync"
+        echo "  [AVISO] no se enlazó el plugin spaces-sync; reintenta: herdr plugin link $DOTFILES_DIR/tools/herdr-ctl/plugin"
     fi
   fi
 

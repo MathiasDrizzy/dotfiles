@@ -207,7 +207,7 @@ H="$T/home"
 B="$T/respaldos"
 REPO="$T/repo"
 mkdir -p "$REPO"
-(cd "$ROOT" && git ls-files -z --cached --others --exclude-standard | while IFS= read -r -d '' f; do [ -e "$f" ] && printf '%s\0' "$f"; done | tar --null -T - -cf -) | tar -xf - -C "$REPO"
+(cd "$ROOT" && git ls-files -z --cached --others --exclude-standard | while IFS= read -r -d '' f; do [ -e "$f" ] && printf '%s\0' "$f"; done | tar --null --exclude=.build --exclude=.git -T - -cf -) | tar -xf - -C "$REPO"
 printf 'package main\n\nimport "testing"\n\nfunc TestRojoDeD4(t *testing.T) { t.Fatal("rojo a propósito") }\n' >"$REPO/mac/tools/herdr-ctl/zz_rojo_d4_test.go"
 check "la copia tiene un test de Go que falla de verdad (control del propio test)" '(cd "$REPO/mac/tools/herdr-ctl" && ! go test ./... >/dev/null 2>&1)'
 run "$H" "$B" "$REPO/mac/install.sh" --dry-run

@@ -138,7 +138,7 @@ EOF
 mkrepo() { # mkrepo <ruta destino>: copia del árbol de trabajo (versionado + sin versionar no ignorado) + git init
   local dest="$1"
   mkdir -p "$dest"
-  (cd "$ROOT" && git ls-files -z --cached --others --exclude-standard | while IFS= read -r -d '' f; do [ -e "$f" ] && printf '%s\0' "$f"; done | tar --null -T - -cf -) | tar -xf - -C "$dest"
+  (cd "$ROOT" && git ls-files -z --cached --others --exclude-standard | while IFS= read -r -d '' f; do [ -e "$f" ] && printf '%s\0' "$f"; done | tar --null --exclude=.build --exclude=.git -T - -cf -) | tar -xf - -C "$dest"
   [ -f "$dest/mac/install.sh" ] || {
     echo "ERROR del test: la copia del repo salió vacía"
     exit 2
@@ -258,7 +258,7 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
   check "su agente de inicio apunta a la app de este HOME y se cargó con launchctl" \
     'a="$H/Library/LaunchAgents/dev.dotfiles.dotbar.plist"; plutil -lint "$a" >/dev/null && grep -q "<string>$H/Applications/dotbar.app/Contents/MacOS/dotbar</string>" "$a" && grep -q "^launchctl bootstrap gui/$(id -u) $a$" "$B/logs/launchctl.log"'
   check "herdr-ctl spaces-watch corre como plugin de herdr (enlazado e iniciado) y no queda ningún agente de launchd" \
-    'grep -Eq "^herdr plugin link .*/config/herdr-plugins/spaces-sync$" "$B/logs/herdr.log" && grep -qx "herdr plugin action invoke start --plugin dev.dotfiles.spaces-sync" "$B/logs/herdr.log" && grep -q "spaces-watch" "$REPO/mac/config/herdr-plugins/spaces-sync/herdr-plugin.toml" && [ ! -e "$H/Library/LaunchAgents/dev.dotfiles.herdr-spaces.plist" ]'
+    'grep -Eq "^herdr plugin link .*/tools/herdr-ctl/plugin$" "$B/logs/herdr.log" && grep -qx "herdr plugin action invoke start --plugin dev.dotfiles.spaces-sync" "$B/logs/herdr.log" && grep -q "spaces-watch" "$REPO/mac/tools/herdr-ctl/plugin/herdr-plugin.toml" && [ ! -e "$H/Library/LaunchAgents/dev.dotfiles.herdr-spaces.plist" ]'
   check "no quedó nada de SketchyBar en ~/.config" '[ ! -e "$H/.config/sketchybar" ]'
   check "todos los enlaces de check-links.sh quedan OK (--strict: 0 faltantes, rc 0)" \
     'n="$(grep -c "^  \".*|\$HOME/" "$REPO/mac/scripts/check-links.sh")"; [ "$n" -ge 10 ]; o="$(HOME="$H" DOTFILES_BACKUP_DIR="$B/respaldos" "$REPO/mac/scripts/check-links.sh" --strict 2>&1 | strip)"; rc=$?; echo "$o" | grep -q " 0 Faltantes" && echo "$o" | grep -q "$n Symlinks OK" && echo "$o" | grep -q "0 Modificaciones Fuera de Git"'

@@ -11,10 +11,9 @@ dotfiles/
 │   ├── zshrc / zshenv          # interactive shell and global PATH
 │   ├── config/                 # ghostty, herdr, aerospace, micro, starship, termscp, lazygit, lazydocker, btop, bat
 │   ├── scripts/                # check-links.sh, herdr-reload.sh, terminal-popup.sh
-│   └── tools/herdr-ctl/        # Go tool: cheatsheet, agent bus, keys-check
+│   └── tools/                  # herdr-ctl, dotbar (own repositories, submodules) and ctlcenter
 ├── scripts/
 │   ├── check-repo.sh           # public-repo hygiene, syntax, modes, TOML, config tests
-│   ├── go-checks.sh            # herdr-ctl: vet, test -race, golangci-lint, govulncheck
 │   ├── lint-shell.sh           # shellcheck and shfmt
 │   └── test-install-full.sh    # full install in a sandbox
 └── docs/adr/                   # architecture decision records
@@ -23,7 +22,7 @@ dotfiles/
 ## Install on a new Mac
 
 ```bash
-git clone https://github.com/MathiasDrizzy/dotfiles.git ~/dotfiles
+git clone --recurse-submodules https://github.com/MathiasDrizzy/dotfiles.git ~/dotfiles
 cd ~/dotfiles/mac
 ./install.sh            # installs packages, links configs, builds herdr-ctl and enables the hooks
 exec zsh
@@ -77,7 +76,7 @@ The focused window gets a thin purple round border from [JankyBorders](https://g
 
 The keyboard is Latin American, so the punctuation keys are aliased by the symbol printed on them (`key-mapping` in the config). Only numbered workspaces are bound, so the shell's `alt+b/f/d` word motions keep working. It needs the Accessibility permission and `defaults write com.apple.dock expose-group-apps -bool true` so Mission Control shows hidden windows properly.
 
-## dotbar (menu bar replacement, `mac/tools/dotbar/`)
+## dotbar (menu bar replacement, [own repository](https://github.com/MathiasDrizzy/dotbar), submodule `mac/tools/dotbar/`)
 
 The bar is one native Swift app: a panel above the menu bar on every Space that never takes the focus. It keeps its state
 in memory and follows the system through events and long-lived streams (AeroSpace's `subscribe`, `media-control
@@ -122,7 +121,7 @@ agents
 
 A space shows, for each repository its panes are in (as a tree, one repository or up to three: each name on a line, its branch and state on the next), its branch, the commits not pushed (`↑`), the files changed (`✚`) and the branch's last CI run (`✓` passed, `✗` failed, `…` running). An agent shows its name (its session's title, in bold white while its pane is the one in front, gray otherwise) and its model, its state, the context it has used, and the account's 5-hour and weekly usage, the same numbers as Claude's `/usage` (every session reports what its own last response saw, so the newest reading wins: the later 5-hour window, or more used in the same one); a window at 75% or more also shows when it comes back. `herdr-ctl statusline` is Claude Code's status line (`"statusLine": {"type": "command", "command": "$HOME/.local/bin/herdr-ctl statusline", "refreshInterval": 30}` in `~/.claude/settings.json`): it reports each session's model, context and usage to its herdr pane. `herdr-ctl spaces-watch`, kept running by the `dev.dotfiles.herdr-spaces` launch agent that `install.sh` loads, follows herdr's events (a tab that opens or closes changes the tree within half a second), makes one pass a minute for CI and for shells that changed folder, reports each space's git and CI state, marks which agent is in front (two reports per focus change: the pane that lost it and the one that got it), and hands the newest usage to every agent; while the 5-hour or weekly window is used up, idle agents read "sin tokens". `herdr-ctl spaces-sync` runs one pass by hand.
 
-## herdr-ctl (Go, `mac/tools/herdr-ctl`)
+## herdr-ctl (Go, [own repository](https://github.com/MathiasDrizzy/herdr-ctl), submodule `mac/tools/herdr-ctl`)
 
 ```bash
 herdr-ctl cheatsheet                # the ctrl+b → h popup
@@ -151,9 +150,8 @@ afocus <agent>          # jump to its pane                 (herdr-ctl focus)
 ```bash
 scripts/check-repo.sh                     # public-repo hygiene, script syntax and modes, TOML, config tests
 scripts/lint-shell.sh                     # shellcheck and shfmt
-scripts/go-checks.sh                      # herdr-ctl: vet, test -race, golangci-lint, govulncheck
 scripts/test-install-full.sh              # full install in a sandbox with a temporary HOME
-(cd mac/tools/dotbar && swift run dotbar-tests)  # the bar's checks (workspaces, runner, fit, weather, media, swap...)
+# herdr-ctl and dotbar test themselves in their own repositories (scripts/go-checks.sh, swift run dotbar-tests)
 ```
 
 * Development runs under the gentle-ai harness (ODD workflow, Engram memory, CodeGraph); the repo keeps no git hooks of its own.
