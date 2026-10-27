@@ -86,7 +86,7 @@ if [ "$LINKS_ONLY" = false ]; then
   BREW_PACKAGES=(
     herdr ghostty micro glow bat git-delta go rustup
     poppler fd ripgrep fzf zoxide atuin starship mise
-    lazygit lazydocker termscp sshs btop mathiasdrizzy/tap/lazyfinder
+    lazygit lazydocker termscp sshs btop mathiasdrizzy/tap/lazyfinder tmux
     fzf-tab zsh-autosuggestions zsh-syntax-highlighting
   )
 

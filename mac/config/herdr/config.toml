@@ -87,8 +87,8 @@ type = "plugin_action"
 command = "lazyfinder.toggle"
 description = "toggle lazyfinder sidebar"
 
-# terminal: scratchpad flotante en un popup de herdr (cerrar con Esc, Ctrl+D o exit). Un popup no es un pane: no admite el mouse
-# ni Cmd+V, así que el shell del popup trae pegar y copiar por teclado (ver mac/zshrc: Ctrl+V pega, Ctrl+Y copia la línea).
+# terminal: scratchpad flotante en un popup de herdr (cerrar con Esc, Ctrl+D o exit). Un popup solo le pasa el mouse al programa
+# que lo pide, así que el shell corre dentro de tmux (mac/config/tmux/scratchpad.conf): arrastrar copia, Cmd+V pega.
 [[keys.command]]
 key = "prefix+t"
 type = "popup"
