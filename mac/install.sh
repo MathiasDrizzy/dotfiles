@@ -238,6 +238,8 @@ if [ "$LINKS_ONLY" = false ]; then
       rm -f "$old_agent"
     fi
     if command -v herdr >/dev/null 2>&1; then
+      # Unlinked first: an earlier install linked the plugin from where it lived before herdr-ctl had a repository of its own.
+      herdr plugin unlink dev.dotfiles.spaces-sync >/dev/null 2>&1 || true
       herdr plugin link "$DOTFILES_DIR/tools/herdr-ctl/plugin" >/dev/null 2>&1 &&
         { herdr plugin action invoke start --plugin dev.dotfiles.spaces-sync >/dev/null 2>&1 || true; } ||
         echo "  [AVISO] no se enlazó el plugin spaces-sync; reintenta: herdr plugin link $DOTFILES_DIR/tools/herdr-ctl/plugin"
