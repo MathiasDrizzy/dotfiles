@@ -72,7 +72,7 @@ An i3-like tiling window manager that needs no SIP changes. It replaces the nati
 | `alt+enter` | New Ghostty window |
 | `alt+shift+ñ` | Service mode (`esc` reloads the config, `r` resets the layout, `backspace` closes all windows but the current one, `alt+shift+arrows` joins with a neighbor) |
 
-The focused window gets a thin purple round border from [JankyBorders](https://github.com/FelixKratz/JankyBorders) (`borders`, started by AeroSpace; installed by `install.sh`); inactive windows get none. It is drawn above the window (`order=above`), so an app's own edges never cover it.
+The focused window gets a thin purple round border from [dotborder](https://github.com/MathiasDrizzy/dotborder) (own repository, submodule `mac/tools/dotborder`; built and started at login by `install.sh`); inactive windows get none. It follows AeroSpace's events, needs no macOS permission and does not flicker on a workspace switch, which JankyBorders did (measured by recording the screen).
 
 The keyboard is Latin American, so the punctuation keys are aliased by the symbol printed on them (`key-mapping` in the config). Only numbered workspaces are bound, so the shell's `alt+b/f/d` word motions keep working. It needs the Accessibility permission and `defaults write com.apple.dock expose-group-apps -bool true` so Mission Control shows hidden windows properly.
 

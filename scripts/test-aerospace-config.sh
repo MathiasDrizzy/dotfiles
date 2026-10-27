@@ -63,13 +63,13 @@ check "on-window-detected callbacks have the documented shape" callbacks
 # Resizing a window with the mouse made AeroSpace report a monitor change, and the callback threw the pointer to the middle of the screen.
 not_warping_pointer() { ! grep -q "^on-focused-monitor-changed" "$CFG"; }
 check "a focused-monitor change never moves the pointer (it jumped mid-resize)" not_warping_pointer
-# Drawn above the window (order=above): below, the default, an app's own edges covered it.
+# The focus border is dotborder, started by its own launch agent: AeroSpace no longer starts JankyBorders, and install.sh
+# does not install it.
 has_borders() {
-  grep -q "^after-startup-command = \\[" "$CFG" && grep -q "exec-and-forget borders .*style=round.*order=above" "$CFG" &&
-    ! grep -q "^#.*exec-and-forget borders" "$CFG" && grep -q "inactive_color=0x00000000" "$CFG" &&
-    grep -q 'brew install felixkratz/formulae/borders' "$ROOT/mac/install.sh"
+  ! grep -q "exec-and-forget borders" "$CFG" && ! grep -q 'brew install felixkratz/formulae/borders' "$ROOT/mac/install.sh" &&
+    grep -q "dev.dotfiles.dotborder" "$ROOT/mac/install.sh" && grep -q "tools/dotborder/scripts/bundle.sh" "$ROOT/mac/install.sh"
 }
-check "only the focused window gets a round border, drawn above it (borders, installed by install.sh)" has_borders
+check "the focus border is dotborder (own launch agent), not JankyBorders started by AeroSpace" has_borders
 check "install.sh and check-links.sh link the config and install the cask" installer_links
 # Vorssaint lives in its menu: a settings window it opens tiled the workspace and squeezed the windows under its menu.
 vorssaint_floats() { grep -q "{ if = 'test %{app-bundle-id} = com.vorssaint.utils', run = 'layout floating' }" "$CFG"; }

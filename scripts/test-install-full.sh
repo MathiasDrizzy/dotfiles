@@ -92,7 +92,7 @@ EOF
   cat >"$B/stubs/swift" <<EOF
 #!/bin/sh
 echo "swift \$*" >> "$B/logs/swift.log"
-mkdir -p "$B/swiftbin" && printf '#!/bin/sh\nexit 0\n' > "$B/swiftbin/dotbar" && chmod +x "$B/swiftbin/dotbar"
+mkdir -p "$B/swiftbin" && for p in dotbar dotborder; do printf "#!/bin/sh\\nexit 0\\n" > "$B/swiftbin/\$p" && chmod +x "$B/swiftbin/\$p"; done
 case "\$*" in *--show-bin-path*) echo "$B/swiftbin" ;; esac
 exit 0
 EOF
@@ -257,6 +257,8 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
     '[ -x "$H/Applications/dotbar.app/Contents/MacOS/dotbar" ] && codesign --verify "$H/Applications/dotbar.app"'
   check "su agente de inicio apunta a la app de este HOME y se cargó con launchctl" \
     'a="$H/Library/LaunchAgents/dev.dotfiles.dotbar.plist"; plutil -lint "$a" >/dev/null && grep -q "<string>$H/Applications/dotbar.app/Contents/MacOS/dotbar</string>" "$a" && grep -q "^launchctl bootstrap gui/$(id -u) $a$" "$B/logs/launchctl.log"'
+  check "dotborder se compila y su agente de inicio apunta a la app de este HOME y se cargó con launchctl" \
+    'grep -q "^swift build -c release --package-path .*/tools/dotborder --scratch-path $H/.cache/dotborder-build .*--product dotborder$" "$B/logs/swift.log" && a="$H/Library/LaunchAgents/dev.dotfiles.dotborder.plist"; plutil -lint "$a" >/dev/null && grep -q "<string>$H/Applications/dotborder.app/Contents/MacOS/dotborder</string>" "$a" && grep -q "^launchctl bootstrap gui/$(id -u) $a$" "$B/logs/launchctl.log"'
   check "herdr-ctl spaces-watch corre como plugin de herdr (enlazado e iniciado) y no queda ningún agente de launchd" \
     'grep -Eq "^herdr plugin link .*/tools/herdr-ctl/plugin$" "$B/logs/herdr.log" && grep -qx "herdr plugin action invoke start --plugin dev.dotfiles.spaces-sync" "$B/logs/herdr.log" && grep -q "spaces-watch" "$REPO/mac/tools/herdr-ctl/plugin/herdr-plugin.toml" && [ ! -e "$H/Library/LaunchAgents/dev.dotfiles.herdr-spaces.plist" ]'
   check "no quedó nada de SketchyBar en ~/.config" '[ ! -e "$H/.config/sketchybar" ]'

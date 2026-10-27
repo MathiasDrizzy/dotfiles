@@ -3,13 +3,8 @@
 
 config-version = 2
 
-# JankyBorders: a thin purple round border on the focused window only (inactive windows get none). order=above draws it
-# over the window: below (the default) let an app's own edges cover it. It detects an already running instance, so an
-# AeroSpace restart does not start it twice. The bar (dotbar) is started by its own launch agent and follows AeroSpace
-# through `aerospace subscribe`.
-after-startup-command = [
-    'exec-and-forget borders style=round width=2.0 hidpi=on order=above active_color=0xccb48efa inactive_color=0x00000000'
-]
+# The focus border (dotborder) and the bar (dotbar) are started by their own launch agents and follow AeroSpace through
+# `aerospace subscribe`: nothing here starts them.
 start-at-login = true
 # Quitting an app keeps the current workspace instead of jumping to the previous app's one.
 # Needs the patched build from the MathiasDrizzy/AeroSpace fork; the official release rejects this key. Without it,

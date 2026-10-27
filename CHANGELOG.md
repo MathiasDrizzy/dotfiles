@@ -12,7 +12,7 @@ follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) once it 
   shell's Alt+b/f/d word motions keep working), linked by `install.sh` and covered by `scripts/test-aerospace-config.sh`.
 - SketchyBar menu bar replacement (glass pills in the Ghostty palette, notch-aware): Apple menu, AeroSpace workspaces,
   now playing, and a collapsible status group; covered by `scripts/test-sketchybar-config.sh`.
-- JankyBorders: a thin purple round border on the focused window only, started by AeroSpace and installed by `install.sh`.
+- dotborder: a thin purple round border on the focused window only, event-driven from AeroSpace, with no macOS permission and no flicker on workspace switches (own repository, submodule `mac/tools/dotborder`); built and started at login by `install.sh`. It replaced JankyBorders.
 - `mac/zshrc` loads lazyfinder's shell integration (cached, skipped when lazyfinder is not installed) so the shell
   stays in the folder you leave the TUI in; covered by `scripts/test-lazyfinder-init.sh`.
 - macOS terminal setup: Ghostty, herdr, zsh and the everyday TUIs (yazi, micro, starship, termscp, lazygit,

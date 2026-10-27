@@ -20,10 +20,10 @@ for arg in "$@"; do
 done
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# herdr-ctl and dotbar are repositories of their own, pinned here as submodules: fetch them when a plain clone left them empty.
-if [ ! -f "$DOTFILES_DIR/tools/herdr-ctl/go.mod" ] && git -C "$DOTFILES_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+# herdr-ctl, dotbar and dotborder are repositories of their own, pinned here as submodules: fetch them when a plain clone left them empty.
+if { [ ! -f "$DOTFILES_DIR/tools/herdr-ctl/go.mod" ] || [ ! -f "$DOTFILES_DIR/tools/dotborder/Package.swift" ]; } && git -C "$DOTFILES_DIR" rev-parse --git-dir >/dev/null 2>&1; then
   git -C "$DOTFILES_DIR" submodule update --init --recursive ||
-    echo "  [AVISO] no se descargaron herdr-ctl y dotbar; ejecuta: git submodule update --init --recursive"
+    echo "  [AVISO] no se descargaron herdr-ctl, dotbar y dotborder; ejecuta: git submodule update --init --recursive"
 fi
 # Prefijo de Homebrew. Solo se cambia para probar el instalador en aislamiento (scripts/test-install-full.sh).
 BREW_PREFIX="${DOTFILES_BREW_PREFIX:-/opt/homebrew}"
@@ -105,7 +105,6 @@ if [ "$LINKS_ONLY" = false ]; then
     brew install --cask font-jetbrains-mono-nerd-font || true
     brew install --cask font-sketchybar-app-font || true
     brew install --cask nikitabobko/tap/aerospace || true
-    brew install felixkratz/formulae/borders || true
     brew install ungive/media-control/media-control || true
   fi
 
@@ -292,6 +291,41 @@ if [ "$LINKS_ONLY" = false ]; then
         echo "  [AVISO] dotbar no arrancó; ábrelo con: open ~/Applications/dotbar.app"
     else
       echo "  [AVISO] dotbar no compiló (¿faltan las Command Line Tools?)."
+    fi
+  fi
+
+  # 12b. dotborder, the focus border (mac/tools/dotborder): built into ~/Applications/dotborder.app and started at login by a
+  # launch agent. It follows AeroSpace's own events, needs no macOS permission and replaces JankyBorders (`borders`), which is
+  # stopped and uninstalled where an earlier install left it.
+  if [ "$DRY_RUN" != true ]; then
+    if brew list borders >/dev/null 2>&1; then
+      echo "==> Quitando JankyBorders (lo reemplaza dotborder)..."
+      pkill -x borders 2>/dev/null || true
+      brew uninstall borders >/dev/null 2>&1 || true
+    fi
+    echo "==> Compilando dotborder..."
+    if "$DOTFILES_DIR/tools/dotborder/scripts/bundle.sh" "$HOME/Applications" >/dev/null; then
+      agent="$HOME/Library/LaunchAgents/dev.dotfiles.dotborder.plist"
+      mkdir -p "$(dirname "$agent")"
+      printf '%s\n' \
+        '<?xml version="1.0" encoding="UTF-8"?>' \
+        '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+        '<plist version="1.0">' \
+        '<dict>' \
+        '  <key>Label</key><string>dev.dotfiles.dotborder</string>' \
+        "  <key>ProgramArguments</key><array><string>$HOME/Applications/dotborder.app/Contents/MacOS/dotborder</string><string>active_color=0xccb48efa</string><string>width=2.0</string></array>" \
+        "  <key>EnvironmentVariables</key><dict><key>PATH</key><string>$BREW_PREFIX/bin:/usr/bin:/bin</string></dict>" \
+        '  <key>RunAtLoad</key><true/>' \
+        '  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>' \
+        '  <key>ProcessType</key><string>Interactive</string>' \
+        '  <key>LimitLoadToSessionType</key><string>Aqua</string>' \
+        '</dict>' \
+        '</plist>' >"$agent"
+      launchctl bootout "gui/$(id -u)/dev.dotfiles.dotborder" 2>/dev/null || true
+      launchctl bootstrap "gui/$(id -u)" "$agent" ||
+        echo "  [AVISO] dotborder no arrancó; ábrelo con: open ~/Applications/dotborder.app"
+    else
+      echo "  [AVISO] dotborder no compiló (¿faltan las Command Line Tools?)."
     fi
   fi
 

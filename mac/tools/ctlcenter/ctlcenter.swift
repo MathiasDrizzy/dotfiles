@@ -160,7 +160,7 @@ func pressMenuExtra(of bundleID: String) -> Bool {
     return AXUIElementPerformAction(item, kAXPressAction as CFString) == .success
 }
 
-let hiddenFromBackdrop: Set<String> = ["sketchybar", "borders"]
+let hiddenFromBackdrop: Set<String> = ["sketchybar", "borders", "dotborder"]
 
 // What the screen shows behind the bar: the bar's own windows (and the focus border) are left out of the capture.
 func saveBackdrop(to path: String, height: CGFloat) async throws -> CGFloat {

@@ -4,3 +4,6 @@
 [submodule "mac/tools/dotbar"]
 	path = mac/tools/dotbar
 	url = https://github.com/MathiasDrizzy/dotbar
+[submodule "mac/tools/dotborder"]
+	path = mac/tools/dotborder
+	url = https://github.com/MathiasDrizzy/dotborder
