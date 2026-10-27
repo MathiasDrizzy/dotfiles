@@ -87,14 +87,13 @@ type = "plugin_action"
 command = "lazyfinder.toggle"
 description = "toggle lazyfinder sidebar"
 
-# terminal: scratchpad interactivo flotante en popup (cerrar con Esc, Ctrl+D o exit)
+# terminal: scratchpad provisorio (cerrar con Esc, Ctrl+D o exit). Es un pane temporal de herdr y no un popup: un popup no es
+# un pane (herdr lo trata como recurso de sesión), así que no se podía copiar ni pegar en él; un pane sí (copy mode, mouse, pegado).
 [[keys.command]]
 key = "prefix+t"
-type = "popup"
+type = "pane"
 command = "/Users/drizzy/.local/bin/terminal-popup"
-description = "terminal popup (scratchpad)"
-width = "85%"
-height = "80%"
+description = "terminal provisoria (scratchpad)"
 
 # cheatsheet: atajos de herdr y herramientas del entorno (ctrl+b h)
 [[keys.command]]
