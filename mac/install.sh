@@ -154,6 +154,9 @@ REQUIRED_SOURCES=(
   "config/herdr-auto-title/config.env"
   "config/aerospace/aerospace.toml"
   "config/micro/settings.json"
+  "config/micro/bindings.json"
+  "config/micro/cheatsheet.md"
+  "config/micro/colorschemes/dotfiles-mocha.micro"
   "config/starship/starship.toml"
   "config/termscp/config.toml"
   "config/termscp/theme.toml"
@@ -195,12 +198,10 @@ fi
 
 if [ "$LINKS_ONLY" = false ]; then
 
-  # 7. Tema Catppuccin Mocha para micro y btop
+  # 7. Tema Catppuccin Mocha para btop (el de micro vive en el repo: config/micro/colorschemes, con el fondo del terminal)
   if [ "$DRY_RUN" = true ]; then
-    echo "  [DRY-RUN] Validación de descargas de temas Catppuccin Mocha"
+    echo "  [DRY-RUN] Validación de la descarga del tema Catppuccin Mocha de btop"
   else
-    curl -fsSL https://raw.githubusercontent.com/catppuccin/micro/main/themes/catppuccin-mocha.micro \
-      -o "$HOME/.config/micro/colorschemes/catppuccin-mocha.micro" 2>/dev/null || true
     curl -fsSL https://raw.githubusercontent.com/catppuccin/btop/main/themes/catppuccin_mocha.theme \
       -o "$HOME/.config/btop/themes/catppuccin_mocha.theme" 2>/dev/null || true
   fi

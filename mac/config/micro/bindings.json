@@ -1,0 +1,4 @@
+{
+    "Ctrl-g": "command:tab ~/.config/micro/cheatsheet.md",
+    "F1": "command:tab ~/.config/micro/cheatsheet.md"
+}

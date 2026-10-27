@@ -240,7 +240,7 @@ scenario() { # scenario <titulo> <home con o sin espacios> <repo con o sin espac
   check "brew install --cask de aerospace registrado" 'grep -q "^brew install --cask nikitabobko/tap/aerospace" "$B/logs/brew.log"'
   check "la config de aerospace quedó enlazada al repo" '[ -L "$H/.config/aerospace/aerospace.toml" ] && [ -e "$H/.config/aerospace/aerospace.toml" ]'
   check "rustup default stable registrado" 'grep -q "^rustup default stable" "$B/logs/rustup.log"'
-  check "se descargaron los 2 temas (curl stub)" '[ "$(grep -c "^curl " "$B/logs/curl.log")" = 2 ] && [ -f "$H/.config/micro/colorschemes/catppuccin-mocha.micro" ]'
+  check "se descargó el tema de btop (curl stub) y el de micro es el del repo, enlazado" '[ "$(grep -c "^curl " "$B/logs/curl.log")" = 1 ] && [ -L "$H/.config/micro/colorschemes/dotfiles-mocha.micro" ]'
   check "plugin de herdr de lazyfinder instalado (herdr plugin install --yes MathiasDrizzy/lazyfinder)" \
     'grep -qx "herdr plugin install --yes MathiasDrizzy/lazyfinder" "$B/logs/herdr.log"'
   check "plugin de herdr Auto Title instalado con la versión fijada" \

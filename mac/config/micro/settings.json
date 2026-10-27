@@ -1,5 +1,5 @@
 {
-    "colorscheme": "catppuccin-mocha",
+    "colorscheme": "dotfiles-mocha",
     "truecolor": "on",
     "mouse": true,
     "softwrap": true,
@@ -7,5 +7,8 @@
     "ruler": true,
     "tabsize": 4,
     "tabstospaces": true,
-    "savecursor": true
+    "savecursor": true,
+    "basename": true,
+    "statusformatl": "$(filename) $(modified)",
+    "statusformatr": "$(line):$(col)  $(opt:filetype)  ·  ctrl-g ayuda"
 }
