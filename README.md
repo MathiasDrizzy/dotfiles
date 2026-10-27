@@ -10,7 +10,7 @@ dotfiles/
 │   ├── install.sh              # idempotent installer (--dry-run, --links-only)
 │   ├── zshrc / zshenv          # interactive shell and global PATH
 │   ├── config/                 # ghostty, herdr, aerospace, micro, starship, termscp, lazygit, lazydocker, btop, bat
-│   ├── scripts/                # check-links.sh, herdr-reload.sh, terminal-popup.sh
+│   ├── scripts/                # check-links.sh, herdr-reload.sh, scratchpad.sh
 │   └── tools/                  # herdr-ctl, dotbar (own repositories, submodules) and ctlcenter
 ├── scripts/
 │   ├── check-repo.sh           # public-repo hygiene, syntax, modes, TOML, config tests

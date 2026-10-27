@@ -21,3 +21,10 @@ window-padding-y = 16
 # Cmd+C: si Ghostty tiene una selección, la copia; si no (dentro de herdr la selección
 # es de herdr), reenvía Cmd+C a la app para que herdr copie su propia selección.
 keybind = performable:super+c=copy_to_clipboard
+
+# Scratchpad: a floating box in the middle of the screen (Ghostty's quick terminal). herdr's popups are not panes, so
+# nothing can be copied or pasted in them; this is a real terminal surface. herdr opens it with prefix+t (scratchpad.sh).
+quick-terminal-position = center
+quick-terminal-size = 85%,80%
+quick-terminal-animation-duration = 0.1
+quick-terminal-autohide = true

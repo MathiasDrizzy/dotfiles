@@ -87,13 +87,14 @@ type = "plugin_action"
 command = "lazyfinder.toggle"
 description = "toggle lazyfinder sidebar"
 
-# terminal: scratchpad provisorio (cerrar con Esc, Ctrl+D o exit). Es un pane temporal de herdr y no un popup: un popup no es
-# un pane (herdr lo trata como recurso de sesión), así que no se podía copiar ni pegar en él; un pane sí (copy mode, mouse, pegado).
+# terminal: scratchpad flotante (prefix+t). herdr no deja copiar ni pegar en sus popups (no son panes), así que abre la terminal
+# flotante de Ghostty (quick terminal, config de ghostty), que es una terminal de verdad. Se cierra con el mismo atajo en herdr,
+# con Ctrl+D, o al hacer clic fuera.
 [[keys.command]]
 key = "prefix+t"
-type = "pane"
-command = "/Users/drizzy/.local/bin/terminal-popup"
-description = "terminal provisoria (scratchpad)"
+type = "shell"
+command = "/Users/drizzy/.local/bin/scratchpad"
+description = "scratchpad (terminal flotante de Ghostty)"
 
 # cheatsheet: atajos de herdr y herramientas del entorno (ctrl+b h)
 [[keys.command]]

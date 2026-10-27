@@ -165,7 +165,7 @@ REQUIRED_SOURCES=(
   "zshenv"
   "scripts/check-links.sh"
   "scripts/herdr-reload.sh"
-  "scripts/terminal-popup.sh"
+  "scripts/scratchpad.sh"
 )
 
 for src in "${REQUIRED_SOURCES[@]}"; do
