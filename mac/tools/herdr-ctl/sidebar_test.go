@@ -31,7 +31,7 @@ func TestStatuslineTokensAreTheSessionsOwnData(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := s.paneTokens(sidebarNow)
-	want := map[string]string{"model": "opus 5.5", "ctx": "ctx 62%", "limits": "5h 51% · sem 61%"}
+	want := map[string]string{"model": "opus 5.5", "ctx": "ctx 62%", "limits5h": "5h 51%", "limitsWeek": "sem 61%"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("tokens = %v, want %v", got, want)
 	}
@@ -541,5 +541,33 @@ func TestTheWatcherLockSurvivesTheGarbageCollector(t *testing.T) {
 	if other, ok := lockWatcher(path); ok {
 		_ = other.Close()
 		t.Fatal("the lock was released once the file became unreachable")
+	}
+}
+
+func TestUsageTakesOneRowPerWindow(t *testing.T) {
+	// Both windows on one row were too long for the sidebar: each has its own token, so each its own row.
+	l := Limits{
+		FiveHour: Window{Percent: 98, ResetsAt: sidebarNow.Add(time.Hour).Unix()},
+		Week:     Window{Percent: 79, ResetsAt: sidebarNow.Add(48 * time.Hour).Unix()},
+	}
+	got := l.tokens(sidebarNow)
+	want := map[string]string{"limits5h": "5h 98% →" + time.Unix(l.FiveHour.ResetsAt, 0).In(sidebarNow.Location()).Format("15:04"), "limitsWeek": "sem 79% →" + spanishWeekdays[time.Unix(l.Week.ResetsAt, 0).In(sidebarNow.Location()).Weekday()]}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("tokens = %v, want %v", got, want)
+	}
+	if got := l.format(sidebarNow); got != want["limits5h"]+" · "+want["limitsWeek"] {
+		t.Fatalf("Claude's own line = %q", got)
+	}
+}
+
+func TestAnAgentReportCarriesItsTokensAndStateLabels(t *testing.T) {
+	got := agentReportParams("w2:p1", map[string]string{"ctx": "ctx 9%"}, []string{"limits"}, []string{"idle=libre", "working=trabajando"})
+	want := map[string]interface{}{
+		"pane_id": "w2:p1", "source": metadataSource,
+		"tokens":       map[string]interface{}{"ctx": "ctx 9%", "limits": nil},
+		"state_labels": map[string]interface{}{"idle": "libre", "working": "trabajando"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("params = %v, want %v", got, want)
 	}
 }

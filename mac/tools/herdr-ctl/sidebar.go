@@ -152,41 +152,57 @@ func (s Statusline) paneTokens(now time.Time) map[string]string {
 		tokens["ctx"] = fmt.Sprintf("ctx %d%%", int(math.Floor(*s.Context)))
 	}
 	if s.Limits != nil {
-		tokens["limits"] = s.Limits.format(now)
+		for k, v := range s.Limits.tokens(now) {
+			tokens[k] = v
+		}
 	}
 	return tokens
 }
 
 // text is what Claude Code shows in its own status line.
 func (s Statusline) text(now time.Time) string {
-	tokens := s.paneTokens(now)
 	parts := []string{}
-	for _, k := range []string{"model", "ctx", "limits"} {
-		if v := tokens[k]; v != "" {
-			parts = append(parts, v)
-		}
+	if s.Model != "" {
+		parts = append(parts, s.Model)
+	}
+	if s.Context != nil {
+		parts = append(parts, fmt.Sprintf("ctx %d%%", int(math.Floor(*s.Context))))
+	}
+	if s.Limits != nil {
+		parts = append(parts, s.Limits.format(now))
 	}
 	return strings.Join(parts, " · ")
 }
 
-// format is "5h 51% · sem 61%"; a window at 75% or more adds when it comes back (the hour, or the weekday for the
-// week), and a window whose reset time has passed is empty again.
-func (l Limits) format(now time.Time) string {
-	part := func(name string, w Window, when func(time.Time) string) string {
-		percent := int(math.Floor(w.Percent))
-		reset := time.Unix(w.ResetsAt, 0).In(now.Location())
-		if w.ResetsAt > 0 && !reset.After(now) {
-			percent = 0
-		}
-		text := fmt.Sprintf("%s %d%%", name, percent)
-		if percent >= limitsAlertPercent {
-			text += " →" + when(reset)
-		}
-		return text
+// window is "5h 51%"; a window at 75% or more adds when it comes back (the hour, or the weekday for the week), and a
+// window whose reset time has passed is empty again.
+func (w Window) text(name string, now time.Time, when func(time.Time) string) string {
+	percent := int(math.Floor(w.Percent))
+	reset := time.Unix(w.ResetsAt, 0).In(now.Location())
+	if w.ResetsAt > 0 && !reset.After(now) {
+		percent = 0
 	}
+	text := fmt.Sprintf("%s %d%%", name, percent)
+	if percent >= limitsAlertPercent {
+		text += " →" + when(reset)
+	}
+	return text
+}
+
+// tokens are the usage rows of an agent, one token per window: both on one row did not fit the sidebar.
+func (l Limits) tokens(now time.Time) map[string]string {
 	hour := func(t time.Time) string { return t.Format("15:04") }
 	day := func(t time.Time) string { return spanishWeekdays[t.Weekday()] }
-	return part("5h", l.FiveHour, hour) + " · " + part("sem", l.Week, day)
+	return map[string]string{
+		"limits5h":   l.FiveHour.text("5h", now, hour),
+		"limitsWeek": l.Week.text("sem", now, day),
+	}
+}
+
+// format is "5h 51% · sem 61%", the usage on Claude Code's own status line.
+func (l Limits) format(now time.Time) string {
+	t := l.tokens(now)
+	return t["limits5h"] + " · " + t["limitsWeek"]
 }
 
 func limitsCachePath() string {
@@ -250,6 +266,25 @@ func tokenArgs(tokens map[string]string) []string {
 	return args
 }
 
+// agentReportParams is an agent's report over the socket: its tokens (a name in clear is removed) and the labels of
+// its states ("idle=libre").
+func agentReportParams(pane string, set map[string]string, clear, labels []string) map[string]interface{} {
+	params := paneReportParams(pane, set, clear)
+	if len(labels) > 0 {
+		m := map[string]interface{}{}
+		for _, l := range labels {
+			if k, v, ok := strings.Cut(l, "="); ok {
+				m[k] = v
+			}
+		}
+		params["state_labels"] = m
+	}
+	return params
+}
+
+// obsoleteTokens are tokens earlier versions set that no row shows now: they are removed from each agent once.
+var obsoleteTokens = []string{"limits"}
+
 // paneReportArgs builds `herdr pane report-metadata`; herdr wants the pane id before the options.
 func paneReportArgs(pane string, tokens map[string]string, labels []string) []string {
 	args := append([]string{"pane", "report-metadata", pane, "--source", metadataSource}, tokenArgs(tokens)...)
@@ -288,18 +323,40 @@ func runStatusline(in io.Reader, out io.Writer) error {
 	}
 	now := time.Now()
 	// The agent shows the account's newest usage, not this session's last view of it.
+	changed := false
 	if s.Limits != nil {
+		old, hadOld := readLimits(limitsCachePath())
 		if newest, err := mergeLimits(limitsCachePath(), *s.Limits); err == nil {
 			s.Limits = &newest
+			changed = !hadOld || old != newest
 		}
 	} else if cached, ok := readLimits(limitsCachePath()); ok {
 		s.Limits = &cached
 	}
 	if pane := os.Getenv("HERDR_PANE_ID"); pane != "" {
-		_ = runHerdr(paneReportArgs(pane, s.paneTokens(now), labelsFor(s.Limits, now)))
+		_, _ = callRPC("pane.report_metadata", agentReportParams(pane, s.paneTokens(now), obsoleteTokens, labelsFor(s.Limits, now)))
+	}
+	// The usage is the account's: every agent shows a new reading at once, not at the watcher's next pass.
+	if changed {
+		broadcastUsage(*s.Limits, now)
 	}
 	_, err = fmt.Fprintln(out, s.text(now))
 	return err
+}
+
+// broadcastUsage reports the account's usage to every agent's pane. A failure leaves them to the watcher's next pass.
+func broadcastUsage(l Limits, now time.Time) {
+	resp, err := callRPC("pane.list", map[string]interface{}{})
+	if err != nil {
+		return
+	}
+	var list PaneListResult
+	if json.Unmarshal(resp.Result, &list) != nil {
+		return
+	}
+	for _, pane := range agentPanes(list.Panes) {
+		_, _ = callRPC("pane.report_metadata", agentReportParams(pane, l.tokens(now), obsoleteTokens, labelsFor(&l, now)))
+	}
 }
 
 // GitState is a space's repository: commits not pushed, files changed and the branch's last CI run.
@@ -647,9 +704,8 @@ func paneReportParams(pane string, set map[string]string, clear []string) map[st
 	return map[string]interface{}{"pane_id": pane, "source": metadataSource, "tokens": tokens}
 }
 
-// reportNameRPC sends a name report unless the same one already went out.
-func (s *syncer) reportNameRPC(key string, r nameReport) error {
-	params := paneReportParams(r.pane, r.set, r.clear)
+// reportRPC sends a report over the socket unless the same one already went out for the key.
+func (s *syncer) reportRPC(key string, params map[string]interface{}) error {
 	raw, _ := json.Marshal(params)
 	if s.reported(key, string(raw)) {
 		return nil
@@ -659,6 +715,10 @@ func (s *syncer) reportNameRPC(key string, r nameReport) error {
 	}
 	s.remember(key, string(raw))
 	return nil
+}
+
+func (s *syncer) reportNameRPC(key string, r nameReport) error {
+	return s.reportRPC(key, paneReportParams(r.pane, r.set, r.clear))
 }
 
 // names sends the name reports. A report that would change nothing is skipped, so a focus change costs two: the pane
@@ -718,11 +778,11 @@ func (s *syncer) pass(now time.Time) error {
 		}
 	}
 	if l, ok := readLimits(limitsCachePath()); ok {
-		text, labels := l.format(now), labelsFor(&l, now)
+		labels := labelsFor(&l, now)
 		// The labels too: an idle session's status line may not run again before its window resets.
 		for _, pane := range agentPanes(res.Panes) {
 			seen["pane "+pane] = true
-			if err := s.report("pane "+pane, paneReportArgs(pane, map[string]string{"limits": text}, labels)); err != nil {
+			if err := s.reportRPC("pane "+pane, agentReportParams(pane, l.tokens(now), obsoleteTokens, labels)); err != nil {
 				failures = append(failures, err.Error())
 			}
 		}

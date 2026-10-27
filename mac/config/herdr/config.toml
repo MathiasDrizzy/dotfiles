@@ -35,7 +35,8 @@ row_gap = 0
 rows = [
   ["state_icon", { token = "$aname_dim" }, { token = "$aname_hot", fg = "#cdd6f4", bold = true }, { token = "$model", dim = true }],
   ["state_text", "$ctx"],
-  [{ token = "$limits", dim = true }],
+  [{ token = "$limits5h", dim = true }],
+  [{ token = "$limitsWeek", dim = true }],
 ]
 
 [ui.sidebar.spaces]
